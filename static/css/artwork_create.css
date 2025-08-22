@@ -1,0 +1,137 @@
+:root {
+  --gold: #d4af37;
+  --bronze: #cd7f32;
+  --card-bg: #181818;
+  --card-border: #2c2c2c;
+  --text: #f5f5f5;
+  --bg-dark: #0a0a0a;
+  --input-bg: #111;
+  --radius: 12px;
+}
+
+body {
+  background: var(--bg-dark);
+  color: var(--text);
+  font-family: 'Inter', 'Roboto', sans-serif;
+  margin: 0;
+  padding: 0;
+}
+
+.container {
+  max-width: 540px;
+  margin: 70px auto 0;
+  padding: 40px 28px 36px;
+  background: linear-gradient(135deg, #181818 80%, #222 100%);
+  border-radius: var(--radius);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.32);
+}
+
+h1 {
+  color: var(--gold);
+  font-size: 2.2rem;
+  margin-bottom: 32px;
+  text-align: center;
+}
+
+/* Форма */
+form {
+  background: var(--card-bg);
+  border: 1.5px solid var(--card-border);
+  border-radius: var(--radius);
+  padding: 32px 22px 26px;
+  box-shadow: 0 3px 12px rgba(0,0,0,0.18);
+}
+
+/* Стили для {{ form.as_p }} — все p, label, input */
+form p {
+  margin-bottom: 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+form label {
+  color: var(--gold);
+  font-weight: 500;
+  margin-bottom: 3px;
+  letter-spacing: 0.02em;
+}
+
+form input[type="text"],
+form input[type="number"],
+form select,
+form textarea {
+  background: var(--input-bg);
+  color: var(--text);
+  border: 1.5px solid var(--card-border);
+  border-radius: 7px;
+  padding: 13px 12px;
+  font-size: 1em;
+  box-sizing: border-box;
+  outline: none;
+  transition: border 0.2s;
+}
+form input[type="text"]:focus,
+form input[type="number"]:focus,
+form select:focus,
+form textarea:focus {
+  border-color: var(--gold);
+}
+
+form .helptext,
+form small {
+  color: #bbb;
+  font-size: 0.92em;
+  margin-top: 4px;
+  font-style: italic;
+}
+
+/* Кнопки */
+.btn {
+  display: inline-block;
+  padding: 12px 30px;
+  border-radius: var(--radius);
+  border: none;
+  font-size: 1em;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s, box-shadow 0.2s;
+  margin-right: 16px;
+  margin-top: 12px;
+  margin-bottom: 6px;
+  box-shadow: 0 3px 10px rgba(0,0,0,0.15);
+  text-decoration: none;
+}
+
+.btn-primary {
+  background: var(--gold);
+  color: #111;
+}
+
+.btn-primary:hover {
+  background: var(--bronze);
+  color: #fff;
+}
+
+.btn-secondary {
+  background: transparent;
+  color: var(--gold);
+  border: 1.5px solid var(--gold);
+}
+
+.btn-secondary:hover {
+  background: var(--gold);
+  color: #111;
+}
+
+@media (max-width: 600px) {
+  .container {
+    padding: 8vw 2vw;
+  }
+  form {
+    padding: 5vw 2vw;
+  }
+  h1 {
+    font-size: 1.2rem;
+  }
+}

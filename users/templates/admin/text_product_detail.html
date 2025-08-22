@@ -1,0 +1,25 @@
+{% extends "admin/admin_base.html" %}
+{% load static %}
+
+{% block content %}
+  <h1>Детальный просмотр текста: {{ product.title }}</h1>
+  <p><strong>Автор:</strong> {{ product.owner.username }}</p>
+  <p><strong>Статус:</strong> {{ product.get_status_display }}</p>
+  <p><strong>Дата создания:</strong> {{ product.created_at|date:"d.m.Y H:i" }}</p>
+  <p><strong>Категория:</strong> {{ product.category.name }}</p>
+  <p><strong>Цена:</strong> {{ product.price }} {{ product.currency }}</p>
+  <hr>
+  <h2>Описание</h2>
+  <p>{{ product.description|linebreaksbr }}</p>
+  <hr>
+  <h2>Полное содержание</h2>
+  <div class="full-content">{{ full_content|linebreaksbr }}</div>
+  <hr>
+  {% if product.rejection_reason %}
+    <h3>Причина отклонения:</h3>
+    <p>{{ product.rejection_reason }}</p>
+  {% endif %}
+  <p>
+    <a href="{% url 'users_admin:review_text_products' %}">← Вернуться к списку</a>
+  </p>
+{% endblock %}

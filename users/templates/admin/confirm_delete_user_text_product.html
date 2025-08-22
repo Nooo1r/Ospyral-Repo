@@ -1,0 +1,22 @@
+{# users/templates/admin/confirm_delete_user_text_product.html #}
+{% extends "admin/admin_base.html" %}
+
+{% block title %}Подтверждение удаления{% endblock %}
+
+{% block content %}
+  <h1>Удаление текстового продукта</h1>
+
+  <h2>Предпросмотр контента</h2>
+  <div class="preview-text" style="padding:1em; border:1px solid #ccc; background:#f9f9f9; margin-bottom:1em;">
+    {{ full_content|linebreaks }}
+  </div>
+
+  <p>Вы уверены, что хотите удалить продукт «<strong>{{ product.title }}</strong>» (ID: {{ product.id }})?</p>
+  <form method="post">
+    {% csrf_token %}
+    <button type="submit" class="btn btn-danger">Да, удалить</button>
+    <a href="{% url 'users_admin:user_detail' user_id %}" class="btn btn-secondary">
+      Отмена
+    </a>
+  </form>
+{% endblock %}

@@ -1,0 +1,31 @@
+{% extends 'base.html' %}
+
+{% load static %}
+{% block content %}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Мои продукты</title>
+    <link rel="stylesheet" type="text/css" href="{% static 'styles.css' %}">
+</head>
+<body>
+    <h1>Мои продукты</h1>
+    <ul>
+        {% for product in products %}
+            <li>
+                Продукт: <strong>{{ product.title }}</strong> — Цена: {{ product.price }}
+                <a href="{% url 'delete_product' product.id %}">Удалить</a>
+            </li>
+        {% empty %}
+            <li>У вас еще нет продуктов.</li>
+        {% endfor %}
+    </ul>
+    <li><a href="{% url 'add_product' %}">Добавить новый продукт</a></li>
+    <li><a href="{% url 'dashboard' %}">Вернуться на панель управления</a></li>
+</body>
+</html>
+
+{% endblock %}

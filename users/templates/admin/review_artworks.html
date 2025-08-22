@@ -1,0 +1,22 @@
+{% extends "admin/admin_base.html" %}
+{% load static %}
+
+{% block content %}
+  <h1>Модерация: Артворки</h1>
+  {% if pending %}
+    <ul>
+      {% for art in pending %}
+        <li>
+          <strong>{{ art.title }}</strong> ({{ art.owner.username }})
+          [<a href="{% url 'users_admin:artwork_detail' art.id %}">Смотреть</a>]
+          &nbsp;|&nbsp;
+          <a href="{% url 'users_admin:approve_artwork' art_id=art.id %}">Одобрить</a>
+          &nbsp;|&nbsp;
+          <a href="{% url 'users_admin:reject_artwork' art_id=art.id %}">Отклонить</a>
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p>Нет артворков на рассмотрении.</p>
+  {% endif %}
+{% endblock %}

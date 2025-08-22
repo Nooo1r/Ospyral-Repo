@@ -1,0 +1,107 @@
+:root {
+  --bg-dark: #0a0a0a;
+  --card-bg: #181818;
+  --border: #2c2c2c;
+  --text: #f5f5f5;
+  --gold: #d4af37;
+  --bronze: #cd7f32;
+  --input-bg: #111;
+  --radius: 12px;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg-dark);
+  color: var(--text);
+  font-family: 'Inter', 'Segoe UI', sans-serif;
+}
+
+.container {
+  max-width: 820px;
+  margin: 60px auto;
+  padding: 0 24px;
+}
+
+h1 {
+  font-size: 2rem;
+  color: var(--gold);
+  margin-bottom: 12px;
+}
+
+.category {
+  font-size: 0.95rem;
+  color: #aaa;
+  margin-bottom: 20px;
+  border-left: 4px solid var(--gold);
+  padding-left: 12px;
+}
+
+.description {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 24px;
+  font-size: 1rem;
+  color: #ddd;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+}
+
+.note-warning {
+  margin-top: 30px;
+  background: #2c1a1a;
+  color: #f0d5b7;
+  padding: 20px;
+  border-left: 4px solid var(--bronze);
+  border-radius: var(--radius);
+}
+
+.block {
+  margin-top: 40px;
+}
+
+.block h2 {
+  font-size: 1.2rem;
+  color: var(--gold);
+  margin-bottom: 12px;
+}
+
+.price {
+  font-size: 1.1rem;
+  font-weight: bold;
+  color: var(--gold);
+}
+
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.tag {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  color: var(--gold);
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 0.9rem;
+}
+
+.btn-buy {
+  margin-top: 16px;
+  padding: 12px 24px;
+  background: var(--gold);
+  color: #111;
+  font-weight: bold;
+  font-size: 1rem;
+  border: none;
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.btn-buy:hover {
+  background: var(--bronze);
+  color: #fff;
+}

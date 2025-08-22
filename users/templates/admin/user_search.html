@@ -1,0 +1,44 @@
+{# users/templates/admin/user_search.html #}
+{% extends "admin/admin_base.html" %}
+
+{% block title %}Поиск пользователей{% endblock %}
+
+{% block content %}
+  <h1>Поиск пользователей</h1>
+
+  <form method="get" class="search-form">
+    <input type="text" name="q" value="{{ q }}" placeholder="Имя или email" />
+    <button type="submit">Найти</button>
+  </form>
+
+  <table class="table">
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Пользователь</th>
+        <th>Email</th>
+        <th>Статус</th>
+        <th>Действия</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for user in users %}
+        <tr>
+          <td>{{ user.id }}</td>
+          <td>{{ user.username }}</td>
+          <td>{{ user.email }}</td>
+          <td>
+            {% if user.is_active %}Активен{% else %}Заблокирован{% endif %}
+          </td>
+          <td>
+            <a href="{% url 'users_admin:user_detail' user.id %}">Просмотр</a>
+          </td>
+        </tr>
+      {% empty %}
+        <tr>
+          <td colspan="5">Пользователи не найдены.</td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% endblock %}

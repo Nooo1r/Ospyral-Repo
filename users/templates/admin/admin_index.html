@@ -1,0 +1,30 @@
+{# users/templates/admin/admin_index.html #}
+{% extends "admin/admin_base.html" %}
+{% load static %}
+
+{% block title %}Панель модерации – Добро пожаловать{% endblock %}
+
+{% block content %}
+  <h1>Панель модерации</h1>
+  <p>Выберите раздел для работы:</p>
+  <ul class="admin-welcome-list">
+    <li>
+      <a href="{% url 'users_admin:review_text_products' %}">
+        <strong>Модерация текстовых продуктов</strong>
+      </a><br>
+      Просмотреть все товары в статусе «На рассмотрении».
+    </li>
+    <li>
+      <a href="{% url 'users_admin:review_artworks' %}">
+        <strong>Модерация артворков</strong>
+      </a><br>
+      Просмотреть все изображения в статусе «На рассмотрении».
+    </li>
+    <li>
+      <a href="{% url 'users_admin:user_search' %}">
+        <strong>Поиск пользователей</strong>
+      </a><br>
+      Найти и управлять пользовательскими аккаунтами.
+    </li>
+  </ul>
+{% endblock %}

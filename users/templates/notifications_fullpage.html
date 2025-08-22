@@ -1,0 +1,11 @@
+<h1>Уведомления</h1>
+<ul>
+  {% for n in notifications %}
+    <li>
+      <a href="{{ n.link }}">{{ n.message }}</a>
+      <span>{{ n.created_at|date:"d.m.Y H:i" }}</span>
+    </li>
+  {% empty %}
+    <p>Нет уведомлений.</p>
+  {% endfor %}
+</ul>

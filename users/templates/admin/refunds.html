@@ -1,0 +1,15 @@
+{% extends 'admin/admin_base.html' %}
+{% block title %}Жалобы на возврат{% endblock %}
+{% block content %}
+<h2>Жалобы на возврат</h2>
+<ul>
+  {% for refund in refunds %}
+    <li>
+      {{ refund }} —
+      <a href="{% url 'users_admin:resolve_refund' refund.id %}">Рассмотреть</a>
+    </li>
+  {% empty %}
+    <p>Нет жалоб на рассмотрение.</p>
+  {% endfor %}
+</ul>
+{% endblock %}

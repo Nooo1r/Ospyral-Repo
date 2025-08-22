@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 50">
+  <a href="/register">
+
+    <rect x="10" y="5" width="160" height="40" rx="20" fill="#E2E2E2"/>
+    <text x="90" y="30" font-family="Roboto" font-size="18" fill="black" text-anchor="middle" alignment-baseline="middle">Регистрация</text>
+  </a>
+</svg>

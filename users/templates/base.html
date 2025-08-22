@@ -1,0 +1,133 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <title>{% block title %}Ospyral{% endblock %}</title>
+  <link rel="stylesheet" href="{% static 'css/base.css' %}">
+  <link rel="stylesheet" href="{% static 'css/sidebar.css' %}">
+  {% block extra_head %}{% endblock %}
+  {% block extra_css %}{% endblock %}
+</head>
+<body class="{% block body_class %}{% endblock %}">
+
+  {# Уведомления — отдельный инклюд #}
+  {% include "partials/notifications.html" %}
+
+  <div class="app-container">
+    {# Сайдбар — общий для всех страниц #}
+    {% include "partials/sidebar.html" %}
+
+    <main class="app-content">
+      {% block content %}{% endblock %}
+    </main>
+  </div>
+
+  {# Модалка выхода — одна на всё приложение #}
+  {% include "partials/logout_modal.html" %}
+
+  {% block extra_js %}{% endblock %}
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const sidebar = document.getElementById('sidebar');
+  const toggle  = document.getElementById('menu-toggle');
+  const logo    = document.querySelector('.rotating-icon');
+  if (!toggle || !sidebar) return;
+
+  // Порог «близости» к кнопке (от правого края и по вертикали — вокруг центра)
+  const PROX_X = 120;
+  const PROX_Y = 140;
+
+  let needEval = false, lastX = 0, lastY = 0;
+
+  // Показ/скрытие по клику
+  toggle.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const expanded = toggle.getAttribute('aria-expanded') === 'true';
+    toggle.setAttribute('aria-expanded', String(!expanded));
+    sidebar.classList.toggle('active');
+
+    // Однократное вращение логотипа при клике
+    if (logo) { logo.classList.remove('spin-once'); void logo.offsetWidth; logo.classList.add('spin-once'); }
+
+    // Когда меню открыто — держим кнопку видимой
+    if (sidebar.classList.contains('active')) {
+      toggle.classList.add('menu-toggle--visible');
+    }
+  });
+
+  // Подсматривание за курсором — только возле правого края и около вертикального центра
+  function evaluate() {
+    needEval = false;
+    const nearRight   = (window.innerWidth - lastX) <= PROX_X;
+    const nearCenterY = Math.abs(lastY - window.innerHeight / 2) <= PROX_Y;
+
+    if (nearRight && nearCenterY) {
+      toggle.classList.add('menu-toggle--visible');
+    } else if (!sidebar.classList.contains('active') && toggle.getAttribute('aria-expanded') !== 'true') {
+      toggle.classList.remove('menu-toggle--visible');
+    }
+  }
+
+  document.addEventListener('mousemove', (e) => {
+    lastX = e.clientX; lastY = e.clientY;
+    if (!needEval) { needEval = true; requestAnimationFrame(evaluate); }
+  });
+
+  // Держим видимой при наведении/фокусе
+  toggle.addEventListener('mouseenter', () => toggle.classList.add('menu-toggle--visible'));
+  toggle.addEventListener('mouseleave', () => {
+    if (!sidebar.classList.contains('active') && toggle.getAttribute('aria-expanded') !== 'true') {
+      const nearRight   = (window.innerWidth - lastX) <= PROX_X;
+      const nearCenterY = Math.abs(lastY - window.innerHeight / 2) <= PROX_Y;
+      if (!(nearRight && nearCenterY)) toggle.classList.remove('menu-toggle--visible');
+    }
+  });
+  toggle.addEventListener('focus', () => toggle.classList.add('menu-toggle--visible'));
+  toggle.addEventListener('blur',  () => {
+    if (!sidebar.classList.contains('active')) toggle.classList.remove('menu-toggle--visible');
+  });
+
+  // Клик вне/ESC — закрыть и спрятать кнопку
+  document.addEventListener('click', (e) => {
+    if (!sidebar.contains(e.target) && !toggle.contains(e.target)) {
+      sidebar.classList.remove('active');
+      toggle.setAttribute('aria-expanded', 'false');
+      toggle.classList.remove('menu-toggle--visible');
+    }
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      sidebar.classList.remove('active');
+      toggle.setAttribute('aria-expanded', 'false');
+      toggle.classList.remove('menu-toggle--visible');
+    }
+  });
+
+  // Тач: коротко подсветить кнопку тапом у правого края
+  let hideTimer;
+  document.addEventListener('touchstart', (e) => {
+    const t = e.touches[0]; if (!t) return;
+    const nearRight = (window.innerWidth - t.clientX) <= 30;
+    if (nearRight) {
+      toggle.classList.add('menu-toggle--visible');
+      clearTimeout(hideTimer);
+      hideTimer = setTimeout(() => {
+        if (!sidebar.classList.contains('active')) toggle.classList.remove('menu-toggle--visible');
+      }, 2500);
+    }
+  }, {passive:true});
+
+  const flashes = document.querySelectorAll('.flash-container .flash');
+  flashes.forEach(el => {
+    // скрыть по клику
+    el.addEventListener('click', () => el.remove());
+    // авто-сокрытие через 4.5с
+    setTimeout(() => { el.remove(); }, 4500);
+  });
+});
+</script>
+
+</body>
+</html>

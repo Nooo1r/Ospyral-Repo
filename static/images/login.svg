@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 140 50">
+  <a href="/login">
+    <rect x="10" y="5" width="120" height="40" rx="20" fill="#FFB246"/>
+    <text x="70" y="30" font-family="Roboto" font-size="18" fill="white" text-anchor="middle" alignment-baseline="middle">Войти</text>
+  </a>
+</svg>

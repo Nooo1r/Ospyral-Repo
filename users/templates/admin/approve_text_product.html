@@ -1,0 +1,25 @@
+{% extends "admin/admin_base.html" %}
+{% block title %}Утверждение продукта{% endblock %}
+{% block content %}
+
+<p>Автор: {{ product.owner.username }} | Создано: {{ product.created_at|date:"d.m.Y H:i" }}</p>
+<div class="product-description">{{ product.description|linebreaks }}</div>
+<div class="product-content">{{ product.decrypt_content|linebreaks }}</div>
+
+<form method="post">
+  {% csrf_token %}
+  <div>
+    <label>Качество (0–100):</label>
+    <input type="number" name="quality"   min="0" max="100" value="{{ product.quality|default_if_none:'0' }}" required>
+  </div>
+  <div>
+    <label>Уникальность (0–100):</label>
+    <input type="number" name="uniqueness" min="0" max="100" value="{{ product.uniqueness|default_if_none:'0' }}" required>
+  </div>
+  <div>
+    <label>Правописание (0–100):</label>
+    <input type="number" name="spelling"   min="0" max="100" value="{{ product.spelling|default_if_none:'0' }}" required>
+  </div>
+  <button type="submit" class="btn-save">Утвердить</button>
+</form>
+{% endblock %}

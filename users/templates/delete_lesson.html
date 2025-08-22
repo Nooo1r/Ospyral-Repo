@@ -1,0 +1,39 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Удалить урок</title>
+  <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+</head>
+<body>
+  <header class="header">
+    <div class="header-logo">
+      <img src="{% static 'images/logo.svg' %}" alt="Логотип" class="logo">
+    </div>
+    <div class="header-actions">
+      <span class="user-name">{{ user.username }}</span>
+      <a href="{% url 'logout' %}" class="btn btn-logout">Выйти</a>
+    </div>
+  </header>
+
+  <div class="dashboard">
+    <aside class="sidebar">
+      <nav class="menu-items">
+        <a href="{% url 'lesson_list' %}" class="sidebar-link">Уроки</a>
+      </nav>
+    </aside>
+
+    <main class="content">
+      <h1>Удалить урок: {{ lesson.title }}</h1>
+      <p>Вы уверены, что хотите удалить этот урок?</p>
+      <form method="post">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-danger">Да, удалить</button>
+        <a href="{% url 'lesson_list' %}" class="btn btn-cancel">Отмена</a>
+      </form>
+    </main>
+  </div>
+</body>
+</html>

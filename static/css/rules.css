@@ -1,0 +1,20 @@
+.rules-toc {
+  background: #fafafa;
+  border: 1px solid #ddd;
+  padding: 10px;
+  margin-bottom: 20px;
+}
+.rules-toc ul {
+  list-style: none;
+  padding-left: 0;
+}
+.rules-toc li {
+  margin: 4px 0;
+}
+.rules-toc a {
+  text-decoration: none;
+  color: #007BFF;
+}
+.rules-toc a:hover {
+  text-decoration: underline;
+}

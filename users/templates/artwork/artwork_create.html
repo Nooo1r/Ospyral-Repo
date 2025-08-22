@@ -1,0 +1,74 @@
+{% load static %}
+{% load widget_tweaks %}
+{% block content %}
+<link rel="stylesheet" href="{% static 'css/artwork_create.css' %}">
+
+<div class="container" style="max-width: 800px; margin: 40px auto; background: #1a1a1a; padding: 32px; border-radius: 16px; box-shadow: 0 0 10px rgba(0,0,0,0.5);">
+  <h1 style="margin-bottom: 24px; text-align: center; color: #fff;">Создать новый артворк</h1>
+
+  <form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    <div class="form-fields" style="display: flex; flex-direction: column; gap: 16px;">
+      {{ form.non_field_errors }}
+      {% for field in form.visible_fields %}
+        {% if field.name == 'nsfw' %}
+          <div style="display: flex; flex-direction: column;">
+            <div style="display: flex; align-items: center; gap: 10px;">
+              {{ field }}<label for="{{ field.id_for_label }}" style="margin: 0; font-weight: bold; color: #facc15;">NSFW</label>
+            </div>
+            <div id="nsfw-warning" style="display: none; color: #f87171; font-size: 0.9rem; margin-top: 8px; padding-left: 28px;">
+              ❗ Артворк содержит откровенный контент. Не забудьте добавить цензуру при загрузке страниц.
+            </div>
+          </div>
+        {% else %}
+          <div style="display: flex; flex-direction: column;">
+            {% if field.name == 'original_image' %}
+              <label for="{{ field.id_for_label }}">Обложка:</label>
+            {% else %}
+              {{ field.label_tag }}
+            {% endif %}
+
+            {% if field.name == 'description' %}
+              {{ field|add_class:"no-resize" }}
+            {% else %}
+              {{ field }}
+            {% endif %}
+          </div>
+        {% endif %}
+      {% endfor %}
+    </div>
+
+    <div style="margin-top: 24px; display: flex; justify-content: space-between;">
+      <button type="submit" class="btn btn-primary" style="padding: 10px 24px; background: #10b981; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold;">
+        Сохранить и перейти к загрузке страниц
+      </button>
+      <a href="{% url 'artwork_detail' 0 %}" class="btn btn-secondary" style="padding: 10px 24px; background: #374151; color: white; border-radius: 8px; text-decoration: none;">Отмена</a>
+    </div>
+  </form>
+</div>
+
+<script>
+  const nsfwCheckbox = document.querySelector('#id_nsfw');
+  const warningBlock = document.querySelector('#nsfw-warning');
+
+  if (nsfwCheckbox && warningBlock) {
+    nsfwCheckbox.addEventListener('change', function(e) {
+      warningBlock.style.display = e.target.checked ? 'block' : 'none';
+    });
+    warningBlock.style.display = nsfwCheckbox.checked ? 'block' : 'none';
+  }
+
+  const priceInput = document.querySelector('#id_price');
+  if (priceInput) {
+    priceInput.setAttribute('maxlength', '10');
+    priceInput.setAttribute('inputmode', 'decimal');
+  }
+</script>
+
+<style>
+  textarea.no-resize {
+    resize: vertical !important;
+    max-height: 400px;
+  }
+</style>
+{% endblock %}

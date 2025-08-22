@@ -1,0 +1,274 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Цензура «{{ art.title }}»</title>
+  <link rel="stylesheet" href="{% static 'css/add_artwork.css' %}">
+  <!-- Если нужно, можно подключить отдельный CSS для модалки -->
+</head>
+<body>
+  <!-- HEADER и SIDEBAR, как в других шаблонах -->
+  <header class="header">
+    <!-- …ваш код шапки… -->
+  </header>
+
+  <div class="dashboard">
+    <aside class="sidebar">
+      <!-- …навигация… -->
+    </aside>
+    <main class="content">
+      <h1>Цензура артворка «{{ art.title }}»</h1>
+      <form method="post">
+        {% csrf_token %}
+        {{ form.censored_areas }}  {# Скрытое поле для JSON-координат #}
+
+        <div id="pages-container" class="pages-container">
+          {% for page in pages %}
+            <div class="page-tile"
+                 data-page-id="{{ page.id }}"
+                 data-original-url="{{ page.image.url }}">
+              <img
+                src="{% if page.censored_image %}{{ page.censored_image.url }}{% else %}{{ page.image.url }}{% endif %}"
+                class="page-thumb"
+                data-img-type="{% if page.censored_image %}censored{% else %}original{% endif %}"
+              >
+              <button type="button" class="btn-censor">Цензура</button>
+            </div>
+          {% endfor %}
+        </div>
+
+        <button type="submit" class="btn btn-submit">Завершить цензуру и сохранить превью</button>
+      </form>
+    </main>
+  </div>
+
+  <!-- Подключаем Sortable.js, если нужно для перестановки, но на этапе цензуры это обычно не требуется -->
+  <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+
+  <!-- Модальное окно цензуры (Canvas) -->
+  <div id="censor-modal" class="modal" hidden>
+    <div class="modal-content">
+      <div class="canvas-wrapper">
+        <canvas id="censor-canvas"></canvas>
+        {# сюда динамически добавится <canvas id="overlay-canvas"> #}
+      </div>
+      <div class="controls">
+        <label>Инструмент:
+          <select id="brush-type">
+            <option value="blur">Размытие</option>
+            <option value="pixel">Пикселизация</option>
+          </select>
+        </label>
+        <label style="margin-left:15px;">Размер:
+          <input type="range" id="brush-size" min="5" max="200" value="50">
+        </label>
+        <button id="undo-censor" class="btn">Отменить действие</button>
+        <button id="save-censor" type="button" class="btn">Сохранить</button>
+        <button id="cancel-censor" type="button" class="btn">Отмена</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const pagesContainer = document.getElementById('pages-container');
+      const modal          = document.getElementById('censor-modal');
+      const canvas         = document.getElementById('censor-canvas');
+      const brushType      = document.getElementById('brush-type');
+      const brushSize      = document.getElementById('brush-size');
+      const saveBtn        = document.getElementById('save-censor');
+      const cancelBtn      = document.getElementById('cancel-censor');
+
+      let origCtx, overlayCtx, blurCanvas, activePageId, isDrawing = false;
+      let allAreas = {};  
+      // allAreas будет объектом вроде { '<page_id>': [ {x,y,w,h}, … ], … }
+
+      // 1) Навешиваем обработчик на все кнопки «Цензура»
+      pagesContainer.querySelectorAll('.page-tile').forEach(tile => {
+        const censorBtn = tile.querySelector('.btn-censor');
+        censorBtn.addEventListener('click', () => {
+          const thumb   = tile.querySelector('.page-thumb');
+          const imgType = thumb.getAttribute('data-img-type');
+          const imgUrl  = thumb.src;
+          const pageId  = tile.dataset.pageId;
+          openModal(imgUrl, pageId, imgType);
+        });
+      });
+
+      // 2) Открытие модалки и загрузка изображения в canvas
+      function openModal(imgUrl, pageId, imgType) {
+        activePageId = pageId;
+        modal.hidden = false;
+
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.onload = () => {
+          // устанавливаем размеры канвы
+          canvas.width  = img.width;
+          canvas.height = img.height;
+          origCtx = canvas.getContext('2d');
+          origCtx.drawImage(img, 0, 0);
+
+          // Создаём overlay-канву поверх базовой
+          let overlay = document.getElementById('overlay-canvas');
+          if (!overlay) {
+            overlay = document.createElement('canvas');
+            overlay.id = 'overlay-canvas';
+            const wrapper = canvas.parentNode;
+            wrapper.style.position = 'relative';
+            wrapper.appendChild(overlay);
+          }
+          overlay.width  = canvas.width;
+          overlay.height = canvas.height;
+          overlay.style.position   = 'absolute';
+          overlay.style.top        = '0';
+          overlay.style.left       = '0';
+          overlay.style.width      = '100%';
+          overlay.style.height     = '100%';
+          overlayCtx = overlay.getContext('2d');
+          overlayCtx.clearRect(0, 0, overlay.width, overlay.height);
+
+          // Готовим blurCanvas для размытия
+          blurCanvas = document.createElement('canvas');
+          blurCanvas.width  = img.width;
+          blurCanvas.height = img.height;
+          const bctx = blurCanvas.getContext('2d');
+          bctx.filter = 'blur(15px)';
+
+          const origForBlur = new Image();
+          origForBlur.crossOrigin = 'anonymous';
+          if (imgType === 'censored') {
+            // если уже есть цензурная версия, берём оригинал из data-original-url
+            const originalUrl = tile.dataset.originalUrl;
+            origForBlur.src = originalUrl;
+          } else {
+            origForBlur.src = imgUrl;
+          }
+          origForBlur.onload = () => {
+            bctx.drawImage(origForBlur, 0, 0);
+            enableDrawing(overlay);
+          };
+        };
+        img.src = imgUrl;
+      }
+
+      // 3) Включаем отслеживание движения мыши и отрисовку размытия / пикселизации
+      function enableDrawing(overlay) {
+        isDrawing = false;
+        overlayCtx.clearRect(0, 0, overlay.width, overlay.height);
+
+        overlay.addEventListener('mousedown', startDraw);
+        overlay.addEventListener('mousemove', draw);
+        overlay.addEventListener('mouseup', endDraw);
+        overlay.addEventListener('mouseleave', endDraw);
+      }
+
+      function startDraw(e) {
+        isDrawing = true;
+        overlayCtx.strokeStyle = (brushType.value === 'blur') ? 'rgba(0,0,0,0)' : '#000';
+        overlayCtx.lineWidth   = parseInt(brushSize.value, 10);
+        overlayCtx.beginPath();
+        overlayCtx.moveTo(e.offsetX, e.offsetY);
+      }
+
+      function draw(e) {
+        if (!isDrawing) return;
+        overlayCtx.lineTo(e.offsetX, e.offsetY);
+        overlayCtx.stroke();
+
+        if (brushType.value === 'blur') {
+          // Рисуем размытие с помощью blurCanvas
+          const size = parseInt(brushSize.value, 10);
+          const x = e.offsetX - size / 2;
+          const y = e.offsetY - size / 2;
+          // Берём из blurCanvas блок размером size×size
+          const blurredRegion = blurCanvas.getContext('2d').getImageData(x, y, size, size);
+          origCtx.putImageData(blurredRegion, x, y);
+
+          // Запоминаем координаты в allAreas
+          if (!allAreas[activePageId]) allAreas[activePageId] = [];
+          allAreas[activePageId].push({ x: x, y: y, w: size, h: size });
+        }
+
+        if (brushType.value === 'pixel') {
+          // Пикселизация: рисуем чёрные прямоугольники на origCtx
+          const size = parseInt(brushSize.value, 10);
+          const x = e.offsetX - size / 2;
+          const y = e.offsetY - size / 2;
+          origCtx.fillStyle = '#000';
+          origCtx.fillRect(x, y, size, size);
+
+          // Запоминаем координаты
+          if (!allAreas[activePageId]) allAreas[activePageId] = [];
+          allAreas[activePageId].push({ x: x, y: y, w: size, h: size });
+        }
+      }
+
+      function endDraw(e) {
+        if (!isDrawing) return;
+        isDrawing = false;
+      }
+
+      // 4) Кнопка «Сохранить» — отправка изменённого DataURL на сервер (save_censored_page)
+      saveBtn.addEventListener('click', () => {
+        const dataURL = canvas.toDataURL();  // Получаем текущее содержимое канвы
+
+        fetch(`/artwork/page/${activePageId}/save/`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'X-CSRFToken': getCookie('csrftoken')
+          },
+          body: `editedImage=${encodeURIComponent(dataURL)}`
+        })
+        .then(res => res.json())
+        .then(data => {
+          if (data.success) {
+            // Обновляем <img> в соответствующем .page-tile
+            const tile = pagesContainer.querySelector(`.page-tile[data-page-id="${activePageId}"]`);
+            const thumb = tile.querySelector('.page-thumb');
+            thumb.src = data.url;
+            thumb.setAttribute('data-img-type', 'censored');
+            // Сохраняем data-original-url, если не было
+            if (!tile.dataset.originalUrl) {
+              tile.dataset.originalUrl = data.url; 
+            }
+          } else {
+            console.error('Ошибка при сохранении цензурного изображения');
+          }
+          modal.hidden = true;
+        })
+        .catch(err => {
+          console.error('Ошибка AJAX:', err);
+          modal.hidden = true;
+        });
+      });
+
+      cancelBtn.addEventListener('click', () => {
+        modal.hidden = true;
+      });
+
+      // 5) Сбор всех областей цензуры и отправка формы «Завершить цензуру»
+      const mainForm = document.querySelector('form');
+      mainForm.addEventListener('submit', e => {
+        // Вместо одного общего списка формируем JSON вида:
+        // [ { "page_id": <id>, "areas": [ {x,y,w,h}, … ] }, … ]
+        const result = [];
+        for (const [pageId, regions] of Object.entries(allAreas)) {
+          result.push({ page_id: pageId, regions: regions });
+        }
+        document.querySelector('input[name="censored_areas"]').value = JSON.stringify(result);
+        // далее форма отправляется, и в вьюхе censor_artwork мы сохраняем art.censored_areas = result
+      });
+
+      function getCookie(name) {
+        return document.cookie.split('; ')
+          .find(c => c.startsWith(name + '='))
+          .split('=')[1];
+      }
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head><meta charset="UTF-8"><title>Заблокирован</title></head>
+<body>
+  <div class="ban-banner">
+    <h1>Ваш аккаунт заблокирован</h1>
+    <p>Причина: {{ request.user.ban_reason }}</p>
+    {% if request.user.ban_until %}
+      <p>До: {{ request.user.ban_until|date:"d.m.Y H:i" }}</p>
+    {% else %}
+      <p>Срок блокировки: навсегда</p>
+    {% endif %}
+    <a href="{% url 'logout' %}">Выйти</a>
+  </div>
+</body>
+</html>

@@ -1,0 +1,40 @@
+{% load static %}
+
+{# users/templates/admin/admin_base.html #}
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>{% block title %}Администрация{% endblock %}</title>
+  <link rel="stylesheet" href="{% static 'css/admin.css' %}">
+</head>
+<body>
+  <header>
+    <h1>Панель администрации</h1>
+    <nav>
+      <a href="{% url 'users_admin:admin_index' %}"
+         class="{% if request.resolver_match.url_name == 'admin_index' %}active{% endif %}">
+        Главная
+      </a>
+      |
+      <a href="{% url 'users_admin:review_text_products' %}"
+         class="{% if request.resolver_match.url_name == 'review_text_products' %}active{% endif %}">
+        Текстовые продукты
+      </a>
+      |
+      <a href="{% url 'users_admin:review_artworks' %}"
+         class="{% if request.resolver_match.url_name == 'review_artworks' %}active{% endif %}">
+        Артворки
+      </a>
+      <a href="{% url 'users_admin:review_refunds' %}"
+        class="{% if request.resolver_match.url_name == 'review_refunds' %}active{% endif %}">
+        Жалобы на возврат
+      </a>
+    </nav>
+  </header>
+  <hr>
+  <main>
+    {% block content %}{% endblock %}
+  </main>
+</body>
+</html>

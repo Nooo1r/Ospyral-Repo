@@ -1,0 +1,107 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Профиль {{ visited_user.username }}</title>
+  <link rel="stylesheet" href="{% static 'css/profile.css' %}">
+  <style>
+    :root {
+      --profile-bg-color: {{ profile.background_color|default:'#3498db' }};
+    }
+    .profile-background {
+      background-color: var(--profile-bg-color);
+    }
+  </style>
+</head>
+<body>
+
+  <div class="profile-background"></div>
+
+  <div class="profile-wrapper">
+    <div class="profile-top-row">
+      <!-- Блок достижений -->
+      <div class="achievements-box">
+        <h3>Достижения</h3>
+        {% if achievements %}
+          <ul>
+            {% for achievement in achievements %}
+              <li>{{ achievement.name }}</li>
+            {% endfor %}
+          </ul>
+        {% else %}
+          <p>Нет разблокированных достижений.</p>
+        {% endif %}
+      </div>
+
+      <!-- Центральный блок профиля -->
+      <div class="center-box">
+        <img class="profile-avatar" src="{{ visited_user.profile_image_url }}" alt="Avatar" loading="lazy">
+        <div class="profile-details">
+          <p><strong>Имя пользователя:</strong> {{ visited_user.username }}</p>
+          <p><strong>Email:</strong> {{ visited_user.email }}</p>
+          <p><strong>Популярность:</strong> {{ popularity|default:"0" }}</p>
+        </div>
+      </div>
+
+      <!-- Блок подарков -->
+      <div class="gifts-box">
+        <h3>Подарки</h3>
+        {% if gifts %}
+          <ul>
+            {% for gift in gifts %}
+              <li>{{ gift.name }}</li>
+            {% endfor %}
+          </ul>
+        {% else %}
+          <p>Подарков пока нет.</p>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Продукция -->
+    <div class="personal-products">
+      <h3>Продукция пользователя</h3>
+
+      {% if text_products %}
+        <div class="product-category">
+          <h4>Текстовая продукция</h4>
+          <ul>
+            {% for tp in text_products %}
+              <li><a href="{% url 'view_text_product' tp.id %}">{{ tp.title }}</a></li>
+            {% endfor %}
+          </ul>
+        </div>
+      {% endif %}
+
+      {% if artworks %}
+        <div class="product-category">
+          <h4>Артворки</h4>
+          <ul>
+            {% for art in artworks %}
+              <li><a href="{% url 'view_artwork_public' art.id %}">{{ art.title }}</a></li>
+            {% endfor %}
+          </ul>
+        </div>
+      {% endif %}
+
+      {% if lessons %}
+        <div class="product-category">
+          <h4>Уроки</h4>
+          <ul>
+            {% for lesson in lessons %}
+              <li><a href="{% url 'lesson_detail' lesson.id %}">{{ lesson.title }}</a></li>
+            {% endfor %}
+          </ul>
+        </div>
+      {% endif %}
+
+      {% if not text_products and not artworks and not lessons %}
+        <p>У пользователя пока нет продуктов.</p>
+      {% endif %}
+    </div>
+  </div>
+
+</body>
+</html>

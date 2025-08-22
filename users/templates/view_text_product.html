@@ -1,0 +1,56 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>{{ product.title }}</title>
+    <link rel="stylesheet" href="{% static 'css/view_text_product.css' %}">
+</head>
+<body>
+  <div class="container">
+    <h1>{{ product.title }}</h1>
+    <p class="category">{{ product.get_category_display }}</p>
+    <p class="description">{{ product.description|default:"Без описания" }}</p>
+
+    <p class="author">
+    Автор:
+    <a href="{% url 'user_profile' product.owner.username %}" class="author-link">
+        {{ product.owner.username }}
+    </a>
+    </p>
+
+    {% if keywords %}
+    <section class="block">
+        <h2>Ключевые слова</h2>
+        <div class="tags">
+        {% for tag in keywords %}
+            <span class="tag">#{{ tag }}</span>
+        {% endfor %}
+        </div>
+    </section>
+    {% endif %}
+
+    <section class="block">
+      <h2>Стоимость</h2>
+      <p class="price">{{ product.price }} {{ product.get_currency_display }}</p>
+    </section>
+
+    {% if not can_view_content %}
+      <div class="note-warning">
+        <p>Вы видите только описание. Чтобы просмотреть содержимое, необходимо приобрести продукт.</p>
+        <form method="post" action="{% url 'buy_text_product' product.id %}">
+            {% csrf_token %}
+            <button type="submit" class="btn-buy">Приобрести за {{ product.price }} {{ product.get_currency_display }}</button>
+        </form>
+      </div>
+    {% else %}
+      <section class="block">
+        <h2>Содержимое</h2>
+        <div class="text-content">
+          <pre>{{ decrypted_content }}</pre>
+        </div>
+      </section>
+    {% endif %}
+  </div>
+</body>
+</html>

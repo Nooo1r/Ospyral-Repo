@@ -1,0 +1,18 @@
+{% extends 'admin/admin_base.html' %}
+{% block title %}Рассмотрение жалобы{% endblock %}
+{% block content %}
+<h2>Рассмотрение жалобы #{{ refund.id }}</h2>
+<p><strong>Пользователь:</strong> {{ refund.user.username }}</p>
+<p><strong>Тип заказа:</strong> {{ refund.get_order_type_display }}</p>
+<p><strong>Причина жалобы:</strong><br>{{ refund.reason }}</p>
+<hr>
+
+<form method="post">
+  {% csrf_token %}
+  <label for="moderator_comment">Комментарий модератора:</label><br>
+  <textarea name="moderator_comment" rows="4" style="width:100%">{{ refund.moderator_comment }}</textarea><br><br>
+
+  <button name="action" value="approve">✅ Одобрить жалобу (вернуть деньги)</button>
+  <button name="action" value="reject">❌ Отклонить жалобу (наказать пользователя)</button>
+</form>
+{% endblock %}

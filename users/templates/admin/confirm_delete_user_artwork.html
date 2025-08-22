@@ -1,0 +1,33 @@
+{# users/templates/admin/confirm_delete_user_artwork.html #}
+{% extends "admin/admin_base.html" %}
+{% block title %}Подтверждение удаления{% endblock %}
+
+{% block content %}
+  <h1>Удаление артворка</h1>
+
+  <h2>Предпросмотр артворка</h2>
+  <div class="preview-art" style="margin-bottom:1em;">
+    {% for page in pages %}
+      <div style="margin-bottom:0.5em;">
+        {% if page.censored_image %}
+          <img src="{{ page.censored_image.url }}" alt="Страница {{ forloop.counter }}" style="max-width:100%; height:auto; border:1px solid #ccc;" />
+        {% else %}
+          <img src="{{ page.image.url }}" alt="Страница {{ forloop.counter }}" style="max-width:100%; height:auto; border:1px solid #ccc;" />
+        {% endif %}
+      </div>
+    {% empty %}
+      {% if art.cover_image %}
+        <img src="{{ art.cover_image.url }}" alt="{{ art.title }}" style="max-width:100%; height:auto; border:1px solid #ccc;" />
+      {% else %}
+        <img src="{{ art.original_file.url }}" alt="{{ art.title }}" style="max-width:100%; height:auto; border:1px solid #ccc;" />
+      {% endif %}
+    {% endfor %}
+  </div>
+
+  <p>Вы уверены, что хотите удалить артворк «<strong>{{ art.title }}</strong>» (ID: {{ art.id }})?</p>
+  <form method="post">
+    {% csrf_token %}
+    <button type="submit" class="btn btn-danger">Да, удалить</button>
+    <a href="{% url 'users_admin:user_detail' user_id %}" class="btn btn-secondary">Отмена</a>
+  </form>
+{% endblock %}

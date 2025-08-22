@@ -1,0 +1,71 @@
+
+{% extends "base.html" %}
+{% load static %}
+
+{% block extra_css %}
+  <link rel="stylesheet" href="{% static 'css/wallets.css' %}">
+{% endblock %}
+
+{% block content %}
+<section class="deposit-instructions">
+  <h2>Пополнение OSP</h2>
+
+  {% if deposit_amount %}
+    <p><strong>Сумма:</strong> {{ deposit_amount }} OSP</p>
+  {% endif %}
+
+  <p><strong>Адрес эскроу‑контракта:</strong></p>
+  <pre class="address">{{ escrow_address }}</pre>
+
+  <p><strong>Memo/Reference:</strong></p>
+  <pre class="reference">{{ reference }}</pre>
+
+  <p>Сеть: ERC‑20</p>
+
+  <button id="pay-button" class="button">Оплатить через MetaMask</button>
+  <a href="{% url 'wallets' %}" class="button secondary">Отмена</a>
+</section>
+
+<script src="https://cdn.jsdelivr.net/npm/ethers/dist/ethers.min.js"></script>
+<script>
+  (async () => {
+    const payBtn = document.getElementById('pay-button')
+    // данные из Django-контекста
+    const escrowAddress  = "{{ escrow_address }}";
+    const contractABI    = {{ contract_abi|safe }};
+    const depositAmount  = "{{ deposit_amount }}";
+    const reference      = "{{ reference }}";
+    const tokenDecimals  = {{ token_decimals }};
+
+    payBtn.addEventListener('click', async () => {
+      try {
+        // Подключаем MetaMask
+        const provider = new ethers.providers.Web3Provider(window.ethereum);
+        await provider.send("eth_requestAccounts", []);
+        const signer = provider.getSigner();
+
+        // Создаём экземпляр контракта
+        const contract = new ethers.Contract(escrowAddress, contractABI, signer);
+
+        // Преобразуем сумму в wei‑подобные единицы
+        const amountWei = ethers.utils.parseUnits(depositAmount, tokenDecimals);
+
+        // Отправляем транзакцию: метод deposit(amount, reference)
+        const tx = await contract.deposit(amountWei, reference);
+        payBtn.disabled = true;
+        payBtn.textContent = 'Транзакция отправлена...';
+
+        // Ждём финального подтверждения (1 блок)
+        await tx.wait(1);
+
+        alert('Успех! TxHash: ' + tx.hash);
+        // Перезагружаем страницу, чтобы обновить баланс
+        window.location.href = "{% url 'wallets' %}";
+      } catch (err) {
+        console.error(err);
+        alert('Ошибка при оплате: ' + (err.message || err));
+      }
+    });
+  })();
+</script>
+{% endblock %}

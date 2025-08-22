@@ -1,0 +1,50 @@
+{% load static %}
+<link rel="stylesheet" href="{% static 'css/artwork_detail.css' %}">
+
+{% block content %}
+<div class="artwork-detail-wrapper">
+  <div class="artwork-header">
+    {% if artwork.original_image %}
+      <img src="{{ artwork.original_image.url }}" alt="{{ artwork.title }}" class="artwork-cover" />
+    {% endif %}
+    <div class="artwork-info">
+      <h1 class="title">{{ artwork.title }}</h1>
+      <div class="meta">
+        <p><span>Категория:</span> {{ artwork.get_category_display }}</p>
+        <p><span>Цена:</span> {{ artwork.price }} {{ artwork.get_currency_display }}</p>
+      </div>
+      <p class="description">{{ artwork.description|default:"Без описания." }}</p>
+      <div class="actions">
+        <a href="{% url 'artwork_pages' artwork.pk %}" class="btn btn-primary">Редактировать</a>
+        <a href="{% url 'dashboard' %}" class="btn btn-secondary">Удалить и выйти</a>
+        {% if pages %}
+          <form action="{% url 'submit_for_review' artwork.pk %}" method="post">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-approve">На модерацию</button>
+          </form>
+        {% else %}
+          <button class="btn btn-disabled" disabled>Добавьте хотя бы одну страницу</button>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <h2 class="section-title">Страницы</h2>
+  <div class="page-gallery">
+    {% for page in pages %}
+      <div class="page-card">
+        {% if page.censored_image %}
+          <img src="{{ page.censored_image.url }}" alt="Страница {{ page.order }}" />
+        {% elif page.image %}
+          <img src="{{ page.image.url }}" alt="Страница {{ page.order }}" />
+        {% else %}
+          <div class="no-image">Нет изображения</div>
+        {% endif %}
+        <div class="page-number">#{{ page.order }}</div>
+      </div>
+    {% empty %}
+      <p class="no-pages">Нет загруженных страниц.</p>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

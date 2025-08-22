@@ -1,0 +1,108 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/png" href="{% static 'images/favinspyral.png' %}">
+  <title>Главная страница</title>
+  <!-- Подключаем шрифты -->
+
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;700&display=swap" rel="stylesheet">
+
+
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet">
+
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+  <!-- Подключаем внешний файл стилей -->
+  <link rel="stylesheet" href="{% static 'css/home.css' %}">
+  <!-- Подключаем jQuery -->
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+</head>
+<body>
+
+  <!-- Шапка сайта -->
+  <header class="header">
+    <div class="header-logo"> 
+      <img src="{% static 'images/logo.svg' %}">
+    </div>
+    <!-- Кнопки регистрации и входа -->
+    <div class="header-buttons">
+      <a href="{% url 'login' %}" class="btn btn-login">Вход</a>
+      <a href="{% url 'register' %}" class="btn btn-register">Регистрация</a>
+    </div>
+    <!-- Дополнительные ссылки в шапке -->
+    <div class="header-links">
+      <a href="#security" class="header-link">Безопасность</a>
+      <a href="#description" class="header-link">Описание</a>
+      <a href="#about-us" class="header-link">О нас</a>
+    </div>
+  </header>
+
+
+  <section class="intro-section">
+    <div class="intro-content container">
+      <!-- Левый блок с описанием -->
+      <div class="intro-text">
+        <h2>Добро пожаловать в Ospyral</h2>
+        <p>
+          Это не просто сайт — это пространство, построенное на осознанности, намерении и дисциплине. Здесь нет хаоса социальных сетей, нет алгоритмов, гоняющихся за вниманием. Здесь всё подчинено смыслу.
+          Как галактика, мы выстраиваем орбиту вокруг центра — вокруг идеи. Каждая работа, каждый фрагмент знания, каждая концепция, представленная здесь, подаётся не случайно, а как элемент целостной интеллектуальной структуры.        
+        </p>
+      </div>
+      <!-- Правый блок с изображением -->
+      <div class="intro-image">
+        <img src="static/images/galaxy.png" alt="Золотая галактика">
+      </div>
+    </div>
+  </section>
+
+
+  <section class="second">
+    <div class="second-image">
+      <img src="static/images/gallery.png" alt="Галерея">
+    </div>
+    <div class="second-text">
+      <h2>На Ospyral вы создаёте, публикуете и монетизируете.</h2>
+      <p>Графика, тексты, исследования, гипотезы, концепции, обучающие материалы — всё, что несёт ценность, может быть представлено и продано.
+      Вы управляете не просто контентом — вы управляете вниманием, репутацией и восприятием.
+      </p>
+    </div>
+  </section>
+
+  <section class="third">
+    <div class="third-text">
+      <h2>Ospyral даёт вам архитектуру:</h2>
+      <p>• Где вы можете формализовать свои знания;<br>
+        • Где ваши мысли находят форму, а ваши формы — ценность;<br>
+        • Где публичность не обесценивает, а усиливает.<br>
+        
+        Это система, где ваши идеи не тонут в потоке, а становятся навигационными точками для других.<br>
+        Вы не просто создаёте — вы занимаетесь построением культурного и профессионального ландшафта нового поколения.</p>
+    </div> 
+    <div class="third-image">
+      <img src="static/images/pic001.png" alt="Платон">
+    </div>
+  </section>  
+
+  <section class="fourth">
+    <div class="fourth-image">
+      <img src="static/images/gallery.png" alt="Галерея">
+    </div>
+    <div class="fourth-text">
+      <h1>Мир не заметит молчаливого таланта. Ospyral — это инструмент, чтобы вас услышали.</h1>
+      <p>Не откладывайте. Не оправдывайтесь. Если внутри вас есть знание, замысел или талант — здесь место, где он приобретает силу действия.
+      </p>
+    </div>
+  </section>
+
+
+  <!-- Подвал сайта -->
+  <footer>
+    <p>© 2025 Название компании. Все права защищены.</p>
+  </footer>
+
+  <!-- Подключение внешнего скрипта для дополнительного функционала -->
+  <script src="{% static 'js/script.js' %}"></script>
+</body>
+</html>

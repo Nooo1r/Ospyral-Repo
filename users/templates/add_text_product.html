@@ -1,0 +1,533 @@
+{% load static %}
+{% load static widget_tweaks %}
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Добавить письменную продукцию</title>
+    <link rel="stylesheet" href="{% static 'css/add_text_product.css' %}">
+</head>
+<body>
+    <div class="dashboard">
+        <main class="content">
+            <h1>Новый письменный продукт</h1>
+            <form method="post" class="add-product-form">
+            {% csrf_token %}
+
+            <div class="form-group">
+              <label for="id_title">Название …</label>
+              {{ form.title|add_class:"" |attr:"aria-describedby=id_title_help id_title_err" }}
+              <small id="id_title_help">5–60 символов, уникально и понятно.</small>
+              {% if form.title.errors %}<div id="id_title_err" class="error">{{ form.title.errors.0 }}</div>{% endif %}
+            </div>
+
+            <div class="form-group">
+                <label for="id_description">
+                  Краткое описание
+                  <span class="tooltip-icon" data-tooltip="Опишите продукт так, чтобы заинтересовать читателя с первых слов."></span>
+                </label>
+                {{ form.description }}
+                {% if form.description.errors %}
+                    <div class="error">{{ form.description.errors.0 }}</div>
+                {% endif %}
+            </div>
+
+            <div class="form-group">
+                <label for="id_category">
+                  Категория
+                  <span class="tooltip-icon" data-tooltip="Выберите, к какому жанру или формату относится Ваш продукт."></span>
+                </label>
+                {{ form.category }}
+                <div id="nsfw-warning"
+                    class="warning-text"
+                    style="display:none;
+                            color: red;
+                            font-size: 0.9em;
+                            margin-top: 4px;">
+                  Внимание: вы выбрали NSFW-категорию. Убедитесь, что содержимое соответствует правилам.
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="id_currency">
+                  Валюта
+                  <span class="tooltip-icon" data-tooltip="Валюта, в которой вы хотите получить оплату."></span>
+                </label>
+                {{ form.currency }}
+            </div>
+
+            <div class="form-group">
+                <label for="id_price">
+                  Цена
+                  <span class="tooltip-icon" data-tooltip="Установите цену, соответствующую ценности материала."></span>
+                </label>
+                <div class="price-field">
+                {{ form.price }}
+                {% for error in form.price.errors %}
+                  <div class="text-danger">{{ error }}</div>
+                {% endfor %}
+                    <span id="currency-symbol" class="currency-symbol">$</span>
+                </div>
+                <div id="price-warning" class="warning-text" style="display:none;
+                    color: var(--bronze); font-size:0.9em; margin-top:4px;">
+                    Минимальная стоимость — 5 USDT.
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="id_keywords">
+                  Теги
+                  <span class="tooltip-icon" data-tooltip="Ключевые слова для поиска. Вводите через #, не более 10."></span>
+                </label>
+                {{ form.keywords }}
+                <small>Нажмите пробел, чтобы начать новый тег. Не более 10.</small>
+                <div id="tag-warning" class="warning-text" style="
+                    display:none;
+                    color:#cd7f32; 
+                    font-size:0.9em; 
+                    margin-top:4px;">
+                    Нельзя вводить более 10 тегов.
+                </div>
+                <div id="tag-length-warning" class="warning-text" style="
+                        display:none;
+                        color:#cd7f32;
+                        font-size:0.9em;
+                        margin-top:4px;">
+                    Каждый тег должен быть от 3 до 30 символов.
+                </div>
+                {% if form.keywords.errors %}
+                    <div class="error">{{ form.keywords.errors.0 }}</div>
+                {% endif %}
+            </div>
+
+
+            
+            <div class="form-group">
+                <label for="id_content">
+                  Содержание текста
+                  <span class="tooltip-icon" data-tooltip="Основной текст продукта. Используйте страницы для структуры."></span>
+                </label>
+                <textarea id="page-editor" class="page-text" rows="10" placeholder="Введите текст страницы..."></textarea>
+
+                <div class="page-controls">
+                    <button type="button" id="prev-page" class="btn btn-small">←</button>
+                    <span id="page-counter">Стр. 1 / 1</span>
+                    <button type="button" id="next-page" class="btn btn-small">→</button>
+                    <button type="button" id="add-page" class="btn btn-small">+</button>
+                    <button type="button" id="delete-page" class="btn btn-small danger">−</button>
+                </div>
+
+                <!-- Финальное поле, скрытое, где всё собирается -->
+                <input
+                  type="hidden"
+                  name="content"
+                  id="id_content"
+                  value="{{ form.content.value|default:'' }}"
+                >
+
+                <!-- Скрытое поле для числа страниц -->
+                <input
+                  type="hidden"
+                  name="pages"
+                  id="id_pages"
+                  value="{{ form.pages.value|default:'1' }}"
+                >
+
+                {% if form.pages.errors %}
+                  <div class="error">{{ form.pages.errors.0 }}</div>
+                {% endif %}
+            </div>
+
+
+            <div class="form-buttons">
+              <!-- Отправить на проверку -->
+              <button type="submit" name="submit_review" class="btn-save">
+                Сохранить и отправить на проверку
+              </button>
+              <!-- Сохранить как черновик -->
+              <button type="submit" name="save_later" class="btn-cancel">
+                Завершить позже
+              </button>
+            </div>
+            </form>
+        </main>
+    </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  // —————————————————————————
+  // ЭЛЕМЕНТЫ
+  // —————————————————————————
+  const editor       = document.getElementById("page-editor");
+  const counter      = document.getElementById("page-counter");
+  const contentField = document.getElementById("id_content");
+  const pagesField   = document.getElementById("id_pages");
+
+  const addBtn    = document.getElementById("add-page");
+  const deleteBtn = document.getElementById("delete-page");
+  const prevBtn   = document.getElementById("prev-page");
+  const nextBtn   = document.getElementById("next-page");
+
+  const priceInput     = document.getElementById('id_price');
+  const currencyRadios = document.querySelectorAll('input[name="currency"]');
+  const priceWarning   = document.getElementById("price-warning");
+  const currencySymbol = document.getElementById('currency-symbol');
+
+  const tagInput      = document.getElementById('id_keywords');
+  const tagWarn       = document.getElementById('tag-warning');
+  const tagLengthWarn = document.getElementById('tag-length-warning');
+
+  const form = document.querySelector('.add-product-form');
+
+
+  const categorySelect = document.getElementById('id_category');
+  const nsfwWarning   = document.getElementById('nsfw-warning');
+  // —————————————————————————
+  // 1) Инициализация массива страниц из скрытого поля
+  // —————————————————————————
+  const SEPARATOR = "\n\n---PAGEBREAK---\n\n";
+  let pages = [];
+  let current = 0;
+
+  // распакуем контент, если он есть
+  const initial = contentField.value || "";
+  if (initial.includes(SEPARATOR)) {
+    pages = initial.split(SEPARATOR);
+  } else {
+    pages = [ initial ];
+  }
+  // если вдруг пусто — заполнить хотя бы одну страницу
+  if (pages.length === 0) pages = [""];
+
+
+  // —————————————————————————
+  // 2) Функции обновления
+  // —————————————————————————
+  function updateContentField() {
+    contentField.value = pages.join(SEPARATOR);
+  }
+  function updatePagesField() {
+    pagesField.value = pages.length;
+  }
+  function updateEditor() {
+    editor.value        = pages[current];
+    counter.textContent = `Стр. ${current+1} / ${pages.length}`;
+    updateContentField();
+    updatePagesField();
+  }
+
+  // —————————————————————————
+  // 3) Обработчики для редактора
+  // —————————————————————————
+  editor.addEventListener("input", () => {
+    pages[current] = editor.value;
+    updateContentField();
+  });
+
+  addBtn.addEventListener("click", () => {
+    pages.splice(current+1, 0, "");
+    current++;
+    updateEditor();
+  });
+  deleteBtn.addEventListener("click", () => {
+    if (pages.length > 1) {
+      pages.splice(current, 1);
+      if (current >= pages.length) current = pages.length - 1;
+      updateEditor();
+    } else {
+      pages[0] = "";
+      updateEditor();
+    }
+  });
+  prevBtn.addEventListener("click", () => {
+    if (current>0) {
+      current--;
+      updateEditor();
+    }
+  });
+  nextBtn.addEventListener("click", () => {
+    if (current<pages.length-1) {
+      current++;
+      updateEditor();
+    }
+  });
+
+
+// —————————————————————————
+// Мелкая синхронизация с серверной валидацией страниц
+// —————————————————————————
+const pagesWarnId = 'pages-mismatch-warn';
+function syncPagesWarning() {
+  const actual = pages.length;
+  const declared = parseInt(pagesField.value || '1', 10);
+  let warn = document.getElementById(pagesWarnId);
+  if (!warn) {
+    warn = document.createElement('div');
+    warn.id = pagesWarnId;
+    warn.className = 'warning-text';
+    warn.style.cssText = 'color: #cd7f32; font-size: .9em; margin-top: 6px;';
+    pagesField.parentElement.appendChild(warn);
+  }
+  warn.style.display = (declared !== actual) ? 'block' : 'none';
+  warn.textContent = `Указано ${declared}, фактически ${actual}. Значение будет скорректировано.`;
+}
+
+['click','input'].forEach(ev => {
+  addBtn.addEventListener(ev, syncPagesWarning);
+  deleteBtn.addEventListener(ev, syncPagesWarning);
+  editor.addEventListener(ev, syncPagesWarning);
+});
+syncPagesWarning();
+
+
+  // —————————————————————————
+  // 4) Валидация цены и символ валюты
+  // —————————————————————————
+
+const currencySelectEl = document.getElementById('id_currency'); // на случай select
+
+function getCurrencyValue() {
+  // 1) Пытаемся взять отмеченное радио
+  const checked = document.querySelector('input[name="currency"]:checked');
+  if (checked && checked.value) return checked.value;
+
+  // 2) Если радио нет — берём value из select
+  if (currencySelectEl && currencySelectEl.value) return currencySelectEl.value;
+
+  // 3) Фолбэк
+  return 'USDT';
+}
+
+function validatePrice() {
+  if (!priceInput) return;
+  const price = parseFloat(priceInput.value);
+  const cur   = getCurrencyValue();
+  if ((cur === 'USDT' || cur === 'USD') && !isNaN(price) && price < 5) {
+    priceWarning.style.display = 'block';
+  } else {
+    priceWarning.style.display = 'none';
+  }
+}
+
+function updateCurrencySymbol() {
+  const cur = getCurrencyValue();
+  currencySymbol.textContent = (cur === 'USDT' || cur === 'USD') ? '$' : 'OSP';
+}
+
+if (priceInput) {
+  priceInput.addEventListener('input', validatePrice);
+}
+
+// Подписываемся и на радиокнопки, и на select (что бы ни отрендерил бекенд)
+currencyRadios.forEach(r => {
+  r.addEventListener('change', () => {
+    updateCurrencySymbol();
+    validatePrice();
+  });
+});
+if (currencySelectEl) {
+  currencySelectEl.addEventListener('change', () => {
+    updateCurrencySymbol();
+    validatePrice();
+  });
+}
+
+// Инициализация
+updateCurrencySymbol();
+validatePrice();
+
+// —————————————————————————
+// 5) Удобный ввод тегов + проверка длины и кол-ва
+// —————————————————————————
+
+// Функция для установки курсора на нужную позицию в поле ввода
+function setCaret(ctrl, pos) {
+  if (ctrl.setSelectionRange) {
+    ctrl.setSelectionRange(pos, pos);
+  } else if (ctrl.createTextRange) {
+    let range = ctrl.createTextRange();
+    range.collapse(true);
+    range.moveEnd('character', pos);
+    range.moveStart('character', pos);
+    range.select();
+  }
+}
+
+// При фокусе — если поле пустое, вставляем первый "#"
+tagInput.addEventListener('focus', () => {
+  if (!tagInput.value) {
+    tagInput.value = '#';
+    setCaret(tagInput, 1);
+  }
+});
+
+// Обработка нажатий
+tagInput.addEventListener('keydown', e => {
+  const pos = tagInput.selectionStart;
+  const raw = tagInput.value;
+
+  // Защита от удаления символа "#"
+  if (e.key === 'Backspace' && pos > 0 && raw[pos - 1] === '#') {
+    e.preventDefault();
+    const before = raw.slice(0, pos - 1);
+    const after = raw.slice(pos);
+    tagInput.value = before.slice(0, -1) + '#' + after;
+    setCaret(tagInput, before.length);
+    return;
+  }
+
+  // Новый тег по пробелу
+  if (e.key === ' ') {
+    const tags = raw.split('#').filter(t => t.trim());
+
+    // Проверка на количество тегов
+    if (tags.length >= 10) {
+      e.preventDefault();
+      tagWarn.style.display = 'block';
+      return;
+    }
+
+    // Проверка длины последнего тега (без учёта "#")
+    const last = tags[tags.length - 1] || '';
+    if (last.length < 3 || last.length > 30) {
+      e.preventDefault();
+      tagLengthWarn.style.display = 'block';
+      return;
+    }
+
+    // Если всё ок — добавляем новый тег
+    e.preventDefault();
+    tagWarn.style.display = 'none';
+    tagLengthWarn.style.display = 'none';
+    tagInput.value = raw.trim() + ' #';
+    setCaret(tagInput, tagInput.value.length);
+  }
+});
+
+// При вводе — скрываем предупреждения, если лимиты в норме
+tagInput.addEventListener('input', () => {
+  const tags = tagInput.value.split('#').filter(t => t.trim());
+  if (tags.length <= 10) tagWarn.style.display = 'none';
+  if (!tags.find(t => t.length < 3 || t.length > 30)) {
+    tagLengthWarn.style.display = 'none';
+  }
+});
+
+// При потере фокуса — скрываем предупреждения, если поле пустое
+tagInput.addEventListener('blur', () => {
+  if (!tagInput.value.trim()) {
+    tagWarn.style.display = 'none';
+    tagLengthWarn.style.display = 'none';
+  }
+});
+
+  // —————————————————————————
+  // 6) Перед отправкой формы гарантируем, что скрытые поля обновлены
+  // —————————————————————————
+  
+  function toggleNsfwWarning() {
+    const opt = categorySelect.options[categorySelect.selectedIndex];
+    const group = opt.closest ? opt.closest('optgroup') : opt.parentElement;
+    const label = group && (group.label || group.getAttribute('label')) || '';
+    nsfwWarning.style.display = /NSFW/i.test(label) ? 'block' : 'none';
+  }
+  categorySelect.addEventListener('change', toggleNsfwWarning);
+  toggleNsfwWarning();
+
+  
+  form.addEventListener('submit', function(e){
+    updateContentField();
+    updatePagesField();
+  });
+
+
+// —————————————————————————
+// UX-страховка от потери данных
+// —————————————————————————
+
+const LS_KEY = 'add_text_product_autosave_v1';
+
+function saveDraftLS() {
+  const data = {
+    t: document.getElementById('id_title')?.value || '',
+    d: document.getElementById('id_description')?.value || '',
+    c: contentField.value || '',
+    p: pagesField.value || '1'
+  };
+  localStorage.setItem(LS_KEY, JSON.stringify(data));
+}
+
+function loadDraftLS() {
+  try {
+    const raw = localStorage.getItem(LS_KEY);
+    if (!raw) return;
+    const { t, d, c, p } = JSON.parse(raw);
+    if (t) document.getElementById('id_title').value = t;
+    if (d) document.getElementById('id_description').value = d;
+    if (c) { pages = c.split(SEPARATOR); current = 0; updateEditor(); }
+    if (p) pagesField.value = p;
+  } catch (e) {}
+}
+
+
+loadDraftLS();
+['input', 'change'].forEach(ev => {
+  document.querySelector('.add-product-form').addEventListener(ev, saveDraftLS, { passive: true });
+});
+
+window.addEventListener('beforeunload', (e) => {
+  if ((contentField.value || '').trim() || (document.getElementById('id_title')?.value || '').trim()) {
+    e.preventDefault();
+    e.returnValue = '';
+  }
+});
+
+
+  // —————————————————————————
+  // 7) Первичный рендер редактора
+  // —————————————————————————
+  updateEditor();
+  validatePrice();
+
+  // —————————————————————————
+  // 8) Автосохранение в localStorage
+  // —————————————————————————
+  const DRAFT_KEY = "add_text_product_draft_v1";
+
+  function snapshot() {
+    return JSON.stringify({ pages, current });
+  }
+  function restore() {
+    try {
+      const raw = localStorage.getItem(DRAFT_KEY);
+      if (!raw) return;
+      const data = JSON.parse(raw);
+      if (Array.isArray(data.pages) && data.pages.length) {
+        pages = data.pages;
+        current = Math.min(Math.max(0, data.current||0), pages.length-1);
+        updateEditor();
+      }
+    } catch (e) {}
+  }
+
+  // Восстанавливаем, только если серверное поле пустое
+  if (!contentField.value) {
+    restore();
+  }
+  editor.addEventListener("input", () => {
+    localStorage.setItem(DRAFT_KEY, snapshot());
+  });
+  setInterval(() => {
+    localStorage.setItem(DRAFT_KEY, snapshot());
+  }, 5000);
+  form.addEventListener('submit', () => {
+    localStorage.removeItem(DRAFT_KEY);
+  });
+});
+
+</script>
+
+
+
+</body>
+</html>

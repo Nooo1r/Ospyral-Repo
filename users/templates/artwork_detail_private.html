@@ -1,0 +1,53 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>{{ artwork.title }}</title>
+  <link rel="stylesheet" href="{% static 'css/artwork_detail.css' %}">
+</head>
+<body>
+  <div class="container">
+    <header class="header">
+      <a href="/" class="logo-link">
+        <img src="{% static 'images/logo.svg' %}" alt="Ospyral" class="logo">
+      </a>
+    </header>
+
+    <main class="artwork-detail">
+      <h1 class="artwork-title">{{ artwork.title }} <span class="badge">МОЙ ПРОДУКТ</span></h1>
+
+      <div class="meta">
+        <p><strong>Категория:</strong> {{ artwork.category }}</p>
+        <p>
+          <strong>Цена:</strong>
+          {% if artwork.currency == 'USD' %}
+            ${{ artwork.price }}
+          {% elif artwork.currency == 'COIN' %}
+            {{ artwork.price }} 🧿
+          {% else %}
+            {{ artwork.price }} <span class="text-muted">(неизвестная валюта)</span>
+          {% endif %}
+        </p>
+      </div>
+
+      <div class="block description">
+        <h2>Описание</h2>
+        <p class="box">{{ artwork.description }}</p>
+      </div>
+
+      <div class="block gallery">
+        <h2>ВСЕ страницы (включая зацензуренные)</h2>
+        <div class="gallery-view">
+          {% for page in pages %}
+            <div class="artwork-page">
+              <p class="small">{% if page.is_censored %}🔒 ЦЕНЗУРА{% else %}🖼 ПОЛНАЯ{% endif %}</p>
+              <img src="{{ page.image.url }}" alt="Page {{ forloop.counter }}">
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+    </main>
+  </div>
+</body>
+</html>

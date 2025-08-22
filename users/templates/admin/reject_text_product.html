@@ -1,0 +1,11 @@
+{% extends "admin/admin_base.html" %}
+{% block content %}
+<h1>Отклонить: «{{ product.title }}»?</h1>
+<p>Автор: {{ product.owner.username }}</p>
+
+<form method="post">
+  {% csrf_token %}
+  <button type="submit" class="btn-reject">Подтвердить отклонение</button>
+  <a href="{% url 'users_admin:review_text_products' %}" class="btn-cancel">Отмена</a>
+</form>
+{% endblock %}

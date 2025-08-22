@@ -1,0 +1,6 @@
+<h2>Введите код подтверждения</h2>
+<form method="post">
+  {% csrf_token %}
+  <input type="text" name="code" placeholder="6-значный код" required maxlength="6">
+  <button type="submit">Подтвердить</button>
+</form>

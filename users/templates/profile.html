@@ -1,0 +1,290 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Мой профиль</title>
+  <link rel="stylesheet" href="{% static 'css/profile.css' %}">
+</head>
+<body>
+  <style>
+    :root {
+      --profile-bg-color: {{ profile.background_color|default:'#3498db' }};
+    }
+  
+    .profile-background {
+      background-color: var(--profile-bg-color);
+    }
+  </style>
+  
+  <div class="profile-background"></div>
+  <div class="profile-wrapper">
+    <div class="profile-top-row">
+          <div class="achievements-box">
+            <h3>Достижения</h3>
+            {% if achievements %}
+              <ul>
+                {% for achievement in achievements %}
+                  <li>{{ achievement.name }}</li>
+                {% endfor %}
+              </ul>
+            {% else %}
+              <p>Нет разблокированных достижений.</p>
+            {% endif %}
+          </div>
+      <div class="center-box">  
+        <!-- Блок с информацией профиля (показ только при просмотре профиля) -->
+
+          
+          <img class="profile-avatar" src="{{ user.profile_image_url }}" alt="Avatar" loading="lazy">
+          <div class="profile-details">
+            <p><strong>Имя пользователя:</strong> {{ user.username }}</p>
+            <p><strong>Email:</strong> {{ user.email }}</p>
+            <p><strong>Популярность:</strong> {{ popularity|default:"0" }}</p>
+
+            <div class="button-group">
+              <button id="edit-profile-btn" class="btn">Редактировать профиль</button>
+              <a href="{% url 'portfolio' %}" class="btn">Портфель</a>
+            </div>
+
+          </div>
+
+
+        <!-- Блок редактирования профиля -->
+        <div class="profile-edit" id="profile-edit" style="display: none;">
+          <form id="profile-form" action="{% url 'edit_profile' %}" method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+            <!-- Поле для файла (аватар) скрыто, используется Cropper.js -->
+            <input type="file" id="avatar-input" name="profile_image" accept="image/*" style="display:none;">
+            
+            <div>
+              <label for="username">Имя пользователя</label>
+              <input type="text" id="username" name="username" value="{{ user.username }}">
+            </div>
+            
+            <div>
+              <label>Цвет фона</label>
+              <div id="color-palette">
+                {% for color in fixed_colors %}
+                  <input type="radio" name="background_color" id="color-{{ forloop.counter }}" value="{{ color }}"
+                        {% if profile.background_color == color %}checked{% endif %} hidden>
+                  <label for="color-{{ forloop.counter }}"
+                        class="color-option"
+                        style="background-color: {{ color }};"></label>
+                {% endfor %}
+              </div>
+            </div>
+            
+            <div>
+              <!-- Кнопка для смены аватара, теперь она внутри формы -->
+              <button type="button" id="change-avatar-btn" class="btn">Изменить аватар</button>
+            </div>
+            
+            <div>
+              <button type="submit" class="btn">Сохранить изменения</button>
+              <button type="button" id="cancel-edit-btn" class="btn">Отмена</button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+        <div class="gifts-box">
+          <h3>Подарки</h3>
+          {% if gifts %}
+            <ul>
+              {% for gift in gifts %}
+                <li>{{ gift.name }}</li>
+              {% endfor %}
+            </ul>
+          {% else %}
+            <p>Подарков пока нет.</p>
+          {% endif %}
+        </div>
+    </div>
+
+    <div class="personal-products">
+      <h3>Ваши продукты</h3>
+
+      {% if text_products %}
+        <div class="product-category">
+          <h4>Текстовая продукция</h4>
+          <ul>
+            {% for product in text_products %}
+              <li>{{ product.title }}</li>
+            {% endfor %}
+          </ul>
+        </div>
+      {% endif %}
+
+      {% if artworks %}
+        <div class="product-category">
+          <h4>Изображения</h4>
+          <ul>
+            {% for artwork in artworks %}
+              <li>{{ artwork.title }}</li>
+            {% endfor %}
+          </ul>
+        </div>
+      {% endif %}
+
+      {% if lessons %}
+        <div class="product-category">
+          <h4>Уроки</h4>
+          <ul>
+            {% for lesson in lessons %}
+              <li>{{ lesson.title }}</li>
+            {% endfor %}
+          </ul>
+        </div>
+      {% endif %}
+
+      {% if not text_products and not artworks and not lessons %}
+        <p>Вы ещё не добавили ни одного продукта.</p>
+      {% endif %}
+    </div>
+
+
+
+    <!-- Модальное окно для Cropper.js -->
+    <div id="cropper-modal">
+      <div class="modal-content">
+        <img id="crop-image" src="">
+        <button id="crop-btn" class="btn">Обрезать и сохранить</button>
+        <button id="cancel-crop-btn" class="btn">Отмена</button>
+      </div>
+    </div>
+    
+    <!-- Подключаем Cropper.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js" integrity="sha512-7rm+YGycD5JtF2naHh+ljKqR9DawAnq8Bx3kuFY5HwhLGqtK9nLDejTX/Jf1W/d7PVl3OpvnWr+iENc4Cqiugw==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script>
+      // Функция смены цвета фона (если оставляем кнопку для вызова prompt)
+      function changeBackground() {
+        const color = prompt("Введите цвет фона (например: #ffcc00) или название цвета на английском (например: blue):");
+        if (color) {
+          document.querySelector('.profile-background').style.backgroundColor = color;
+          saveBackgroundColor(color);
+        }
+      }
+      function saveBackgroundColor(color) {
+        fetch("{% url 'save_background_color' %}", {
+          method: "POST",
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token }}'
+          },
+          body: JSON.stringify({'color': color})
+        })
+        .then(response => response.json())
+        .then(data => {
+          if(data.status !== 'success') {
+            alert("Ошибка сохранения цвета: " + data.message);
+          }
+        })
+        .catch((error) => {
+          console.error('Ошибка:', error);
+          alert("Ошибка отправки запроса.");
+        });
+      }
+      
+      // Логика для смены аватара с использованием Cropper.js
+      const changeAvatarBtn = document.getElementById('change-avatar-btn');
+      const avatarInput = document.getElementById('avatar-input');
+      const cropperModal = document.getElementById('cropper-modal');
+      const cropImage = document.getElementById('crop-image');
+      const cropBtn = document.getElementById('crop-btn');
+      const cancelCropBtn = document.getElementById('cancel-crop-btn');
+      let cropper;
+      
+      changeAvatarBtn.addEventListener('click', function() {
+        avatarInput.click();
+      });
+      
+      avatarInput.addEventListener('change', function(event) {
+        const file = event.target.files[0];
+        if (file) {
+          if (file.size > 3 * 1024 * 1024) {
+            alert("Размер файла не должен превышать 3 МБ.");
+            return;
+          }
+          const reader = new FileReader();
+          reader.onload = function(e) {
+            cropImage.src = e.target.result;
+            cropperModal.style.display = "flex";
+            if (cropper) {
+              cropper.destroy();
+            }
+            cropper = new Cropper(cropImage, {
+              aspectRatio: 1,
+              viewMode: 1,
+            });
+          }
+          reader.readAsDataURL(file);
+        }
+      });
+      
+      document.querySelectorAll('input[name="background_color"]').forEach(input => {
+        input.addEventListener('change', () => {
+          const color = input.value;
+          document.querySelector('.profile-background').style.backgroundColor = color;
+
+          fetch("{% url 'save_background_color' %}", {
+            method: "POST",
+            headers: {
+              'Content-Type': 'application/json',
+              'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: JSON.stringify({ color })
+          });
+        });
+      });
+
+
+      cropBtn.addEventListener('click', function() {
+        if (cropper) {
+          const canvas = cropper.getCroppedCanvas({
+            width: 300,
+            height: 300,
+          });
+          canvas.toBlob(function(blob) {
+            const croppedFile = new File([blob], "cropped_avatar.png", { type: "image/png" });
+            const dataTransfer = new DataTransfer();
+            dataTransfer.items.add(croppedFile);
+            avatarInput.files = dataTransfer.files;
+            cropperModal.style.display = "none";
+            // Обновляем аватар в режиме редактирования (если он там отображается)
+            document.querySelector('.profile-avatar').src = canvas.toDataURL("image/png");
+          }, "image/png");
+        }
+      });
+      
+      cancelCropBtn.addEventListener('click', function() {
+        cropperModal.style.display = "none";
+        if (cropper) {
+          cropper.destroy();
+        }
+        avatarInput.value = "";
+      });
+      
+      // Логика переключения между режимом просмотра и редактирования профиля
+      const editBtn = document.getElementById('edit-profile-btn');
+      const cancelEditBtn = document.getElementById('cancel-edit-btn');
+      const profileEdit = document.getElementById('profile-edit');
+      const profileView = document.getElementById('profile-view');
+      
+      editBtn.addEventListener('click', function() {
+        profileEdit.style.display = 'block';
+        profileView.style.display = 'none';
+      });
+      
+      if (cancelEditBtn) {
+        cancelEditBtn.addEventListener('click', function() {
+          profileEdit.style.display = 'none';
+          profileView.style.display = 'block';
+        });
+      }
+    </script>
+  </div>
+</body>
+</html>

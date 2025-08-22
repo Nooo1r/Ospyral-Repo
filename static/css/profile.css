@@ -1,0 +1,323 @@
+
+html, body {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+  font-family: 'Inter', sans-serif;
+  background-color: #0a0a0a;
+  color: #f5f5f5;
+}
+
+
+:root {
+  --background-color: #0a0a0a;
+  --accent-gold: #d4af37;
+  --accent-bronze: #b87333;
+  --card-bg: #141414;
+  --input-bg: #1e1e1e;
+  --border-color: #2c2c2c;
+}
+
+/* Фоновая зона */
+.profile-background {
+  background: radial-gradient(circle at center, #1a1a1a, #000);
+  height: 220px;
+}
+
+
+/* Обертка для всего профиля */
+.profile-wrapper {
+    max-width: 100%;
+    margin: 0;
+    padding: 0;
+}
+
+:root {
+    --background-color: #3498db; /* Дефолтный цвет */
+}
+
+.profile-background {
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  height: 220px;
+  background-color: var(--profile-bg-color);
+}
+
+.profile-top-row {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 30px;
+  margin-top: 40px;
+  flex-wrap: wrap;
+}
+
+.achievements-box,
+.gifts-box {
+  flex: 1;
+  max-width: 250px;
+  background-color: #111;
+  padding: 20px;
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  color: #ccc;
+  min-height: 280px;
+}
+
+.center-box {
+  position: relative; /* ключевой момент — для позиционирования аватарки */
+  margin-top: -40px;  /* поднимает бокс ближе к фону */
+  flex: 2;
+  max-width: 500px;
+  text-align: center;
+  background-color: var(--card-bg);
+  padding-top: 90px; /* резервируем место под "вылезающий" аватар */
+  padding-bottom: 20px;
+  border-radius: 12px;
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+  border: 1px solid var(--border-color);
+}
+
+.profile-avatar {
+  position: absolute;
+  top: -80px; /* вылазит вверх из центра бокса */
+  left: 50%;
+  transform: translateX(-50%);
+  width: 150px;
+  height: 150px;
+  object-fit: cover;
+  border: 4px solid var(--accent-gold);
+  border-radius: 12px;
+  z-index: 2;
+}
+
+.center-box .btn-row {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 15px;
+}
+
+.profile-info-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background-color: var(--card-bg);
+  color: #fff;
+  box-shadow: 0 8px 20px rgba(255, 215, 0, 0.06);
+  border: 1px solid var(--border-color);
+}
+
+.profile-background {
+  background-image: url('/static/images/wallpapers/default.jpg');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  height: 220px;
+  transition: background-image 0.3s ease;
+}
+
+
+.profile-details p strong {
+  color: var(--accent-gold);
+}
+
+/* Аватар */
+.profile-details {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  font-size: 1.1em;
+}
+
+
+
+.button-group {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    margin-top: 20px;
+    font-size: 0.8rem;
+}
+
+.button-group .btn {
+    max-width: 220px;
+    text-align: center;
+}
+
+/* Кнопки */
+.btn {
+  background-color: var(--accent-gold);
+  color: #000;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+  font-weight: 500;
+  text-decoration: none; 
+  display: inline-block; 
+}
+
+.btn:hover {
+  background-color: var(--accent-bronze);
+  color: #fff;
+  text-decoration: none;
+}
+
+#color-palette {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.color-option {
+  display: inline-block;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition: border 0.2s ease;
+}
+
+input[type="radio"]:checked + .color-option {
+  border: 2px solid var(--accent-gold);
+  box-shadow: 0 0 4px var(--accent-gold);
+}
+
+
+/* Поля ввода */
+input[type="text"],
+input[type="email"],
+input[type="color"] {
+  background-color: var(--input-bg);
+  color: #fff;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  padding: 10px;
+  margin-top: 5px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+label {
+  color: var(--accent-gold);
+  font-weight: 500;
+}
+
+/* Блок с достижениями */
+.extra-info h3 {
+  color: var(--accent-bronze);
+  border-color: var(--accent-gold);
+}
+
+/* Cropper модалка */
+#cropper-modal .modal-content {
+  background: var(--card-bg);
+  color: #fff;
+  border: 1px solid var(--border-color);
+}
+
+/* Мелкие улучшения */
+#profile-edit form > div {
+  margin-bottom: 20px;
+}
+
+
+
+#cropper-modal {
+    display: none;
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: rgba(0,0,0,0.8);
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+}
+
+#cropper-modal .modal-content {
+    background: #fff;
+    padding: 20px;
+    border-radius: 8px;
+    max-width: 90%;
+    max-height: 90%;
+}
+
+#cropper-modal img {
+    max-width: 100%;
+}
+.extra-info {
+    margin-top: 20px;
+    text-align: left;
+}
+
+.extra-info h3 {
+    margin-bottom: 10px;
+    border-bottom: 1px solid #ddd;
+    padding-bottom: 5px;
+}
+
+.extra-info ul {
+    list-style-type: disc;
+    margin-left: 20px;
+}
+
+
+/* Дополнительные стили для информации профиля */
+.profile-details {
+    text-align: center;
+    font-size: 1.1em;
+}
+
+.profile-details p {
+    margin: 10px 0;
+}
+
+
+.personal-products {
+  margin-top: 60px;
+  background-color: #111;
+  padding: 30px;
+  border-radius: 10px;
+  border: 1px solid var(--border-color);
+}
+
+.personal-products h3 {
+  font-size: 1.5em;
+  color: var(--accent-gold);
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+.product-category {
+  margin-bottom: 30px;
+}
+
+.product-category h4 {
+  font-size: 1.2em;
+  color: var(--accent-bronze);
+  margin-bottom: 10px;
+  border-bottom: 1px solid var(--accent-gold);
+  padding-bottom: 4px;
+}
+
+.product-category ul {
+  list-style-type: disc;
+  margin-left: 20px;
+  color: #ccc;
+}
+
+.product-category li {
+  margin-bottom: 6px;
+}

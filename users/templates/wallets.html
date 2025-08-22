@@ -1,0 +1,54 @@
+
+{% extends "base.html" %}
+{% load static %}
+
+{% block extra_css %}
+  <link rel="stylesheet" href="{% static 'css/wallets.css' %}">
+{% endblock %}
+
+{% block content %}
+<section class="wallets-container">
+  <h2>Мой OSP-кошелёк</h2>
+
+  {% for w in wallets %}
+    {% if w.currency == 'OSP' %}
+      <div class="wallet-card">
+        <p><strong>Адрес:</strong> <code>{{ w.address }}</code></p>
+        <p><strong>Баланс:</strong> {{ w.balance }} OSP</p>
+      </div>
+
+      <div class="donate-presets">
+        <h3>Быстрое пополнение</h3>
+        <div class="preset-buttons">
+          {# Используем список из контекста, а не литерал #}
+          {% for amt in deposit_presets %}
+            <a href="{% url 'osp-deposit-amount' amt %}" class="preset-btn">
+              {{ amt }} OSP
+            </a>
+          {% endfor %}
+        </div>
+        <a href="{% url 'osp-deposit' %}" class="button secondary">
+          Другая сумма
+        </a>
+      </div>
+
+      <div class="deposit-history">
+        <h3>История пополнений</h3>
+        <ul>
+          {% for tx in w.deposit_txs %}
+            <li>
+              <span class="tx-date">{{ tx.created_at|date:"Y-m-d H:i" }}</span>
+              —
+              <span class="tx-amount">+{{ tx.amount }} OSP</span>
+            </li>
+          {% empty %}
+            <li>Пополнений пока нет.</li>
+          {% endfor %}
+        </ul>
+      </div>
+    {% endif %}
+  {% empty %}
+    <p>У вас пока нет кошельков.</p>
+  {% endfor %}
+</section>
+{% endblock %}

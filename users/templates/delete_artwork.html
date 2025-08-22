@@ -1,0 +1,20 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Удалить продукт</title>
+    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+</head>
+<body>
+    <div class="content">
+        <h1>Удалить {{ product.title }}?</h1>
+        <form method="post">
+            {% csrf_token %}
+            <p>Вы уверены, что хотите удалить этот продукт?</p>
+            <button type="submit" class="btn btn-delete">Удалить</button>
+            <a href="{% url 'dashboard' %}" class="btn btn-cancel">Отмена</a>
+        </form>
+    </div>
+</body>
+</html>

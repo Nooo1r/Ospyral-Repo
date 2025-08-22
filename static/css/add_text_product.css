@@ -1,0 +1,243 @@
+/* Общие переменные (можно вынести в глобальный файл) */
+:root {
+  --bg-dark:   #000;
+  --card-bg:   #1a1a1a;
+  --text:      #f5f5f5;
+  --border:    #2c2c2c;
+  --gold:      #d4af37;
+  --bronze:    #cd7f32;
+  --input-bg:  #111;
+  --radius:    6px;
+  --gap:       20px;
+}
+
+body {
+  background: var(--bg-dark);
+  color: var(--text);
+  font-family: 'Inter', sans-serif;
+  margin: 0;
+  padding: 0;
+}
+.dashboard {
+  display: flex;
+  justify-content: center;
+  padding: 40px 20px;
+}
+.content {
+  width: 100%;
+  max-width: 800px;
+}
+
+/* Заголовок */
+.content h1 {
+  color: var(--gold);
+  text-align: center;
+  margin-bottom: 30px;
+}
+
+/* Карточка-обёртка формы */
+.add-product-form {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 30px;
+}
+
+/* Отступы между группами полей */
+.add-product-form .form-group {
+  margin-bottom: var(--gap);
+}
+
+/* Лейблы */
+.add-product-form label {
+  display: block;
+  margin-bottom: 8px;
+  color: var(--gold);
+  font-weight: 500;
+}
+
+/* Инпуты, селекты и textarea */
+.add-product-form input[type="text"],
+.add-product-form select,
+.add-product-form textarea {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid var(--border);
+  background: var(--input-bg);
+  color: var(--text);
+  border-radius: var(--radius);
+  font-size: 1em;
+  box-sizing: border-box;
+  resize: vertical;         /* только вертикальное изменение */
+  max-height: 1400px;        /* не выше 300px */
+  overflow-y: auto;         /* внутренняя прокрутка */
+}
+
+/* Кастомные стили для textarea-редактора страниц */
+.page-text {
+  font-family: inherit;
+  height: 800px;
+  min-height: 200px;
+  resize: vertical;         /* только вертикально */
+  max-height: 800px;        /* не выше 800px */
+  overflow-y: auto;         /* внутренняя прокрутка */
+}
+
+/* Контролы переключения страниц */
+.page-controls {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  margin-top: 10px;
+}
+.page-controls .btn {
+  padding: 6px 12px;
+  border: none;
+  border-radius: var(--radius);
+  background: var(--gold);
+  color: #000;
+  cursor: pointer;
+  font-size: 0.9em;
+  transition: background 0.2s ease;
+}
+.page-controls .btn:hover {
+  background: var(--bronze);
+  color: #fff;
+}
+.page-controls .danger {
+  background: var(--bronze);
+}
+
+/* Скрытое поле контента */
+#id_content {
+  display: none;
+}
+
+/* Кнопки сохранения/отмены */
+.form-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+  margin-top: 30px;
+}
+.btn-save {
+  padding: 12px 24px;
+  background: var(--gold);
+  color: #000;
+  border: none;
+  border-radius: var(--radius);
+  cursor: pointer;
+  font-size: 1em;
+  transition: background 0.2s ease;
+}
+.btn-save:hover {
+  background: var(--bronze);
+  color: #fff;
+}
+.btn-cancel {
+  padding: 12px 24px;
+  background: transparent;
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  cursor: pointer;
+  font-size: 1em;
+  transition: border-color 0.2s ease, color 0.2s ease;
+}
+.btn-cancel:hover {
+  border-color: var(--gold);
+  color: var(--gold);
+}
+
+.price-field{
+  display: inline-flex;           /* не занимает всю строку */
+  align-items: center;
+  gap: 6px;
+  position: relative;                      
+}
+
+
+.add-product-form #id_price{
+  width: 160px;                   
+}
+
+.price-field #id_price{
+  width: 160px;                
+  flex: 0 0 auto;                 
+}
+
+.price-field .currency-symbol{
+  position: static;              
+  margin: 0;
+  font-weight: 600;
+  opacity: .9;
+}
+
+.currency-symbol {
+  opacity: .8; 
+  font-weight: 600; 
+  pointer-events: none;
+  margin-left: 8px;
+  font-weight: 500;
+}
+
+
+.messages {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: auto;
+  max-width: 90%;
+  z-index: 1000;
+}
+.message {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  padding: 12px 20px;
+  border-radius: var(--radius);
+  margin-bottom: 10px;
+  color: var(--text);
+}
+.message.warning { border-left: 4px solid var(--bronze); }
+.message.success { border-left: 4px solid var(--gold); }
+
+
+/* ==== Общие стили для иконок подсказок ==== */
+.tooltip-icon {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  margin-left: 6px;
+  vertical-align: middle;
+  background-image: url('/static/images/icon-sheet.svg'); /* ваша иконка листка */
+  background-size: contain;
+  background-repeat: no-repeat;
+  cursor: help;
+  position: relative;
+}
+
+/* Подсказка на hover */
+.tooltip-icon:hover::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: calc(100% + 6px); /* чуть выше иконки */
+  left: 50%;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  background-color: rgba(0, 0, 0, 0.8);
+  color: #fff;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.85em;
+  pointer-events: none;
+  z-index: 1000;
+  opacity: 1;
+  transition: opacity 0.1s ease-in-out;
+}
+
+/* Чтобы скрыть до hover */
+.tooltip-icon::after {
+  opacity: 0;
+}

@@ -1,0 +1,21 @@
+{# templates/partials/notifications.html #}
+{% load static %}
+{# Сообщения Django #}
+{% if messages %}
+  <div class="flash-container">
+    {% for message in messages %}
+      <div class="flash flash-{{ message.tags|default:'info' }}">{{ message }}</div>
+    {% endfor %}
+  </div>
+{% endif %}
+
+{# Блок уведомлений: отобразится, только если переменная передана во view #}
+{% if unread_notifications %}
+  {% with unread_count=unread_notifications|length %}
+    {% if unread_count %}
+      <div class="notifications">
+        <a href="{% url 'notifications_list' %}">У вас {{ unread_count }} новых&nbsp;уведомлений</a>
+      </div>
+    {% endif %}
+  {% endwith %}
+{% endif %}

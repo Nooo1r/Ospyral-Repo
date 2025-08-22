@@ -1,0 +1,16 @@
+<header>
+  <div class="header-logo">
+    <a href="/"><img src="{% static 'img/logo.svg' %}" height="50" alt="Logo"></a>
+  </div>
+  <nav class="header-links">
+    <a href="{% url 'dashboard' %}" class="header-link">Главная</a>
+    <a href="{% url 'library' %}" class="header-link">Библиотека</a>
+    <a href="{% url 'gallery' %}" class="header-link">Галерея</a>
+    <a href="{% url 'education' %}" class="header-link">Образование</a>
+    <!-- ... -->
+  </nav>
+  <div class="header-actions">
+    <a href="{% url 'profile' %}" class="header-link">Профиль</a>
+    <a href="{% url 'logout' %}" class="btn btn-secondary">Выйти</a>
+  </div>
+</header>

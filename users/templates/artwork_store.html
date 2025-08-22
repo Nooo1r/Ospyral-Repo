@@ -1,0 +1,74 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Магазин артворков</title>
+  <link rel="stylesheet" href="{% static 'css/artwork_store.css' %}" />
+
+</head>
+<body>
+  <form method="get" class="filter-form">
+    <input type="text" name="q" placeholder="Поиск по названию" value="{{ q }}">
+    <select name="category">
+      <option value="">Все категории</option>
+      {% for code, label in categories %}
+        <option value="{{ code }}" {% if code == category %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+    <select name="sort">
+      <option value="popularity" {% if sort == 'popularity' %}selected{% endif %}>По популярности</option>
+      <option value="newest" {% if sort == 'newest' %}selected{% endif %}>Новейшие</option>
+      <option value="price_asc" {% if sort == 'price_asc' %}selected{% endif %}>Цена ↑</option>
+      <option value="price_desc" {% if sort == 'price_desc' %}selected{% endif %}>Цена ↓</option>
+    </select>
+    <button type="submit">Применить</button>
+  </form>
+
+  <div class="gallery">
+    {% for art in page_obj %}
+      <div class="art-card">
+        {% if art.nsfw %}
+          <span class="nsfw-tag">🔞 NSFW</span>
+        {% endif %}
+        <!-- ССЫЛКА НА ПУБЛИЧНУЮ ВЬЮХУ -->
+        <a href="{% url 'view_artwork_public' art.id %}">
+          {% if art.thumbnail %}
+            <img src="{{ art.thumbnail.url }}" loading="lazy" alt="{{ art.title }}">
+          {% else %}
+            <img src="{% static 'images/placeholder.png' %}" loading="lazy" alt="Нет изображения">
+          {% endif %}
+        </a>
+        <h4 class="art-title">{{ art.title }}</h4>
+        <p>Автор: {{ art.owner.username }}</p>
+        <p>Категория: {{ art.get_category_display }}</p>
+        <p>Цена: {{ art.price }} {{ art.get_currency_display }}</p>
+        <p>Осталось копий: {{ art.available_copies }}</p>
+        <!-- КНОПКА “Подробнее” -->
+        <a href="{% url 'view_artwork_public' art.id %}" class="btn">Подробнее</a>
+        <a href="{% url 'buy_artwork' art.id %}"
+          class="btn btn-buy"
+          {% if art.id in purchased_ids %}disabled{% endif %}>
+          {% if art.id in purchased_ids %}
+            Уже куплено
+          {% else %}
+            Купить за {{ art.get_currency_display }}
+          {% endif %}
+        </a>
+      </div>
+    {% endfor %}
+  </div>
+
+  <nav class="pagination">
+    {% if page_obj.has_previous %}
+      <a href="?page={{ page_obj.previous_page_number }}">‹</a>
+    {% endif %}
+    {% for num in page_obj.paginator.page_range %}
+      <a href="?page={{ num }}" class="{% if page_obj.number == num %}active{% endif %}">{{ num }}</a>
+    {% endfor %}
+    {% if page_obj.has_next %}
+      <a href="?page={{ page_obj.next_page_number }}">›</a>
+    {% endif %}
+  </nav>
+</body>
+</html>

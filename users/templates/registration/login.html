@@ -1,0 +1,50 @@
+{% load static widget_tweaks %}
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Вход</title>
+  <link rel="stylesheet" href="{% static 'css/auth.css' %}">
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+</head>
+<body class="auth-body">
+
+  <div class="auth-container">
+    <div class="auth-card">
+      <h2 class="auth-title">Вход в аккаунт</h2>
+
+      <form method="post" action="{% url 'login' %}" class="auth-form">
+        {% csrf_token %}
+        <div class="field">
+          {% render_field form.email class="auth-input" placeholder="Email" %}
+          {% if form.email.errors %}<div class="field-error">{% for e in form.email.errors %}{{ e }}{% endfor %}</div>{% endif %}
+        </div>
+
+        <div class="field">
+          {% render_field form.password class="auth-input" placeholder="Пароль" %}
+          {% if form.password.errors %}<div class="field-error">{% for e in form.password.errors %}{{ e }}{% endfor %}</div>{% endif %}
+        </div>
+
+        <button type="submit" class="auth-button">Войти</button>
+      </form>
+
+      {% if form.non_field_errors %}
+        <div class="auth-error">
+          {% for err in form.non_field_errors %}{{ err }}{% if not forloop.last %}<br>{% endif %}{% endfor %}
+        </div>
+      {% endif %}
+
+
+
+      {% for message in messages %}
+        <div class="auth-message">{{ message }}</div>
+      {% endfor %}
+
+      <div class="auth-footer">
+        Нет аккаунта? <a href="{% url 'register' %}">Зарегистрируйтесь</a>
+      </div>
+    </div>
+  </div>
+
+</body>
+</html>

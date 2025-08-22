@@ -1,0 +1,75 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Галерея изображений</title>
+    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+</head>
+<body>
+    <header class="header">
+        <div class="header-logo">
+            <img src="{% static 'images/logo.svg' %}" alt="Логотип" class="logo">
+        </div>
+        <div class="header-actions">
+            <span class="user-name">{{ user.username }}</span>
+            <a href="{% url 'logout' %}" class="btn btn-logout">Выйти</a>
+        </div>
+    </header>
+    <div class="dashboard">
+        <aside class="sidebar">
+            <div class="menu-container">
+                <div class="menu-icon">
+                    <img src="{% static 'images/menu-icon.svg' %}" alt="Меню" class="menu-icon-img">
+                </div>
+                <nav class="menu-items">
+                    <h2>Меню</h2>
+                    <a href="{% url 'dashboard' %}" class="sidebar-link">Главная</a>
+                    <a href="{% url 'product_list' %}" class="sidebar-link">Продукты</a>
+                    <a href="{% url 'artwork_list' %}" class="sidebar-link active">Галерея</a>
+                    <a href="{% url 'lesson_list' %}" class="sidebar-link">Уроки</a>
+                </nav>
+            </div>
+        </aside>
+        <main class="content">
+            <h1>Галерея изображений</h1>
+            <a href="{% url 'add_artwork' %}" class="btn btn-save">Добавить изображение</a>
+            <div class="artwork-list">
+                {% for artwork in artworks %}
+                    <div class="artwork-card">
+                        {% if artwork.image %}
+                            <img src="{{ artwork.image.url }}" alt="{{ artwork.title }}" class="artwork-image">
+                        {% else %}
+                            <img src="{% static 'images/artwork-placeholder.jpg' %}" alt="Placeholder" class="artwork-image">
+                        {% endif %}
+                        <h3>{{ artwork.title }}</h3>
+                        <p>{{ artwork.description|truncatewords:10 }}</p>
+                        {% if artwork.status == 'sale' %}
+                            <span class="artwork-price">{{ artwork.price }} ₽</span>
+                            <a href="{% url 'buy_artwork' artwork.id %}" class="btn btn-buy">Купить</a>
+                        {% elif artwork.status == 'auction' %}
+                            <span class="artwork-bid">Текущая ставка: {{ artwork.current_bid|default:'Нет ставок' }} ₽</span>
+                            <a href="{% url 'bid_artwork' artwork.id %}" class="btn btn-bid">Сделать ставку</a>
+                        {% elif artwork.status == 'competition' %}
+                            <span class="artwork-status">Соревнование</span>
+                        {% endif %}
+                        {% if artwork.owner == user %}
+                            <a href="{% url 'edit_artwork' artwork.id %}" class="btn btn-edit">Редактировать</a>
+                            <a href="{% url 'delete_artwork' artwork.id %}" class="btn btn-delete">Удалить</a>
+                        {% endif %}
+                    </div>
+                {% empty %}
+                    <p>Изображений пока нет.</p>
+                {% endfor %}
+            </div>
+        </main>
+    </div>
+    {% if messages %}
+        <div class="messages">
+            {% for message in messages %}
+                <div class="message {{ message.tags }}">{{ message }}</div>
+            {% endfor %}
+        </div>
+    {% endif %}
+</body>
+</html>

@@ -1,0 +1,42 @@
+
+<h1>{{ product.title }}</h1>
+
+<div class="badges">
+  <span class="badge">Статус: {{ product.get_status_display }}</span>
+  {% if product.is_active %}<span class="badge success">В продаже</span>{% else %}<span class="badge warning">Снято с продажи</span>{% endif %}
+  {% if product.is_deleted %}<span class="badge danger">Удалён из магазина</span>{% endif %}
+  {% if product.nsfw %}<span class="badge nsfw">NSFW</span>{% endif %}
+</div>
+
+<div class="metrics">
+  <div>Продаж: {{ sales_count|default:0 }}</div>
+  <div>Средняя оценка: {{ avg_rating|default:"—" }}</div>
+</div>
+
+{% if rejection_reason %}
+<div class="card danger">
+  <b>Причина отклонения:</b>
+  <p>{{ rejection_reason }}</p>
+  <a class="btn" href="{{ urls.ack_reject }}">Понял, вернуться в черновик</a>
+</div>
+{% endif %}
+
+{% if blocked_until %}
+<div class="card warning">
+  <b>Блокировка продаж до:</b> {{ blocked_until }} {% if block_reason %} ({{ block_reason }}){% endif %}
+</div>
+{% endif %}
+
+<div class="actions">
+  {% if can_edit %}<a class="btn" href="{{ urls.edit }}">Редактировать</a>{% endif %}
+  {% if can_submit %}<a class="btn" href="{{ urls.submit }}">Отправить на модерацию</a>{% endif %}
+  {% if can_stop %}<form method="post" action="{{ urls.stop_sale }}">{% csrf_token %}<button class="btn">Снять с продажи</button></form>{% endif %}
+  {% if can_resume %}<form method="post" action="{{ urls.resume_sale }}">{% csrf_token %}<button class="btn">Вернуть в продажу</button></form>{% endif %}
+  {% if can_delete %}<form method="post" action="{{ urls.delete }}" onsubmit="return confirm('Удалить из магазина? Покупатели сохранят доступ.');">{% csrf_token %}<button class="btn danger">Удалить из магазина</button></form>{% endif %}
+  <a class="btn outline" href="{{ urls.public_preview }}" target="_blank">Публичный предпросмотр</a>
+</div>
+
+<hr/>
+
+<h2>Контент</h2>
+<article class="content">{{ content|linebreaksbr }}</article>

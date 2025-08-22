@@ -1,0 +1,34 @@
+{% load static %}
+<aside class="sidebar" id="sidebar">
+  <nav class="menu-items">
+    <h2>Меню</h2>
+    {% with current=request.resolver_match.url_name %}
+      <a href="{% url 'dashboard' %}" class="sidebar-link {% if current == 'dashboard' %}active{% endif %}">Главная</a>
+      <a href="{% url 'catalog_text_products' %}" class="sidebar-link {% if current == 'catalog_text_products' %}active{% endif %}">Продукты</a>
+      <a href="{% url 'artwork_store' %}" class="sidebar-link {% if current == 'artwork_store' %}active{% endif %}">Галерея</a>
+      <a href="{% url 'lesson_list' %}" class="sidebar-link {% if current == 'lesson_list' %}active{% endif %}">Уроки</a>
+      <a href="{% url 'edit_profile' %}" class="sidebar-link {% if current == 'edit_profile' %}active{% endif %}">Профиль</a>
+      <a href="{% url 'portfolio' %}" class="sidebar-link {% if current == 'portfolio' %}active{% endif %}">Портфель</a>
+
+      <button
+        type="button"
+        class="sidebar-link logout-btn"
+        data-modal="logoutModal"
+        aria-haspopup="dialog"
+        aria-controls="logoutModal"
+        aria-expanded="false"
+        title="Выйти из аккаунта"
+      >
+        <svg class="logout-ic" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M10 3a1 1 0 0 1 1 1v3a1 1 0 1 1-2 0V5H7a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h2v-2a1 1 0 1 1 2 0v3a1 1 0 0 1-1 1H7a4 4 0 0 1-4-4V7a4 4 0 0 1 4-4h3z"/>
+          <path d="M21.7 12.7a1 1 0 0 0 0-1.4l-3-3a1 1 0 1 0-1.4 1.4L18.6 11H11a1 1 0 1 0 0 2h7.6l-1.3 1.3a1 1 0 0 0 1.4 1.4l3-3z"/>
+        </svg>
+        <span>Выйти</span>
+      </button>
+    {% endwith %}
+  </nav>
+</aside>
+
+<button class="menu-toggle" id="menu-toggle" aria-controls="sidebar" aria-expanded="false">
+  <img src="{% static 'images/spyral.svg' %}" class="menu-logo rotating-icon" alt="">
+</button>

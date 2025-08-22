@@ -1,0 +1,326 @@
+{% extends "base.html" %}
+{% load static %}
+{% load humanize %}
+
+
+{% block title %}Панель управления — Ospyral{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+{% endblock %}
+
+{% block content %}
+
+<div class="cursor-bg-dot" aria-hidden="true"></div>
+  <!-- Шапка сайта -->
+
+    <header class="header">
+      <div class="header-logo"> 
+        <img src="{% static 'images/logo.svg' %}">
+      </div>
+
+      <div class="header-actions">
+        <a class="user-profile-link" href="{% url 'edit_profile' %}">
+          <span class="user-name">{{ user.username }}</span>
+          <img
+            class="user-avatar"
+            src="{{ user.profile_image_url|default:'/static/images/placeholder.svg' }}"
+            alt="{{ user.username }}"
+            loading="lazy"
+          />
+        </a>
+      </div>
+
+      <div class="header-links">
+        <a href="#security" class="header-link">Безопасность</a>
+        <a href="#description" class="header-link">Описание</a>
+        <a href="#about-us" class="header-link">О нас</a>
+      </div>
+    </header>
+
+
+  <div class="text_intro"><h1>Добро пожаловать, {{ user.username }}!</h1></div>
+    <div class="container">
+      <div class="dashboard">
+          <div class="dashboard-cards">
+            
+            <a href="{% url 'catalog_text_products' %}" class="dashboard-card card-text">
+              
+              <div class="card-ribbon">Текстовая продукция</div>
+              <div class="dashboard-card-inner">
+                <div class="card-inner">
+                  <div class="card-description"><h4>
+                    • Художественная литература.<br>
+                    • Научно-образовательные материалы.<br>
+                    • Бизнес и техническая документация.<br>
+                    • Креативные и развлекательные сценарии.<br>
+                  </h4>
+                  </div>
+                </div>
+                <div class="card-icon">
+                  <img src="{% static 'images/book-icon.png' %}" alt="Раздел: тексты" loading="lazy">
+                </div>
+              </div>
+            </a>
+            
+            <a href="{% url 'artwork_store' %}" class="dashboard-card card-art">
+              
+              <div class="card-ribbon">Галерея изображений</div>
+              <div class="dashboard-card-inner">
+                <div class="card-inner">
+                  <div class="card-description"><h4>
+                    • Традиционная живопись.<br>
+                    • Цифровое искусство.<br>
+                    • Фотография и визуальные эффекты.<br>
+                    • Аукционные и коллекционные работы.<br>
+                  </h4>
+                  </div>
+                </div>
+                <div class="card-icon">
+                  <img src="{% static 'images/artwork-icon.png' %}" alt="Раздел: галерея" loading="lazy">
+                </div>
+              </div>
+            </a>
+            
+            <a href="{% url 'lesson_list' %}" class="dashboard-card card-lesson">
+              <div class="card-ribbon">Образовательные уроки</div>
+              <div class="dashboard-card-inner">
+                <div class="card-inner">
+                  <div class="card-description"><h4>
+                    • Креативные и художественные навыки.<br>
+                    • Бизнес и личностное развитие.<br>
+                    • Технологии и программирование.<br>
+                    • Образовательные лекции и теория.<br>
+                  </h4>
+                  </div>
+                </div>
+                <div class="card-icon">
+                  <img src="{% static 'images/lesson-icon.png' %}" alt="Раздел: уроки" loading="lazy">
+                </div>
+              </div>
+            </a>
+          </div>
+
+
+    <!-- Секция: Лидеры продаж -->
+    <section class="podium-section">
+      <div class="container">
+        <h2>Лидеры продаж:</h2>
+        <div class="podium">
+          {% if top_sales_users and top_sales_users|length >= 3 %}
+            {# Серебро (1 место слева/право — зависит от твоего CSS) #}
+            <div class="podium-item podium-second">
+              <div class="user-card card-silver">
+                <div class="card-ribbon-bg"></div>
+                <img src="{{ top_sales_users.1.profile_image_url|default:'/static/images/placeholder.svg' }}" alt="{{ top_sales_users.1.username }}" loading="lazy">
+                <div class="username">{{ top_sales_users.1.username }}</div>
+                <div class="user-stats">
+                  <div>Продажи: {{ top_sales_users.1.sales_count|intcomma }}</div>
+                </div>
+              </div>
+            </div>
+            <div class="podium-item podium-first">
+              <div class="user-card1 card-gold">
+                <div class="card-ribbon-bg"></div>
+                <img src="{{ top_sales_users.0.profile_image_url|default:'/static/images/placeholder.svg' }}" alt="{{ top_sales_users.0.username }}" loading="lazy">
+                <div class="username">{{ top_sales_users.0.username }}</div>
+                <div class="user-stats">
+                  <div>Продажи: {{ top_sales_users.0.sales_count|intcomma }}</div>
+                </div>
+              </div>
+            </div>
+            <div class="podium-item podium-third">
+              <div class="user-card card-bronze">
+                <div class="card-ribbon-bg"></div>
+                <img src="{{ top_sales_users.2.profile_image_url|default:'/static/images/placeholder.svg' }}" alt="{{ top_sales_users.2.username }}" loading="lazy">
+                <div class="username">{{ top_sales_users.2.username }}</div>
+                <div class="user-stats">
+                  <div>Продажи: {{ top_sales_users.2.sales_count|intcomma }}</div>
+                </div>
+              </div>
+            </div>
+          {% else %}
+            <p>Недостаточно данных для отображения топа.</p>
+          {% endif %}
+        </div>
+      </div>
+    </section>
+
+    <!-- Секция: Самые популярные -->
+    <section class="podium-section1">
+      <div class="container">
+        <h2>Самые популярные:</h2>
+        <div class="podium">
+          {% if top_popular_users and top_popular_users|length >= 3 %}
+            <div class="podium-item podium-second">
+              <div class="user-card card-silver">
+                <div class="card-ribbon-bg"></div>
+                <img src="{{ top_popular_users.1.profile_image_url|default:'/static/images/placeholder.svg' }}" alt="{{ top_popular_users.1.username }}" loading="lazy">
+                <div class="username">{{ top_popular_users.1.username }}</div>
+                <div class="user-stats">
+                  <div>Популярность: {{ top_popular_users.1.popularity|intcomma }}</div>
+                </div>
+              </div>
+            </div>
+            <div class="podium-item podium-first">
+              <div class="user-card1 card-gold">
+                <div class="card-ribbon-bg"></div>
+                <img src="{{ top_popular_users.0.profile_image_url|default:'/static/images/placeholder.svg' }}" alt="{{ top_popular_users.0.username }}" loading="lazy">
+                <div class="username">{{ top_popular_users.0.username }}</div>
+                <div class="user-stats">
+                  <div>Популярность: {{ top_popular_users.0.popularity|intcomma }}</div>
+                </div>
+              </div>
+            </div>
+            <div class="podium-item podium-third">
+              <div class="user-card card-bronze">
+                <div class="card-ribbon-bg"></div>
+                <img src="{{ top_popular_users.2.profile_image_url|default:'/static/images/placeholder.svg' }}" alt="{{ top_popular_users.2.username }}" loading="lazy">
+                <div class="username">{{ top_popular_users.2.username }}</div>
+                <div class="user-stats">
+                  <div>Популярность: {{ top_popular_users.2.popularity|intcomma }}</div>
+                </div>
+              </div>
+            </div>
+          {% else %}
+            <p>Недостаточно данных для отображения топа.</p>
+          {% endif %}
+        </div>
+      </div>
+    </section>
+
+    <!-- Секция: Статистика -->
+    <section class="statistics">
+      <div class="container">
+        <h2>Общая статистика:</h2>
+        <div class="stats-cards">
+          <div class="stat-card">
+            <h3>Количество продаж</h3>
+            <p>{{ orders_count|intcomma }}</p>
+          </div>
+          <div class="stat-card">
+            <h3>Пользователей в сети</h3>
+            <p>{{ visits_count|intcomma }}</p>
+          </div>
+          <div class="stat-card">
+            <h3>Количество продукций</h3>
+            <p>{{ product_count|intcomma }}</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Секция: Лента новостей -->
+    <section class="news-feed">
+      <div class="container">
+        <h2>Лента новостей:</h2>
+        {% for item in news_items %}
+          <div class="news-item">
+            <span class="news-date">{{ item.date }}</span>
+            <p>{{ item.text }}</p>
+          </div>
+        {% empty %}
+          <p>Новостей нет.</p>
+        {% endfor %}
+      </div>
+    </section>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const dot = document.querySelector('.cursor-bg-dot');
+  if (!dot) return;
+
+  // Параметры поведения
+  const IDLE_AFTER_MS = 2500;      
+  const FOLLOW_LERP   = 0.15;      
+  const IDLE_LERP     = 0.025;    
+  const MARGIN        = 40;        
+  const SWITCH_DIST   = 18;        
+
+  let x = window.innerWidth * 0.5;
+  let y = window.innerHeight * 0.5;
+  let tx = x, ty = y;            
+  let mode = 'idle';              // 'follow' | 'idle'
+  let lastMoveTs = Date.now();
+  let idleTargetTs = 0;
+
+
+  function placeDot(nx, ny) {
+    dot.style.setProperty('--x', `${nx - 0}px`);  // в keyframes используем var(--x/--y)
+    dot.style.setProperty('--y', `${ny - 0}px`);
+    dot.style.transform = `translate(${nx}px, ${ny}px)`;
+  }
+
+  function clamp(v, min, max) { return Math.max(min, Math.min(max, v)); }
+
+  function pickIdleTarget() {
+
+    const w = window.innerWidth, h = window.innerHeight;
+    tx = Math.random() * (w - 2 * MARGIN) + MARGIN;
+    ty = Math.random() * (h - 2 * MARGIN) + MARGIN;
+    idleTargetTs = Date.now();
+  }
+
+  function dist(a, b, c, d) {
+    const dx = a - c, dy = b - d;
+    return Math.hypot(dx, dy);
+  }
+
+
+  document.addEventListener('mousemove', (e) => {
+    lastMoveTs = Date.now();
+    mode = 'follow';
+    tx = e.clientX;
+    ty = e.clientY;
+  }, { passive: true });
+
+
+  window.addEventListener('resize', () => {
+    x = clamp(x, MARGIN, window.innerWidth - MARGIN);
+    y = clamp(y, MARGIN, window.innerHeight - MARGIN);
+    tx = clamp(tx, MARGIN, window.innerWidth - MARGIN);
+    ty = clamp(ty, MARGIN, window.innerHeight - MARGIN);
+    placeDot(x, y);
+  });
+
+  function animate() {
+    const now = Date.now();
+
+
+    if (mode === 'follow' && now - lastMoveTs > IDLE_AFTER_MS) {
+      mode = 'idle';
+      pickIdleTarget();
+    }
+
+
+    let lerp = mode === 'follow' ? FOLLOW_LERP : IDLE_LERP;
+
+    if (mode === 'idle') {
+
+      if (dist(x, y, tx, ty) < SWITCH_DIST || now - idleTargetTs > 3500) {
+        pickIdleTarget();
+      }
+  
+      const wobble = 12;
+      const t = now * 0.002;
+      const wx = tx + Math.sin(t * 1.7) * wobble;
+      const wy = ty + Math.cos(t * 1.3) * wobble;
+      x += (wx - x) * lerp;
+      y += (wy - y) * lerp;
+    } else {
+      // follow-режим
+      x += (tx - x) * lerp;
+      y += (ty - y) * lerp;
+    }
+
+    placeDot(x, y);
+    requestAnimationFrame(animate);
+  }
+
+
+  placeDot(x, y);
+  requestAnimationFrame(animate);
+});
+</script>
+
+{% endblock %}

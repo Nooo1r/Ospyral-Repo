@@ -1,0 +1,48 @@
+{% extends "admin/admin_base.html" %}
+{% load static %}
+
+{% block content %}
+  <h1>Детальный просмотр артворка: {{ art.title }}</h1>
+  <p><strong>Автор:</strong> {{ art.owner.username }}</p>
+  <p><strong>Дата загрузки:</strong> {{ art.created_at|date:"d.m.Y H:i" }}</p>
+  <hr>
+  {% if art.pages.all %}
+
+  <div class="art-cover">
+    {% if art.original_image %}
+      <img src="{{ art.original_image.url }}" alt="Обложка {{ art.title }}">
+    {% else %}
+      <div style="width:200px; height:200px; background:#ccc;"></div>
+    {% endif %}
+  </div>
+
+    <hr>
+    <h2>Страницы</h2>
+    <ul>
+      {% for page in art.pages.all %}
+        <li>
+          <strong>Страница {{ page.order }}</strong>
+          {% if page.image %}
+            <br>Оригинал:<br>
+            <img src="{{ page.image.url }}" alt="Страница {{ page.order }}" style="max-width:300px;">
+          {% endif %}
+          {% if page.censored_image %}
+            <br>Цензурная версия:<br>
+            <img src="{{ page.censored_image.url }}" alt="Страница {{ page.order }} (цензура)" style="max-width:300px;">
+          {% endif %}
+        </li>
+      {% endfor %}
+    </ul>
+  {% endif %}
+
+  <hr>
+  <h2>Описание</h2>
+  <p>{{ art.description|linebreaksbr }}</p>
+  {% if art.rejection_reason %}
+    <h3>Причина отклонения:</h3>
+    <p>{{ art.rejection_reason }}</p>
+  {% endif %}
+  <p>
+    <a href="{% url 'users_admin:review_artworks' %}">← Вернуться к списку</a>
+  </p>
+{% endblock %}

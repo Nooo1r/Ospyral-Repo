@@ -1,0 +1,22 @@
+{% extends "admin/admin_base.html" %}
+{% load static %}
+
+{% block content %}
+  <h1>Модерация: Текстовые продукты</h1>
+  {% if products %}
+    <ul>
+      {% for p in products %}
+        <li>
+          <strong>{{ p.title }}</strong> ({{ p.owner.username }})
+          [<a href="{% url 'users_admin:text_product_detail' p.id %}">Смотреть</a>]
+          &nbsp;|&nbsp;
+          <a href="{% url 'users_admin:approve_text_product' p.id %}">Одобрить</a>
+          &nbsp;|&nbsp;
+          <a href="{% url 'users_admin:reject_text_product' p.id %}">Отклонить</a>
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p>Нет текстовых продуктов на рассмотрении.</p>
+  {% endif %}
+{% endblock %}

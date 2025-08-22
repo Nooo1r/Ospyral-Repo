@@ -1,0 +1,160 @@
+{% load static %}
+{% load portfolio_tags %}
+
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Портфель</title>
+  <link rel="stylesheet" href="{% static 'css/base.css' %}">
+  <link rel="stylesheet" href="{% static 'css/portfolio.css' %}">
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <!-- HEADER -->
+  <header class="header">
+    <div class="header-logo">
+      <img src="{% static 'images/logo.svg' %}" alt="Logo">
+    </div>
+    <div class="header-actions">
+      <span class="user-name">{{ user.username }}</span>
+    </div>
+  </header>
+
+  <div class="portfolio-wrapper">
+    <!-- Sidebar -->
+    <aside class="portfolio-sidebar">
+      <h2>Мой портфель</h2>
+      <nav>
+        <ul>
+          <li><a href="?tab=drafts"    class="{% if tab == 'drafts' %}active{% endif %}">Черновики ({{ drafts_count }} / 5)</a></li>
+          <li><a href="?tab=pending"   class="{% if tab == 'pending' %}active{% endif %}">На рассмотрении ({{ pending_count }})</a></li>
+          <li><a href="?tab=rejected"  class="{% if tab == 'rejected' %}active{% endif %}">Отклонённые ({{ rejected_count }})</a></li>
+          <li><a href="?tab=on_sale"   class="{% if tab == 'on_sale' %}active{% endif %}">В продаже ({{ on_sale_count }})</a></li>
+          <li><a href="?tab=purchased" class="{% if tab == 'purchased' %}active{% endif %}">Приобретённые</a></li>
+        </ul>
+      </nav>
+    </aside>
+
+    <!-- Content -->
+    <main class="portfolio-content">
+      <h1 class="page-title">
+        {% if tab == 'drafts' %}Черновики{% endif %}
+        {% if tab == 'pending' %}На рассмотрении{% endif %}
+        {% if tab == 'rejected' %}Отклонённые{% endif %}
+        {% if tab == 'on_sale' %}В продаже{% endif %}
+        {% if tab == 'purchased' %}Приобретённые{% endif %}
+      </h1>
+
+      <div class="card-grid">
+
+        {# ------------------ ЧЕРНОВИКИ ------------------ #}
+        {% if tab == 'drafts' %}
+          {% for p in drafts %}
+            <div class="card">
+              <h3>{{ p.title }}</h3>
+              <p>Создано: {{ p.created_at|date:"d.m.Y" }}</p>
+              <div class="card-actions">
+                <a href="{% url 'edit_text_product' p.pk %}" class="btn btn-primary">Продолжить</a>
+                <a href="{% url 'submit_text_product' p.pk %}" class="btn btn-secondary">Отправить на проверку</a>
+                <a href="{% url 'delete_text_product' p.pk %}" class="btn btn-danger">Удалить</a>
+              </div>
+            </div>
+          {% empty %}
+            <p class="empty">У вас нет черновиков.</p>
+          {% endfor %}
+        {% endif %}
+
+        {# ------------------ НА РАССМОТРЕНИИ ------------------ #}
+        {% if tab == 'pending' %}
+          {% for p in pending %}
+            <div class="card">
+              <h3>{{ p.title }}</h3>
+              <p>Отправлено на проверку: {{ p.created_at|date:"d.m.Y" }}</p>
+              <div class="card-actions">
+                <a href="{% url 'delete_text_product' p.pk %}" class="btn btn-danger">Удалить</a>
+              </div>
+            </div>
+          {% empty %}
+            <p class="empty">Нет продуктов на рассмотрении.</p>
+          {% endfor %}
+        {% endif %}
+
+        {# ------------------ ОТКЛОНЁННЫЕ ------------------ #}
+        {% if tab == 'rejected' %}
+          {% for p in rejected %}
+            <div class="card">
+              <h3>{{ p.title }}</h3>
+              {% if p.rejection_reason %}<p>Причина: {{ p.rejection_reason }}</p>{% endif %}
+              <div class="card-actions">
+                <a href="{% url 'edit_text_product' p.pk %}" class="btn btn-primary">Исправить</a>
+                {# согласуй с urls: 'acknowledge_rejection' или 'ack_rejection' #}
+                <a href="{% url 'acknowledge_rejection' p.pk %}" class="btn btn-secondary">Принять причину</a>
+                <a href="{% url 'delete_text_product' p.pk %}" class="btn btn-danger">Удалить</a>
+              </div>
+            </div>
+          {% empty %}
+            <p class="empty">Нет отклонённых продуктов.</p>
+          {% endfor %}
+        {% endif %}
+
+        {# ------------------ В ПРОДАЖЕ ------------------ #}
+        {% if tab == 'on_sale' %}
+          {% for p in on_sale %}
+            <div class="card">
+              <h3>
+                {{ p.title }}
+                {% if p.nsfw %}<span class="nsfw-badge">NSFW</span>{% endif %}
+              </h3>
+              <p>Цена: {{ p.price }} {{ p.currency }}</p>
+
+              <div class="card-actions">
+                <a href="{% url 'public_view_text_product' p.pk %}" class="btn btn-secondary">Открыть</a>
+
+                {# Пауза / Возобновить — безопасно через POST #}
+                {% if p.is_active %}
+                  <form method="post" action="{% url 'stop_sale_text_product' p.pk %}">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-secondary">Приостановить продажу</button>
+                  </form>
+                {% else %}
+                  <form method="post" action="{% url 'resume_sale_text_product' p.pk %}">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-primary">Продолжить продажу</button>
+                  </form>
+                {% endif %}
+
+                {# Удалить из магазина и портфеля владельца (soft-delete) #}
+                <form method="post" action="{% url 'delete_text_product' p.pk %}"
+                      onsubmit="return confirm('Убрать продукт из магазина и вашего портфеля? У покупателей он останется.');">
+                  {% csrf_token %}
+                  <button type="submit" class="btn btn-danger">Удалить</button>
+                </form>
+              </div>
+            </div>
+          {% empty %}
+            <p class="empty">Нет активных товаров в продаже.</p>
+          {% endfor %}
+        {% endif %}
+
+        {# ------------------ ПРИОБРЕТЁННЫЕ ------------------ #}
+        {% if tab == 'purchased' %}
+          {% for p in purchased_texts %}
+            <div class="card">
+              <h3>{{ p.title }}</h3>
+              {# если во view есть дата, покажи её, иначе убери строку ниже #}
+              {% if p.purchased_at %}<p>Куплено: {{ p.purchased_at|date:"d.m.Y" }}</p>{% endif %}
+              <div class="card-actions">
+                <a href="{% url 'public_view_text_product' p.pk %}" class="btn btn-primary">Открыть</a>
+              </div>
+            </div>
+          {% empty %}
+            <p class="empty">Вы ещё ничего не приобрели.</p>
+          {% endfor %}
+        {% endif %}
+
+      </div>
+    </main>
+  </div>
+</body>
+</html>

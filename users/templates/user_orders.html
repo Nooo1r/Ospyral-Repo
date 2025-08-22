@@ -1,0 +1,39 @@
+{% extends 'base.html' %}
+
+{% load static %}
+{% block content %}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <link rel="stylesheet" href="{% static 'css/styles.css' %}">
+
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Мои заказы</title>
+    
+</head>
+<body>
+    <h1>Мои заказы</h1>
+    <ul>
+        {% for order in orders %}
+            <li>
+                Заказ #{{ order.id }} на продукт <strong>{{ order.product.title }}</strong>
+                — Дата: {{ order.order_date }}
+                <a href="{% url 'delete_order' order.id %}">Удалить</a>
+            </li>
+        {% empty %}
+            <li>У вас еще нет заказов.</li>
+        {% endfor %}
+    </ul>
+    <a href="{% url 'dashboard' %}">Вернуться на панель управления</a>
+
+    <script src="{% static 'js/scripts.js' %}"></script>
+
+    <img src="{% static 'images/logo.png' %}" alt="Логотип">
+
+
+</body>
+</html>
+
+{% endblock %}

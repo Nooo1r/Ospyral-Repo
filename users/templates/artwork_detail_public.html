@@ -1,0 +1,57 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>{{ artwork.title }}</title>
+  <link rel="stylesheet" href="{% static 'css/artwork_detail.css' %}">
+</head>
+<body>
+  <div class="container">
+    <header class="header">
+      <a href="/" class="logo-link">
+        <img src="{% static 'images/logo.svg' %}" alt="Ospyral" class="logo">
+      </a>
+    </header>
+
+    <main class="artwork-detail">
+      <h1 class="artwork-title">{{ artwork.title }}</h1>
+
+      <div class="meta">
+        <p><strong>Категория:</strong> {{ artwork.category }}</p>
+        <p>
+          <strong>Цена:</strong>
+          {% if artwork.currency == 'USD' %}
+            ${{ artwork.price }}
+          {% elif artwork.currency == 'COIN' %}
+            {{ artwork.price }} 🧿
+          {% else %}
+            {{ artwork.price }} <span class="text-muted">(неизвестная валюта)</span>
+          {% endif %}
+        </p>
+      </div>
+
+      <div class="block gallery">
+        <h2>Страницы</h2>
+        <div class="gallery-view">
+          {% for page in pages %}
+            <div class="artwork-page">
+              <img src="{{ page.image.url }}" alt="Page {{ forloop.counter }}">
+            </div>
+          {% endfor %}
+        </div>
+
+        {% if not has_access %}
+          <div class="box locked">
+            🔒 Чтобы увидеть оригинал, приобретите продукт.
+          </div>
+          <form action="{% url 'buy_artwork' artwork.id %}" method="post" class="mt-3">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-buy">Купить за {{ artwork.price }} {% if artwork.currency == 'USD' %}$ {% else %}🧿{% endif %}</button>
+          </form>
+        {% endif %}
+      </div>
+    </main>
+  </div>
+</body>
+</html>

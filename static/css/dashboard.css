@@ -1,0 +1,640 @@
+
+:root {
+  --header-height: 100px;
+}
+
+html {
+  box-sizing: border-box;
+}
+*, *::before, *::after {
+  box-sizing: inherit;
+}
+
+
+
+body {
+  margin: 0;
+  padding: 0;
+  font-family: 'Roboto', sans-serif;
+  scroll-behavior: smooth;
+  background: rgb(37, 37, 37);
+}
+
+
+/* ====== Шапка (общая) ====== */
+header.header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  padding: 30px 40px;
+  box-sizing: border-box;
+  background: linear-gradient(to right, #ffd45e, #3a3a3a);
+  color: #fff;
+  display: flex;
+  justify-content: space-between;
+  z-index: 999;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.8);
+}
+
+
+.header-logo {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 1000; /* Чтобы логотип был поверх остальных элементов шапки */
+}
+
+
+.header-links {
+  position: absolute;
+  top: 35%;
+  left: 3%;
+  display: flex;
+  flex-direction: row;
+  gap: 20px;
+}
+
+.header-link {
+  color: #000;
+  text-decoration: none;
+  font-size: 16px;
+  font-weight: bold;
+  transition: color 0.3s ease;
+}
+
+.header-link:hover {
+  color: #ffffff;
+  text-decoration: underline;
+}
+
+/* Правый блок: имя + аватар (кликабельно) */
+.header-actions {
+  position: absolute; right: 24px; top: 50%; transform: translateY(-50%);
+  display: flex; align-items: center;
+}
+.user-profile-link {
+  display: inline-flex; align-items: center; gap: 12px;
+  padding: 6px 10px; border-radius: 999px;
+  transition: background-color .2s ease, box-shadow .2s ease;
+}
+.user-profile-link:hover { background-color: rgba(255,255,255,.1); box-shadow: var(--shadow-sm); }
+.user-name { color: #fff; font-weight: 700; font-size: 14px; white-space: nowrap; }
+.user-avatar {
+  width: 36px; height: 36px; border-radius: 50%; object-fit: cover;
+  border: 2px solid var(--gold); transition: transform .25s ease, box-shadow .25s ease, border-color .25s ease;
+}
+.user-profile-link:hover .user-avatar {
+  transform: translateY(-1px) scale(1.03);
+  border-color: #fff; box-shadow: 0 4px 12px rgba(0,0,0,.35);
+}
+
+.dashboard {
+  margin: 70px auto 0; /* Отступ сверху для шапки и авто по бокам */
+  padding: 20px;
+  display: grid;
+  gap: 20px;
+}
+
+.dashboard-card { box-shadow: 0 2px 8px rgba(0,0,0,.18); }
+.dashboard-card:hover { box-shadow: 0 12px 28px rgba(0,0,0,.35); }
+
+/* Контент */
+.content {
+  display: grid;
+  gap: 20px;
+}
+
+.content h1{
+  color: #ffffff;
+}
+
+/* Общие стили для секций */
+section {
+  margin-top: 40px;
+}
+
+section h2 {
+  font-size: 1.8em;
+  margin-bottom: 20px;
+  color: #ffffff;
+}
+.text_intro h1 {
+  text-align: center;
+}
+
+
+
+
+/* Секция подиума */
+.podium-section {
+  max-width: 1200px;
+  margin: 80px auto;
+  padding: 80px;
+  text-align: center;
+  background: #570000;
+  border-radius: 8px;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+.podium-section1 {
+  max-width: 1200px;
+  margin: 80px auto;
+  padding: 80px;
+  text-align: center;
+  background: #00013f;
+  border-radius: 8px;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+.podium-section h2 {
+  margin-bottom: 20px;
+  color: #ffffff;
+}
+
+/* Контейнер подиума */
+.podium {
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  gap: 20px;
+}
+
+/* Общий стиль для каждого элемента подиума */
+.podium-item {
+  text-align: center;
+}
+
+/* Стили для аватарок (круглая рамка, размеры) */
+.podium-item img {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 4px solid #000000; /* Здесь вы можете подключить свой svg или заменить на background-image, когда добавите рамку */
+}
+
+/* Выделение первого места – немного увеличенный аватар и подъем вверх */
+.podium-first img {
+  width: 120px;
+  height: 120px;
+}
+.podium-first {
+  transform: translateY(-20px);
+}
+
+
+/* Стили для ников под аватарками */
+.username {
+  margin-top: 10px;
+  font-size: 1em;
+  color: #2c3e50;
+}
+
+
+
+/* Секция лидеров */
+.leaderboard {
+  max-width: 1200px;
+  margin: 40px auto;
+  padding: 20px;
+  background: rgba(255,255,255,0.9);
+  border-radius: 8px;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+.leaderboard h2 {
+  text-align: center;
+  margin-bottom: 20px;
+  color: #ffffff;
+}
+
+.leaderboard-section {
+  margin-bottom: 30px;
+}
+
+.leaderboard-section h3 {
+  margin-bottom: 10px;
+  color: #2c3e50;
+  text-align: center;
+}
+
+.leaderboard-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0 auto;
+}
+
+.leaderboard-table th,
+.leaderboard-table td {
+  padding: 10px;
+  border: 1px solid #ddd;
+  text-align: center;
+}
+
+.leaderboard-table th {
+  background-color: #f2f2f2;
+  color: #333;
+}
+
+.podium {
+  display: flex;
+  justify-content: center;
+  gap: 80px;
+  margin-top: 80px;
+}
+
+.user-card {
+  position: relative;
+  overflow: hidden;
+  background: #1a1a1a;
+  border: 2px solid #d4af37;
+  border-radius: 12px;
+  padding: 60px;
+  width: 240px;
+  text-align: center;
+  color: #fff;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+  transition: transform 0.3s;
+}
+
+.user-card1 {
+  position: relative;
+  overflow: hidden;
+  background: #1a1a1a;
+  border: 2px solid #d4af37;
+  border-radius: 12px;
+  padding: 70px;
+  width: 250px;
+  text-align: center;
+  color: #fff;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+  transition: transform 0.3s;
+}
+
+/* Цветная полоса */
+.card-ribbon-bg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 38%; /* или 50% от высоты аватара */
+  z-index: 0;
+}
+
+/* Золотая */
+.card-gold .card-ribbon-bg {
+  background: linear-gradient(to bottom, #ffd45e, #e6c200);
+}
+
+/* Серебро */
+.card-silver .card-ribbon-bg {
+  background: linear-gradient(to bottom, #c0c0c0, #a9a9a9);
+}
+
+/* Бронза */
+.card-bronze .card-ribbon-bg {
+  background: linear-gradient(to bottom, #cd7f32, #8b5a2b);
+}
+
+.user-card1::after,
+.user-card::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -90%;
+  width: 60%;
+  height: 100%;
+  background: linear-gradient(
+    120deg,
+    rgba(255, 255, 255, 0.1) 0%,
+    rgba(255, 255, 255, 0.6) 50%,
+    rgba(255, 255, 255, 0.1) 100%
+  );
+  transform: skewX(-25deg);
+  z-index: 2;
+  opacity: 0;
+  transition: opacity 0.3s;
+  pointer-events: none;
+}
+
+.user-card1:hover::after,
+.user-card:hover::after {
+  animation: shimmer 1.2s linear forwards;
+  opacity: 1;
+}
+
+@keyframes shimmer {
+  0% {
+    left: -90%;
+  }
+  100% {
+    left: 140%;
+  }
+}
+
+/* Всё содержимое поверх ленты */
+.user-card img,
+.user-card .username,
+.user-card .user-stats,
+.user-card1 img,
+.user-card1 .username,
+.user-card1 .user-stats {
+  position: relative;
+  z-index: 1;
+}
+
+
+.user-card, .user-card1 {
+  box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.user-card1:hover {
+  transform: translateY(-20px);
+  box-shadow: 0 12px 30px rgba(0,0,0,0.75);
+}
+
+.user-card:hover {
+  transform: translateY(-10px);
+  box-shadow: 0 10px 25px rgba(0,0,0,0.65);
+}
+
+.user-card1 img {
+  width: 80px;
+  height: 80px;
+  border-radius: 8px; /* Квадрат с лёгким скруглением */
+  object-fit: cover;
+  margin-bottom: 10px;
+}
+
+.user-card1 .username {
+  font-weight: bold;
+  font-size: 1rem;
+  margin-bottom: 6px;
+  color: #ffd45e;
+}
+
+.user-card img {
+  width: 80px;
+  height: 80px;
+  border-radius: 8px; /* Квадрат с лёгким скруглением */
+  object-fit: cover;
+  margin-bottom: 10px;
+}
+
+.user-card .username {
+  font-weight: bold;
+  font-size: 1rem;
+  margin-bottom: 6px;
+  color: #ffd45e;
+}
+
+.user-stats div {
+  font-size: 0.85rem;
+  margin: 2px 0;
+  color: #ccc;
+}
+
+
+.cursor-bg-dot {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 40px;
+  height: 40px;
+  pointer-events: none;
+  z-index: 0;                        
+  transform: translate(-50%, -50%);
+  background: radial-gradient(circle, rgba(255,212,94,0.9) 0%, rgba(255,212,94,0.35) 40%, transparent 70%);
+  filter: blur(4px);
+  animation: firefly-pulse 3.2s ease-in-out infinite; 
+}
+
+
+body > *:not(.cursor-bg-dot) { position: relative; z-index: 1; }
+
+
+@keyframes firefly-pulse {
+  0%, 100% { transform: translate(var(--x, -50%), var(--y, -50%)) scale(1);    opacity: 0.85; }
+  50%      { transform: translate(var(--x, -50%), var(--y, -50%)) scale(1.18); opacity: 1; }
+}
+
+
+@media (max-width: 768px) { .cursor-bg-dot { display: none; } }
+@media (prefers-reduced-motion: reduce) {
+  .cursor-bg-dot { animation: none; }
+}
+
+
+/* Статистика */
+.statistics {
+  max-width: 1200px;
+  margin: 60px auto;
+  padding: 40px;
+  background: linear-gradient(to bottom, #121212, #1e1e1e);
+  border-radius: 16px;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.4);
+}
+
+.statistics h2 {
+  text-align: center;
+  font-size: 2rem;
+  color: #d4af37;
+  margin-bottom: 30px;
+}
+
+.stats-cards {
+  display: flex;
+  gap: 80px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.stat-card {
+  background: #1a1a1a;
+  border: 2px solid #333;
+  border-radius: 12px;
+  padding: 30px 20px;
+  min-width: 200px;
+  text-align: center;
+  color: #fff;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.25);
+  transition: transform 0.3s, border 0.3s;
+}
+
+.stat-card:hover {
+  transform: translateY(-5px);
+  border-color: #d4af37;
+}
+
+.stat-card h3 {
+  font-size: 1.1rem;
+  margin-bottom: 10px;
+  color: #ffd45e;
+}
+
+.stat-card p {
+  font-size: 2rem;
+  font-weight: bold;
+  margin: 0;
+  color: #ffffff;
+}
+
+/* Лента новостей */
+.news-feed {
+  max-width: 1200px;
+  min-width: 1100px;
+  margin: 60px auto;
+  padding: 40px;
+  background: linear-gradient(to bottom, #121212, #1b1b1b);
+  border-radius: 16px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.4);
+}
+
+.news-feed h2 {
+  text-align: center;
+  font-size: 2rem;
+  color: #d4af37;
+  margin-bottom: 30px;
+}
+
+.news-item {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 20px;
+  background-color: #1a1a1a;
+  padding: 20px 25px;
+  border-left: 4px solid #d4af37;
+  margin-bottom: 20px;
+  border-radius: 8px;
+  box-shadow: 0 3px 10px rgba(0,0,0,0.3);
+  transition: background 0.3s;
+}
+
+.news-item:hover {
+  background-color: #2a2a2a;
+}
+
+.news-date {
+  font-size: 0.9rem;
+  color: #999;
+  min-width: 90px;
+  font-weight: bold;
+}
+
+.news-feed p {
+  margin: 0;
+  font-size: 1rem;
+  color: #ffffff;
+  line-height: 1.4;
+}
+
+
+
+/* Карточки на dashboard */
+.dashboard-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, 300px);
+  justify-content: center;
+  gap: 100px;
+  margin-top: 20px;
+}
+
+.dashboard-card {
+  text-decoration: none;
+  position: relative;
+  overflow: visible; 
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  background-color: #ffffff;
+  border-radius: 8px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  text-align: center;
+  color: #000000;
+  transition: background-color 0.4s ease;
+}
+
+
+
+/* Внутренний контейнер для анимации */
+.dashboard-card-inner {
+  transition: transform 0.3s ease;
+}
+
+.dashboard-card:hover .dashboard-card-inner {
+  transform: translateY(-15px);
+}
+
+/* Лента */
+.card-ribbon {
+  position: absolute;
+  top: 25%;
+  left: 0;
+  width: 100%;
+  transform: translateY(-50%);
+  background-color: #d4af37;
+  color: #ffffff;
+  padding: 20px 0;
+  font-size: 1.2rem;
+  font-weight: bold;
+  text-align: center;
+  z-index: 2;
+  transition: transform 0.4s ease;
+}
+
+.card-description {
+  margin-top: 140px;
+  padding: 0 15px;
+  font-size: 0.95rem;
+  color: #000000;
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+  text-align: left;
+}
+
+/* Скрываем при ховере */
+.dashboard-card:hover .card-description {
+  opacity: 0;
+  transform: translateY(10px);
+}
+
+/* Иконка (скрыта изначально) */
+.card-icon {
+  position: absolute;
+  bottom: -40px;
+  left: 50%;
+  transform: translateX(-50%);
+  opacity: 0;
+  transition: bottom 0.4s ease, opacity 0.4s ease;
+}
+
+.card-icon img {
+  width: 350px;
+  height: 350px;
+}
+
+.dashboard-card:hover .card-ribbon {
+  transform: translateY(225%);
+}
+
+.dashboard-card:hover .card-icon {
+  bottom: -10px;
+  opacity: 1;
+}
+
+
+.card-text:hover {
+  background-color: #750000;
+}
+
+.card-art:hover {
+  background-color: #400075;
+}
+
+.card-lesson:hover {
+  background-color: #007548;
+}

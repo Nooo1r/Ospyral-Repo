@@ -1,0 +1,65 @@
+# --- Python ---
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.pyc
+*.egg-info/
+.eggs/
+build/
+dist/
+pip-wheel-metadata/
+
+# --- Environments ---
+.env
+.env.local
+.env.*.local
+.python-version
+venv/
+myenv/
+env/
+.venv/
+
+# --- Django ---
+db.sqlite3
+*.sqlite3
+debug.log
+celerybeat-schedule*
+celerybeat.pid
+celerybeat-*.db
+*.bak
+
+# collected static (если используешь collectstatic в staticfiles/)
+staticfiles/
+
+# user uploads (медиа из продакшена/дева в репо не нужны)
+media/
+
+# --- Tests / tooling ---
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.mypy_cache/
+.ruff_cache/
+.hypothesis/
+
+# --- IDE / OS ---
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# --- JS/Frontend (если используешь) ---
+node_modules/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# --- Solidity / Hardhat / Foundry (если будет) ---
+cache/
+artifacts/

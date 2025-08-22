@@ -1,0 +1,54 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Редактировать урок</title>
+  <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+</head>
+<body>
+  <header class="header">
+    <div class="header-logo">
+      <img src="{% static 'images/logo.svg' %}" alt="Логотип" class="logo">
+    </div>
+    <div class="header-actions">
+      <span class="user-name">{{ user.username }}</span>
+      <a href="{% url 'logout' %}" class="btn btn-logout">Выйти</a>
+    </div>
+  </header>
+
+  <div class="dashboard">
+    <aside class="sidebar">
+      <nav class="menu-items">
+        <a href="{% url 'lesson_list' %}" class="sidebar-link">Уроки</a>
+      </nav>
+    </aside>
+
+    <main class="content">
+      <h1>Редактировать урок: {{ lesson.title }}</h1>
+      <form method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+
+        <div class="form-actions">
+          <!-- Кнопка сохранить изменения -->
+          <button type="submit" class="btn btn-save">Сохранить</button>
+          
+          <!-- Кнопка удаления (name="delete") -->
+          <button 
+            type="submit" 
+            name="delete" 
+            value="1"
+            class="btn btn-danger"
+            onclick="return confirm('Вы уверены, что хотите удалить этот урок?');"
+          >Удалить урок</button>
+          
+          <!-- Ссылка отмены -->
+          <a href="{% url 'lesson_list' %}" class="btn btn-cancel">Отмена</a>
+        </div>
+      </form>
+    </main>
+  </div>
+</body>
+</html>

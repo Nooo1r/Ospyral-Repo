@@ -1,0 +1,162 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Магазин текстовой продукции{% endblock %}
+
+{% block extra_head %}
+  <link rel="stylesheet" href="{% static 'css/catalog_text_products.css' %}">
+{% endblock %}
+
+{% block body_class %}store-body{% endblock %}
+
+{% block content %}
+
+  {# ======= Новый хедер витрины ======= #}
+  <header class="store-hero">
+    <div class="hero-inner">
+      <div class="hero-topline">
+        <div class="hero-kicker">Ospyral • Text Store</div>
+        <div class="hero-stats">
+          <span class="dot"></span>
+          {{ page_obj.paginator.count }} продуктов
+        </div>
+      </div>
+
+      <h1 class="hero-title">Магазин текстовой продукции</h1>
+      <p class="hero-sub">Премиальные тексты, курируемые модерацией: ищи по названию, описанию или тегам.</p>
+
+      {# Быстрый поиск сразу в хедере #}
+      <form class="hero-search" method="get">
+        <input type="hidden" name="sort" value="{{ sort }}">
+        <input type="hidden" name="hide_nsfw" value="{{ hide_nsfw }}">
+        <input type="hidden" name="exclude_mine" value="{{ exclude_mine }}">
+        <input type="text" name="q" value="{{ query }}" placeholder="Поиск по названию, описанию, тегам…" />
+        <button type="submit" class="btn btn-primary">Найти</button>
+      </form>
+    </div>
+  </header>
+
+  {# ======= Липкая панель фильтров ======= #}
+  <div class="store-filters">
+    <form class="filters-inner" method="get">
+      <input type="text" name="q" value="{{ query }}" placeholder="Поиск…" class="filter-search" />
+
+      <div class="select-wrap">
+        <label for="sort" class="sr-only">Сортировка</label>
+        <select name="sort" id="sort">
+          <option value="-created"    {% if sort == '-created' %}selected{% endif %}>Сначала новые</option>
+          <option value="created"     {% if sort == 'created' %}selected{% endif %}>Сначала старые</option>
+          <option value="-price"      {% if sort == '-price' %}selected{% endif %}>Цена: по убыванию</option>
+          <option value="price"       {% if sort == 'price' %}selected{% endif %}>Цена: по возрастанию</option>
+          <option value="-avg_rating" {% if sort == '-avg_rating' %}selected{% endif %}>Рейтинг: высокий → низкий</option>
+          <option value="avg_rating"  {% if sort == 'avg_rating' %}selected{% endif %}>Рейтинг: низкий → высокий</option>
+        </select>
+      </div>
+
+      <label class="chk">
+        <input type="checkbox" name="hide_nsfw" value="1" {% if hide_nsfw == '1' %}checked{% endif %}>
+        Скрывать NSFW
+      </label>
+
+      <label class="chk">
+        <input type="checkbox" name="exclude_mine" value="1" {% if exclude_mine == '1' %}checked{% endif %}>
+        Не показывать мои
+      </label>
+
+      <button type="submit" class="btn btn-ghost">Применить</button>
+    </form>
+
+    {# Подсказка статуса выборки #}
+    <div class="filters-summary">
+      Найдено: <strong>{{ page_obj.paginator.count }}</strong>
+      • Стр. {{ page_obj.number }} из {{ page_obj.paginator.num_pages }}
+    </div>
+  </div>
+
+  {# ======= Сетка карточек ======= #}
+  <main class="product-grid">
+    {% for p in products %}
+      <article class="product-card">
+        <header class="product-header">
+          <h3 class="product-title">
+            {{ p.title }}
+            {% if p.nsfw %}<span class="pill pill-danger" title="Контент 18+">NSFW</span>{% endif %}
+          </h3>
+          {% if p.avg_rating %}
+            <div class="rating" aria-label="Рейтинг {{ p.avg_rating|floatformat:1 }} из 5">
+              <span class="stars" data-score="{{ p.avg_rating|floatformat:1 }}"></span>
+              <span class="rating-num">{{ p.avg_rating|floatformat:1 }}</span>
+            </div>
+          {% endif %}
+        </header>
+
+        <p class="product-description">
+          {{ p.description|default:"Без описания" }}
+        </p>
+
+        <footer class="product-footer">
+          <div class="price-wrap">
+            <span class="product-price">{{ p.price }}</span>
+            <span class="currency">{{ p.currency }}</span>
+          </div>
+
+          <a class="btn btn-accent" href="{% url 'public_view_text_product' p.pk %}">
+            Открыть
+          </a>
+        </footer>
+      </article>
+    {% empty %}
+      <section class="empty-state">
+        <div class="empty-emoji">🕵️</div>
+        <h3>Ничего не найдено</h3>
+        <p>Попробуйте изменить запрос, снять часть фильтров или выбрать другую сортировку.</p>
+      </section>
+    {% endfor %}
+  </main>
+
+  {# ======= Пагинация ======= #}
+  {% if page_obj.has_other_pages %}
+    <nav class="pager" role="navigation" aria-label="Пагинация">
+      {% if page_obj.has_previous %}
+        <a class="page prev" href="?q={{ query|urlencode }}&sort={{ sort }}&hide_nsfw={{ hide_nsfw }}&exclude_mine={{ exclude_mine }}&page={{ page_obj.previous_page_number }}">‹ Предыдущая</a>
+      {% endif %}
+
+      {% for num in page_obj.paginator.page_range %}
+        {% if num == page_obj.number %}
+          <span class="page active" aria-current="page">{{ num }}</span>
+        {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' or num == 1 or num == page_obj.paginator.num_pages %}
+          <a class="page" href="?q={{ query|urlencode }}&sort={{ sort }}&hide_nsfw={{ hide_nsfw }}&exclude_mine={{ exclude_mine }}&page={{ num }}">{{ num }}</a>
+        {% endif %}
+      {% endfor %}
+
+      {% if page_obj.has_next %}
+        <a class="page next" href="?q={{ query|urlencode }}&sort={{ sort }}&hide_nsfw={{ hide_nsfw }}&exclude_mine={{ exclude_mine }}&page={{ page_obj.next_page_number }}">Следующая ›</a>
+      {% endif %}
+    </nav>
+  {% endif %}
+
+  <script>
+    // Визуальные звёзды рейтинга
+    document.querySelectorAll('.stars').forEach(el => {
+      const score = parseFloat(el.dataset.score || '0');
+      const full  = Math.floor(score);
+      const half  = (score - full) >= 0.5;
+      let html = '';
+      for (let i=1; i<=5; i++) {
+        if (i <= full) html += '★';
+        else if (i === full+1 && half) html += '☆';
+        else html += '☆';
+      }
+      el.textContent = html;
+    });
+
+    // Дебаунс поиска в фильтрах
+    const searchInput = document.querySelector('.filters-inner .filter-search');
+    if (searchInput) {
+      let t; searchInput.addEventListener('input', () => {
+        clearTimeout(t);
+        t = setTimeout(() => searchInput.form.requestSubmit(), 450);
+      });
+    }
+  </script>
+{% endblock %}

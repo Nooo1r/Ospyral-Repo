@@ -1,0 +1,53 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Уроки</title>
+  <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+</head>
+<body>
+  <header class="header">
+    <div class="header-logo">
+      <img src="{% static 'images/logo.svg' %}" alt="Логотип" class="logo">
+    </div>
+    <div class="header-actions">
+      <span class="user-name">{{ user.username }}</span>
+      <a href="{% url 'logout' %}" class="btn btn-logout">Выйти</a>
+    </div>
+  </header>
+
+  <div class="dashboard">
+    <aside class="sidebar">
+      <nav class="menu-items">
+        <a href="{% url 'dashboard' %}" class="sidebar-link">Главная</a>
+        <a href="{% url 'lesson_list' %}" class="sidebar-link active">Уроки</a>
+        <a href="{% url 'add_lesson' %}" class="btn btn-add">Добавить урок</a>
+      </nav>
+    </aside>
+
+    <main class="content">
+      <h1>Доступные уроки</h1>
+      {% if lessons %}
+        <div class="lessons-list">
+          {% for lesson in lessons %}
+            <div class="card">
+              <h2 class="card-title">{{ lesson.title }}</h2>
+              <p><strong>Дата начала:</strong> {{ lesson.start_date|date:"d.m.Y H:i" }}</p>
+              <p>{{ lesson.description|truncatewords:30 }}</p>
+              <div class="card-actions">
+                <a href="{% url 'edit_lesson' lesson.id %}" class="btn">Редактировать</a>
+                <a href="{% url 'delete_lesson' lesson.id %}" class="btn btn-danger">Удалить</a>
+                <a href="{% url 'enroll_lesson' lesson.id %}" class="btn btn-primary">Записаться</a>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <p>Уроки отсутствуют. <a href="{% url 'add_lesson' %}" class="btn">Добавить первый урок</a>.</p>
+      {% endif %}
+    </main>
+  </div>
+</body>
+</html>

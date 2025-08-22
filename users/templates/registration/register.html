@@ -1,0 +1,61 @@
+{% load static widget_tweaks %}
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Регистрация</title>
+  <link rel="stylesheet" href="{% static 'css/auth.css' %}">
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+</head>
+<body class="auth-body">
+
+  <div class="auth-container">
+    <div class="auth-card">
+      <h2 class="auth-title">Регистрация</h2>
+
+      <form method="post" action="{% url 'register' %}" class="auth-form">
+        {% csrf_token %}
+
+        {% render_field form.username class="auth-input" placeholder="Имя пользователя" %}
+        {% render_field form.email class="auth-input" placeholder="Email" %}
+        {% render_field form.first_name class="auth-input" placeholder="Имя" %}
+        {% render_field form.last_name class="auth-input" placeholder="Фамилия" %}
+        {% render_field form.password1 class="auth-input" placeholder="Пароль" %}
+        {% render_field form.password2 class="auth-input" placeholder="Повторите пароль" %}
+
+        {# скрытое поле для Turnstile-токена #}
+        {% render_field form.cf_turnstile_response type="hidden" id="cf-turnstile-response" %}
+
+        {# сам виджет Cloudflare Turnstile #}
+        <div class="cf-turnstile" data-sitekey="{{ site_key }}"></div>
+
+        <button type="submit" class="auth-button">Зарегистрироваться</button>
+      </form>
+
+      {% if form.errors %}
+        <div class="auth-error">
+          {{ form.errors }}
+        </div>
+      {% endif %}
+
+      <div class="auth-footer">
+        Уже есть аккаунт? <a href="{% url 'login' %}">Войти</a>
+      </div>
+    </div>
+  </div>
+
+  {# подключаем Turnstile API и инициализируем виджет #}
+  <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      turnstile.render('.cf-turnstile', {
+        sitekey: '{{ site_key }}',
+        callback: function(token) {
+          document.getElementById('cf-turnstile-response').value = token;
+        }
+      });
+    });
+  </script>
+
+</body>
+</html>
