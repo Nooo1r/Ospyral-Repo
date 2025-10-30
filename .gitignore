@@ -63,3 +63,16 @@ pnpm-debug.log*
 # --- Solidity / Hardhat / Foundry (если будет) ---
 cache/
 artifacts/
+@'
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.sqlite3
+media/
+staticfiles/
+*.log
+.env
+.env.*
+!.env.example
+.env.prod
