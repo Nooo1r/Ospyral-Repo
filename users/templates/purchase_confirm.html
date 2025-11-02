@@ -1,0 +1,85 @@
+{# templates/purchase_confirm.html #}
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="confirm-wrap">
+  <h1 class="confirm-title">Подтверждение покупки</h1>
+
+  <div class="confirm-card">
+    <div class="confirm-row">
+      <div class="confirm-label">Тип:</div>
+      <div class="confirm-value">
+        {% if kind == 'text' %}Текстовый продукт{% else %}Артворк{% endif %}
+      </div>
+    </div>
+    <div class="confirm-row">
+      <div class="confirm-label">Название:</div>
+      <div class="confirm-value">{{ object.title }}</div>
+    </div>
+    <div class="confirm-row">
+      <div class="confirm-label">Автор:</div>
+      <div class="confirm-value">@{{ object.owner.username }}</div>
+    </div>
+    <div class="confirm-row">
+      <div class="confirm-label">Цена:</div>
+      <div class="confirm-value">{{ price }} {{ currency }}</div>
+    </div>
+    {% if kind == 'art' %}
+      <div class="confirm-row">
+        <div class="confirm-label">Доступно копий:</div>
+        <div class="confirm-value">{{ object.available_copies }}</div>
+      </div>
+    {% endif %}
+  </div>
+
+  <form method="post" class="confirm-form">
+    {% csrf_token %}
+    <label class="confirm-agree">
+      {{ form.agree }}
+      <span>Я согласен с
+        <a href="{% url 'rules_overview' %}#terms"     class="header-link">Правила</a>
+        и <a href="{% url 'rules_overview' %}#security"  class="header-link">Безопасность</a>
+        сайта.
+      </span>
+    </label>
+    <div class="confirm-actions">
+      {% if kind == 'text' %}
+        <a class="btn btn-outline" href="{% url 'public_view_text_product' object.id %}">Отмена</a>
+      {% else %}
+        <a class="btn btn-outline" href="{% url 'view_artwork_public' object.id %}">Отмена</a>
+      {% endif %}
+      <button id="confirmSubmit" class="btn btn-primary" type="submit" disabled>Подтвердить</button>
+    </div>
+  </form>
+</div>
+
+<style>
+.confirm-wrap{max-width:720px;margin:40px auto;padding:24px;}
+.confirm-title{font-size:28px;margin-bottom:16px;}
+.confirm-card{background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);
+  border-radius:16px;padding:16px;margin-bottom:16px;}
+.confirm-row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px dashed rgba(255,255,255,0.08);}
+.confirm-row:last-child{border-bottom:none;}
+.confirm-label{opacity:.7;}
+.confirm-value{font-weight:600;}
+.confirm-agree{display:flex;gap:10px;align-items:flex-start;margin:16px 0;}
+.confirm-actions{display:flex;gap:12px;justify-content:flex-end;}
+.btn{padding:10px 16px;border-radius:10px;border:1px solid transparent;cursor:pointer}
+.btn-primary{background:#f1c40f;border-color:#f1c40f;color:#000}
+.btn-outline{background:transparent;border-color:rgba(255,255,255,0.3);color:#fff}
+.btn[disabled]{opacity:.5;cursor:not-allowed}
+</style>
+
+<script>
+  (function(){
+    const agree = document.querySelector('input[name="agree"]');
+    const submit = document.getElementById('confirmSubmit');
+    if (agree && submit){
+      const sync = () => submit.disabled = !agree.checked;
+      agree.addEventListener('change', sync);
+      sync();
+    }
+  })();
+</script>
+{% endblock %}

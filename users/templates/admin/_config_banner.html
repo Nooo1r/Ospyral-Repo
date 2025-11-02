@@ -1,0 +1,10 @@
+{% if ADMIN_CONFIG_WARNINGS %}
+  <div class="alert alert-warning" role="alert">
+    <div class="fw-bold mb-1">Проблемы конфигурации:</div>
+    <ul class="mb-0">
+      {% for msg in ADMIN_CONFIG_WARNINGS %}
+        <li>{{ msg }}</li>
+      {% endfor %}
+    </ul>
+  </div>
+{% endif %}

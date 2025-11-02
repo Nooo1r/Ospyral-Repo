@@ -1,0 +1,481 @@
+
+body {
+  margin: 0;
+  padding: 0;
+  font-family: 'Roboto', sans-serif;
+  scroll-behavior: smooth;
+  background: rgb(37, 37, 37);
+}
+
+
+:root{
+  --hdr-bg: rgba(14,14,18,0.46);
+  --hdr-border: rgba(255,212,94,0.35);
+  --hdr-shadow: 0 10px 24px -16px rgba(0,0,0,0.8);
+  --gold: #ffd45e;
+  --gold-2: #d4af37;
+  --text: #e8e8ee;
+  --muted: #9aa0a6;
+  --hdr-h: 96px
+}
+
+/* ====== Шапка (общая) ====== */
+header.header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  padding: 30px 40px;
+  box-sizing: border-box;
+  background: var(--hdr-bg);
+  border-image: linear-gradient(90deg, transparent 0%, var(--hdr-border) 35%, var(--hdr-border) 65%, transparent 100%) 1;
+  border-bottom: 1px solid transparent;
+  backdrop-filter: blur(8px);
+  color: #fff;
+  display: flex;
+  justify-content: space-between;
+  z-index: 999;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.8);
+}
+
+.hub {
+  display: flex;
+}
+
+.header-logo {
+  position: absolute;
+  display: flex;
+  gap: 15px;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 1000;
+  font-family: 'Lucida Grande';
+  font-size: 26px;
+}
+.ospyral-logo { filter: drop-shadow(0 0 10px rgba(255,255,255,0.8)); }
+
+
+.header-links {
+  position: absolute;
+  top: 35%;
+  left: 3%;
+  display: flex;
+  flex-direction: row;
+  gap: 20px;
+}
+
+.header-link {
+  color: #ffffff;
+  text-decoration: none;
+  font-size: 16px;
+  font-weight: bold;
+  transition: color 0.3s ease;
+}
+
+.header-link:hover {
+  color: var(--gold);
+  text-decoration: underline;
+}
+
+
+.header-actions {
+  position: absolute; right: 24px; top: 50%; transform: translateY(-50%);
+  display: flex; align-items: center;
+}
+.user-profile-link {
+  display: inline-flex; align-items: center; gap: 12px;
+  padding: 6px 10px; border-radius: 8px;
+  transition: background-color .2s ease, box-shadow .2s ease;
+}
+.user-profile-link:hover { background-color: rgba(255,255,255,.1); box-shadow: var(--shadow-sm); }
+.user-name { color: #fff; font-weight: 700; font-size: 14px; white-space: nowrap; }
+.user-avatar {
+  width: 36px; height: 36px; border-radius: 8px; object-fit: cover;
+  border: 2px solid var(--gold); transition: transform .25s ease, box-shadow .25s ease, border-color .25s ease;
+}
+.user-profile-link:hover .user-avatar {
+  transform: translateY(-1px) scale(1.03);
+  border-color: #fff; box-shadow: 0 4px 12px rgba(0,0,0,.35);
+}
+
+.hub-container {
+  text-align: center;
+  max-width: none;
+  width: 100%;
+  margin: -10px; 
+}
+
+.card-text .card-icon {
+  position: absolute;
+  left: 0;
+  bottom: 0;           /* фиксируем у дна карточки */
+  width: 100%;
+  height: 260px;       /* достаточная высота под картинки */
+  opacity: 1;          /* НЕ скрываем весь контейнер (каждую картинку анимируем отдельно) */
+  transform: none;     /* без общего сдвига */
+  pointer-events: none;/* не мешаем клику по карточке */
+}
+
+/* Базовые параметры самих картинок в текстовой карточке */
+.card-text .card-icon img {
+  position: absolute;
+  bottom: 0;
+  opacity: 0;          /* по умолчанию скрыты, появятся на hover */
+  transition:
+    transform 0.6s cubic-bezier(.2,.7,.2,1),
+    opacity   0.6s ease;
+  height: auto;        /* соблюдаем пропорции */
+}
+
+/* Блокнот — слева → к центру */
+.card-text .card-icon .icon-notebook {
+  left: 50%;
+  width: 350px;        /* «стандарт уже отличный» — оставляем */
+  transform: translateX(-200%) rotate(-4deg); /* старт далеко слева */
+  z-index: 1;
+}
+
+/* Ручка — справа → к центру (уменьшена вдвое) */
+.card-text .card-icon .icon-pen {
+  left: 50%;
+  width: 175px;        /* было ~350px, стало в 2 раза меньше */
+  transform: translateX(120%) rotate(-12deg); /* старт справа */
+  z-index: 2;          /* чуть выше блокнота, чтобы красиво легла */
+}
+
+/* Финальные позиции при наведении на карточку */
+.card-text:hover .card-icon .icon-notebook {
+  transform: translateX(-80%) rotate(-2deg);  /* чуть левее центра */
+  opacity: 1;
+}
+
+.card-text:hover .card-icon .icon-pen {
+  transform: translateX(-20%) rotate(-12deg); /* чуть правее центра */
+  opacity: 1;
+}
+
+/* Отключим "всплытие снизу" именно для текстовой карточки,
+   чтобы не конфликтовало с нашей боковой анимацией */
+.card-text .card-icon { bottom: 0; }
+.card-text:hover .card-icon { bottom: 0; opacity: 1; }
+
+
+
+.hub {
+  margin:  0 60px 0; 
+  padding: 0 0;          
+  display: block;        
+}
+
+.hub-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); /* карточки крупнее */
+  gap: 44px;
+  margin-top: 16px;
+}
+
+.hub-card {
+  position: relative;
+  display: block;
+  height: 400px;                 /* выше сцена = крупнее иконки */
+  background: #fff;
+  border-radius: 14px;
+  box-shadow: 0 10px 24px rgba(0,0,0,.25);
+  text-decoration: none;
+  color: #000;
+  will-change: transform;        /* GPU */
+  transform: translateZ(0);
+  transition: box-shadow .25s ease, transform .25s ease, background-color .4s ease;
+}
+
+
+
+.hub-card:hover {
+  box-shadow: 0 18px 40px rgba(0,0,0,.35);
+  transform: translateY(-6px);   /* лёгкий подскок */
+}
+
+/* 3D-контейнер — перспектива для tilt */
+.card-3d {
+  height: 100%;
+  perspective: 1200px;
+  border-radius: inherit;
+  overflow: hidden;
+}
+
+.hub-card-inner {
+  height: 100%;
+  transform-style: preserve-3d;
+  transition: transform .18s ease; /* сгладим обратный ход */
+}
+
+
+/* 3D-контейнер — перспектива для tilt */
+.card-3d {
+  height: 100%;
+  perspective: 1200px;
+  border-radius: inherit;
+  overflow: hidden;
+}
+
+.hub-card-inner {
+  height: 100%;
+  transform-style: preserve-3d;
+  transition: transform .18s ease; /* сгладим обратный ход */
+}
+
+/* ===== Лента: исчезает чисто и без скачков ===== */
+.card-ribbon {
+  position: absolute;
+  inset: 18px 18px auto 18px;
+  padding: 14px 16px;
+  font-weight: 800;
+  text-align: center;
+  color: #fff;
+  z-index: 3;
+  will-change: transform, opacity;
+  transition: transform .35s ease, opacity .25s ease;
+}
+
+.hub-card:hover .card-ribbon {
+  transform: translateY(-16px) scale(.96);
+  opacity: 0; /* исчезает полностью */
+}
+
+/* ===== Текст описания: мягкий уход при ховере ===== */
+.card-description {
+  position: absolute;
+  left: 20px; right: 20px;
+  bottom: 24px;
+  color: #111;
+  z-index: 2;
+  transition: transform .3s ease, opacity .25s ease;
+}
+
+.hub-card:hover .card-description {
+  transform: translateY(8px);
+  opacity: 0;
+}
+
+/* ===== Сцена иконок: крупные, точные позиции ===== */
+.card-icon {
+  position: absolute;
+  inset: auto 0 0 0;            /* прижимаем к низу, ширина на всю карточку */
+  height: 75%;                  /* больше сцену, больше иконки */
+  z-index: 1;
+  pointer-events: none;
+}
+
+.card-icon img {
+  position: absolute;
+  bottom: 0;
+  height: auto;
+  transform-origin: center bottom;
+  will-change: transform, opacity;
+  image-rendering: auto;
+  filter: drop-shadow(0 10px 14px rgba(0,0,0,.25));
+}
+
+/* ==== ТЕКСТОВАЯ КАРТОЧКА: вход слева/справа, финал — крупнее ==== */
+.card-text .icon-notebook {
+  left: 50%;
+  width: 520px;                                 /* БОЛЬШЕ */
+  transform: translateX(-220%) rotate(-4deg) scale(.94);
+  opacity: 0;
+  transition: transform .6s cubic-bezier(.2,.7,.2,1), opacity .45s ease;
+  z-index: 1;
+}
+
+.card-text .icon-pen {
+  left: 50%;
+  width: 240px;                                  /* в 2 раза меньше блокнота */
+  transform: translateX(140%) rotate(-12deg) scale(.94);
+  opacity: 0;
+  transition: transform .6s cubic-bezier(.2,.7,.2,1) .04s, opacity .45s ease .04s;
+  z-index: 2;
+}
+
+.card-text:hover .icon-notebook {
+  transform: translateX(-78%) rotate(-2deg) scale(1.04);
+  opacity: 1;
+}
+
+.card-text:hover .icon-pen {
+  transform: translateX(-18%) rotate(-12deg) scale(1.02);
+  opacity: 1;
+}
+
+/* ==== АРТ-КАРТОЧКА: холст + кисть ==== */
+.card-art .canvas {
+  left: 50%;
+  width: 520px;
+  transform: translateX(-220%) rotate(-2deg) scale(.94);
+  opacity: 0;
+  transition: transform .6s cubic-bezier(.2,.7,.2,1), opacity .45s ease;
+  z-index: 1;
+}
+
+.card-art .brush {
+  left: 50%;
+  width: 240px;
+  transform: translateX(140%) rotate(-15deg) scale(.94);
+  opacity: 0;
+  transition: transform .6s cubic-bezier(.2,.7,.2,1) .04s, opacity .45s ease .04s;
+  z-index: 2;
+}
+
+.card-art:hover .canvas {
+  transform: translateX(-78%) rotate(-1deg) scale(1.04);
+  opacity: 1;
+}
+
+.card-art:hover .brush {
+  transform: translateX(-18%) rotate(-15deg) scale(1.02);
+  opacity: 1;
+}
+
+/* ===== Цветовые карточки при ховере (как у тебя, но мягче) ===== */
+.card-text:hover  { background-color: #750000; }
+.card-art:hover   { background-color: #400075; }
+
+
+/* ===== 3D tilt: небольшой угол, чтобы не укачивало ===== */
+.hub-card[data-tilt] .hub-card-inner {
+
+}
+
+/* ===== Уважение к reduce-motion ===== */
+@media (prefers-reduced-motion: reduce) {
+  .hub-card,
+  .hub-card-inner,
+  .card-ribbon,
+  .card-description,
+  .card-icon img {
+    transition: none !important;
+    animation: none !important;
+  }
+}
+
+
+/* Лента */
+.card-ribbon {
+  position: absolute;
+  top: 25%;
+  left: 0;
+  width: 100%;
+  transform: translateY(-50%);
+  color: #ffffff;
+  padding: 20px 0;
+  font-size: 1.2rem;
+  font-weight: bold;
+  text-align: center;
+  z-index: 2;
+  transition: transform 0.4s ease, opacity 0.3s ease;
+}
+
+.card1 {
+  background-color: #750000;
+}
+.card2 {
+  background-color: #400075;
+}
+.card3 {
+  background-color: #007548;
+}
+
+.card-description {
+  margin-top: 140px;
+  padding: 0 15px;
+  font-size: 0.95rem;
+  color: #000000;
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+  text-align: left;
+}
+
+/* Скрываем при ховере */
+.hub-card:hover .card-description {
+  opacity: 0;
+  transform: translateY(10px);
+}
+
+
+.hub-card:hover .card-ribbon {
+  transform: translateY(225%);
+  opacity: 0;  
+}
+
+
+.card-text:hover {
+  background-color: #750000;
+}
+
+.card-art:hover {
+  background-color: #400075;
+}
+
+.card-lesson:hover {
+  background-color: #007548;
+}
+
+.hub-card.card-text .icon-notebook,
+.hub-card.card-text .icon-pen,
+.hub-card.card-art  .canvas,
+.hub-card.card-art  .brush {
+  position: absolute;
+  bottom: 0;
+  height: auto;
+  opacity: 0;
+  transform-origin: center bottom;
+  will-change: transform, opacity;
+  transition: transform .6s cubic-bezier(.2,.7,.2,1), opacity .45s ease;
+  filter: drop-shadow(0 10px 14px rgba(0,0,0,.25));
+}
+
+/* Стартовые позы */
+.hub-card.card-text .icon-notebook { left:50%; width:520px; transform:translateX(-220%) rotate(-4deg)  scale(.94); z-index:1; }
+.hub-card.card-text .icon-pen      { left:50%; width:240px; transform:translateX( 140%) rotate(-12deg) scale(.94); z-index:2; }
+.hub-card.card-art  .canvas        { left:50%; width:520px; transform:translateX(-220%) rotate(-2deg)  scale(.94); z-index:1; }
+.hub-card.card-art  .brush         { left:50%; width:240px; transform:translateX( 140%) rotate(-15deg) scale(.94); z-index:2; }
+
+/* Позиции на :hover */
+.hub-card.card-text:hover .icon-notebook { transform:translateX(-78%) rotate(-2deg)  scale(1.04); opacity:1; }
+.hub-card.card-text:hover .icon-pen      { transform:translateX(-18%) rotate(-12deg) scale(1.02); opacity:1; }
+.hub-card.card-art:hover  .canvas        { transform:translateX(-78%) rotate(-1deg)  scale(1.04); opacity:1; }
+.hub-card.card-art:hover  .brush         { transform:translateX(-18%) rotate(-15deg) scale(1.02); opacity:1; }
+
+.sway {
+  position: absolute;
+  inset: 0;                 /* во всю сцену, чтобы трансформации шли «снаружи» */
+  pointer-events: none;     /* не мешаем клику по карточке */
+  transform-origin: center bottom;
+}
+
+/* Две «манеры» движения: крупная и инструментальная */
+@keyframes floatBig {
+  0%   { transform: translateY(0) rotate(-0.8deg); }
+  50%  { transform: translateY(-2.2%) rotate( 0.8deg); }
+  100% { transform: translateY(0) rotate(-0.8deg); }
+}
+
+@keyframes pendulumTool {
+  0%   { transform: translateX(-1.2%) rotate(-3deg); }
+  50%  { transform: translateX( 1.2%) rotate( 3deg); }
+  100% { transform: translateX(-1.2%) rotate(-3deg); }
+}
+
+/* Включаем плавание ТОЛЬКО на hover карточки (иначе не отвлекает) */
+.hub-card:hover .sway--big  { animation: floatBig 3.8s ease-in-out infinite; }
+.hub-card:hover .sway--tool { animation: pendulumTool 2.6s ease-in-out infinite; }
+
+/* Чуть рассинхронизируем, чтобы движения не были одинаковыми */
+.card-art   .sway--big  { animation-delay: .15s; }
+.card-art   .sway--tool { animation-delay: .05s; }
+.card-text  .sway--tool { animation-delay: .12s; }
+
+/* Уважение к reduce-motion */
+@media (prefers-reduced-motion: reduce) {
+  .sway { animation: none !important; }
+}

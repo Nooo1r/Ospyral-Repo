@@ -7,20 +7,36 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Мой профиль</title>
   <link rel="stylesheet" href="{% static 'css/profile.css' %}">
+  <link rel="stylesheet" href="{% static 'css/catalog_text_products.css' %}">
+  <link rel="stylesheet" href="{% static 'css/artwork_store.css' %}">
 </head>
 <body>
   <style>
     :root {
-      --profile-bg-color: {{ profile.background_color|default:'#3498db' }};
+    --profile-bg-color:
+      {% if profile.background_color and profile.background_color|length == 7 and profile.background_color|slice:':1' == '#' %}
+        {{ profile.background_color }}
+      {% elif profile.bg_color and profile.bg_color|length == 7 and profile.bg_color|slice:':1' == '#' %}
+        {{ profile.bg_color }}
+      {% else %}
+        #3498db
+      {% endif %};
     }
-  
-    .profile-background {
-      background-color: var(--profile-bg-color);
-    }
+    .profile-background { background-color: var(--profile-bg-color); }
   </style>
   
-  <div class="profile-background"></div>
-  <div class="profile-wrapper">
+  {% with val=profile.background_color %}
+    <div class="profile-background
+                {% if val == 'vip-gold' %}bg--vip-gold{% elif val == 'vip-star' %}bg--vip-star{% elif val == 'vip-galaxy' %}bg--vip-galaxy{% endif %}"></div>
+  {% endwith %}
+
+
+  {% with v=profile.background_color %}
+  <div class="profile-wrapper"
+      {% if v == 'vip-gold' or v == 'vip-star' or v == 'vip-galaxy' %}
+        data-vip="{{ v }}"
+      {% endif %}>
+  {% endwith %}
     <div class="profile-top-row">
           <div class="achievements-box">
             <h3>Достижения</h3>
@@ -35,58 +51,104 @@
             {% endif %}
           </div>
       <div class="center-box">  
-        <!-- Блок с информацией профиля (показ только при просмотре профиля) -->
-
-          
           <img class="profile-avatar" src="{{ user.profile_image_url }}" alt="Avatar" loading="lazy">
           <div class="profile-details">
-            <p><strong>Имя пользователя:</strong> {{ user.username }}</p>
+            <h1>{{ user.username }}</h1>
             <p><strong>Email:</strong> {{ user.email }}</p>
-            <p><strong>Популярность:</strong> {{ popularity|default:"0" }}</p>
+            <p class="popularity-line">
+              <strong>Популярность:</strong>
+              {{ popularity_base }}
+              {% if vip_boost %}
+                <span class="vip-boost">+{{ vip_boost }}</span>
+              {% endif %}
+            </p>
+            <p><strong>Количество продаж:</strong> {{ total_sales|default:"0" }}</p>
+
 
             <div class="button-group">
-              <button id="edit-profile-btn" class="btn">Редактировать профиль</button>
-              <a href="{% url 'portfolio' %}" class="btn">Портфель</a>
+              <button id="edit-profile-btn" class="btn-profile">Редактировать профиль</button>
+              <a href="{% url 'portfolio' %}" class="btn-profile">Портфель</a>
             </div>
-
           </div>
 
 
         <!-- Блок редактирования профиля -->
         <div class="profile-edit" id="profile-edit" style="display: none;">
-          <form id="profile-form" action="{% url 'edit_profile' %}" method="post" enctype="multipart/form-data">
+
+          {# ====== FORM A: профиль ====== #}
+          <form action="{% url 'edit_profile' %}" method="post" enctype="multipart/form-data" class="box">
             {% csrf_token %}
-            <!-- Поле для файла (аватар) скрыто, используется Cropper.js -->
-            <input type="file" id="avatar-input" name="profile_image" accept="image/*" style="display:none;">
-            
-            <div>
-              <label for="username">Имя пользователя</label>
-              <input type="text" id="username" name="username" value="{{ user.username }}">
+            <input type="hidden" name="which" value="user">
+            {{ form.non_field_errors }}
+
+            <div class="grid">
+              <div>
+                <label>Имя пользователя</label>
+                {{ form.username }}
+              </div>
+
+              <div>
+                <label>Аватар</label>
+                <div class="center-box btn-row">
+                  <button type="button" id="open-avatar-modal" class="btn">Загрузить новый</button>
+                </div>
+              </div>
             </div>
-            
-            <div>
-              <label>Цвет фона</label>
+
+            <fieldset>
+              <legend>Фон профиля</legend>
               <div id="color-palette">
                 {% for color in fixed_colors %}
                   <input type="radio" name="background_color" id="color-{{ forloop.counter }}" value="{{ color }}"
-                        {% if profile.background_color == color %}checked{% endif %} hidden>
-                  <label for="color-{{ forloop.counter }}"
-                        class="color-option"
-                        style="background-color: {{ color }};"></label>
+                          {% if profile.background_color == color %}checked{% endif %} hidden>
+                  <label for="color-{{ forloop.counter }}" class="color-option" style="background-color: {{ color }};"></label>
                 {% endfor %}
+
+                {% with level=active_plan.level|default_if_none:''|upper %}
+                  <input type="radio" name="background_color" id="vip-gold" value="vip-gold"
+                        {% if profile.background_color == 'vip-gold' %}checked{% endif %}
+                        {% if not level %}disabled{% endif %} hidden>
+                  <label for="vip-gold" class="color-option vip-swatch vip-gold" title="Gold (нужен VIP Gold+)"></label>
+
+                  <input type="radio" name="background_color" id="vip-star" value="vip-star"
+                        {% if profile.background_color == 'vip-star' %}checked{% endif %}
+                        {% if level != 'STAR' and level != 'GALAXY' %}disabled{% endif %} hidden>
+                  <label for="vip-star" class="color-option vip-swatch vip-star" title="Star (нужен VIP Star+)"></label>
+
+                  <input type="radio" name="background_color" id="vip-galaxy" value="vip-galaxy"
+                        {% if profile.background_color == 'vip-galaxy' %}checked{% endif %}
+                        {% if level != 'GALAXY' %}disabled{% endif %} hidden>
+                  <label for="vip-galaxy" class="color-option vip-swatch vip-galaxy" title="Galaxy (нужен VIP Galaxy)"></label>
+                {% endwith %}
               </div>
-            </div>
-            
-            <div>
-              <!-- Кнопка для смены аватара, теперь она внутри формы -->
-              <button type="button" id="change-avatar-btn" class="btn">Изменить аватар</button>
-            </div>
-            
-            <div>
-              <button type="submit" class="btn">Сохранить изменения</button>
+            </fieldset>
+
+            <div class="mt-3">
+              <button type="submit" class="btn">Сохранить профиль</button>
               <button type="button" id="cancel-edit-btn" class="btn">Отмена</button>
             </div>
           </form>
+
+          {# ====== FORM B: тема продуктов ====== #}
+          <form action="{% url 'edit_profile' %}" method="post" class="box">
+            {% csrf_token %}
+            <input type="hidden" name="which" value="theme">
+            {{ theme_form.non_field_errors }}
+            <fieldset>
+              <legend>Цвет темы продуктов</legend>
+              <div class="color-grid">
+                {% for c in fixed_colors %}
+                  <input type="radio" name="theme-bg_color" id="theme-{{ forloop.counter }}" value="{{ c }}"
+                        {% if profile.bg_color == c %}checked{% endif %} class="radio-sr">
+                  <label for="theme-{{ forloop.counter }}" class="color-swatch" style="--sw: {{ c }};"></label>
+                {% endfor %}
+              </div>
+            </fieldset>
+            <div class="mt-3">
+              <button type="submit" class="btn">Сохранить тему</button>
+            </div>
+          </form>
+
         </div>
       </div>
 
@@ -104,187 +166,350 @@
         </div>
     </div>
 
-    <div class="personal-products">
-      <h3>Ваши продукты</h3>
+    <section class="personal-products enhanced" id="personal-products">
+      <div class="pp-head">
+        <h3 class="pp-title">Ваши продукты</h3>
 
-      {% if text_products %}
-        <div class="product-category">
-          <h4>Текстовая продукция</h4>
-          <ul>
-            {% for product in text_products %}
-              <li>{{ product.title }}</li>
-            {% endfor %}
-          </ul>
+        <div class="pp-controls">
+          <div class="pp-search">
+            <input id="pp-search-input" type="search" placeholder="Поиск по названию…" aria-label="Поиск продуктов">
+          </div>
+          <div class="pp-filters">
+
+            <select id="pp-status">
+              <option value="">Статус: любой</option>
+              <option value="approved">Одобрен</option>
+              <option value="pending">На модерации</option>
+              <option value="draft">Черновик</option>
+              <option value="rejected">Отклонён</option>
+            </select>
+
+            <select id="pp-sort">
+              <option value="-updated">Сначала обновлённые</option>
+              <option value="title">По названию A→Z</option>
+              <option value="-sales">По продажам ↓</option>
+              <option value="price">По цене ↑</option>
+              <option value="-price">По цене ↓</option>
+            </select>
+          </div>
         </div>
-      {% endif %}
 
-      {% if artworks %}
-        <div class="product-category">
-          <h4>Изображения</h4>
-          <ul>
-            {% for artwork in artworks %}
-              <li>{{ artwork.title }}</li>
-            {% endfor %}
-          </ul>
+        <div class="pp-tabs" role="tablist" aria-label="Категории продуктов">
+          <button class="pp-tab is-active" role="tab" aria-selected="true" data-tab="all">Все</button>
+          <button class="pp-tab" role="tab" aria-selected="false" data-tab="texts">Тексты</button>
+          <button class="pp-tab" role="tab" aria-selected="false" data-tab="artworks">Изображения</button>
+          <button class="pp-tab" role="tab" aria-selected="false" data-tab="lessons">Уроки</button>
         </div>
-      {% endif %}
-
-      {% if lessons %}
-        <div class="product-category">
-          <h4>Уроки</h4>
-          <ul>
-            {% for lesson in lessons %}
-              <li>{{ lesson.title }}</li>
-            {% endfor %}
-          </ul>
-        </div>
-      {% endif %}
-
-      {% if not text_products and not artworks and not lessons %}
-        <p>Вы ещё не добавили ни одного продукта.</p>
-      {% endif %}
-    </div>
-
-
-
-    <!-- Модальное окно для Cropper.js -->
-    <div id="cropper-modal">
-      <div class="modal-content">
-        <img id="crop-image" src="">
-        <button id="crop-btn" class="btn">Обрезать и сохранить</button>
-        <button id="cancel-crop-btn" class="btn">Отмена</button>
       </div>
-    </div>
+
+      {# ===== ЕДИНАЯ СЕТКА «ВСЁ» ===== #}
+      <div class="art-grid" data-panel="all">
+        {% for p in text_products %}
+          {% with hex=p.owner.profile.bg_color vip=p.owner.profile.background_color %}
+            <a class="tp-card {% if vip == 'vip-gold' %}vip--gold{% endif %}"
+              href="{% url 'public_view_text_product' p.pk %}"
+              style="--ribbon-color: {{ hex|default:'#0b0d12' }};"
+              aria-label="Открыть «{{ p.title }}»">
+
+              <div class="tp-author">
+                {{ p.owner.get_display_name|default:p.owner.username }}
+              </div>
+              {% if p.avg_rating is not None %}
+                <span class="tp-rating" aria-label="Рейтинг {{ p.avg_rating|floatformat:1 }} из 5"
+                      title="Рейтинг {{ p.avg_rating|floatformat:1 }} / 5">
+                  <span class="vp-stars" data-score="{{ p.avg_rating|floatformat:1 }}" aria-hidden="true"></span>
+                </span>
+              {% endif %}
+
+              <div class="tp-title" style="--ribbon-color: inherit;" title="{{ p.title }}">{{ p.title }}</div>
+
+              <div class="tp-price">
+                <span class="tp-price-val">{{ p.price|floatformat:2 }}</span>
+                <span class="tp-currency">{{ p.currency|default:"OSP" }}</span>
+              </div>
+
+              <div class="tp-desc" aria-hidden="true">
+                <p>{{ p.description|default:"Без описания" }}</p>
+              </div>
+            </a>
+          {% endwith %}
+
+        {% endfor %}
+
+        {% if artworks %}
+          {% for a in artworks %}
+            <a class="art-card"
+              href="{% url 'view_artwork_public' a.id %}"
+              data-type="art"
+              data-status="{{ a.status }}"
+              data-title="{{ a.title|lower }}"
+              data-sales="{{ a.sales_count|default:0 }}"
+              data-price="{{ a.price|default:0 }}"
+              data-updated="{{ a.updated|date:'c' }}">
+
+              <div class="thumb">
+                {% if a.get_cover_image_url %}
+                  <img src="{{ a.get_cover_image_url }}" alt="{{ a.title }}" loading="lazy">
+                {% else %}
+                  <div class="thumb-fallback">Нет обложки</div>
+                {% endif %}
+                {% if a.nsfw %}
+                  <span class="pill pill-danger" title="Контент 18+">NSFW</span>
+                {% endif %}
+              </div>
+
+              <div class="meta">
+                <div class="title" title="{{ a.title }}">{{ a.title }}</div>
+                <div class="price">
+                  <span class="val">{{ a.price|floatformat:2 }}</span>
+                  <span class="ccy">{{ a.currency|default:"OSP" }}</span>
+                </div>
+              </div>
+            </a>
+          {% endfor %}
+        {% endif %}
+
+        {% if lessons %}
+          {% for lesson in lessons %}
+            <article class="pp-card"
+                    data-type="lesson"
+                    data-status="{{ lesson.status|default:'published' }}"
+                    data-title="{{ lesson.title|lower }}"
+                    data-sales="{{ lesson.sales_count|default:0 }}"
+                    data-price="{{ lesson.price|default:0 }}"
+                    data-updated="{{ lesson.updated_at|date:'c' }}">
+              <header class="pp-card-head">
+                <span class="pp-badge pp-badge--lesson">УРОК</span>
+                {% if lesson.status == 'draft' %}
+                  <span class="pp-status pp-status--draft">Черновик</span>
+                {% elif lesson.status == 'paused' %}
+                  <span class="pp-status pp-status--paused">Пауза</span>
+                {% else %}
+                  <span class="pp-status pp-status--pub">Опубликован</span>
+                {% endif %}
+              </header>
+
+              <a class="pp-thumb" href="#" aria-label="Открыть {{ lesson.title }}">
+                {% if lesson.cover %}
+                  <img src="{{ lesson.cover.url }}" alt="{{ lesson.title }}" loading="lazy">
+                {% else %}
+                  <div class="pp-thumb--placeholder">📚</div>
+                {% endif %}
+              </a>
+
+              <div class="pp-body">
+                <h5 class="pp-title-line" title="{{ lesson.title }}">{{ lesson.title }}</h5>
+                <div class="pp-meta">
+                  <span class="pp-price">{{ lesson.price|floatformat:2 }} {{ lesson.currency|default:"OSP" }}</span>
+                  <span class="pp-dot">•</span>
+                  <span class="pp-sales">{{ lesson.sales_count|default:0 }} продаж</span>
+                  <span class="pp-dot">•</span>
+                  <time class="pp-time" datetime="{{ lesson.updated_at|date:'c' }}">обн. {{ lesson.updated_at|date:'d.m.Y' }}</time>
+                </div>
+              </div>
+
+              <footer class="pp-actions">
+                <a class="btn btn--ghost" href="#">Просмотр</a>
+            </article>
+          {% endfor %}
+        {% endif %}
+
+        {% if not text_products and not artworks and not lessons %}
+          <div class="pp-empty">
+            <div class="pp-empty-ico">✨</div>
+            <p>У вас пока нет продуктов. Начните с загрузки первого!</p>
+            <div class="pp-empty-actions">
+              <a class="btn btn--primary" href="{% url 'create_product_hub' %}">Создать продукт</a>
+            </div>
+          </div>
+        {% endif %}
+      </div>
+
+      <div class="pp-footer">
+        <button class="btn btn--ghost" id="pp-load-more" data-page="1" style="display:none">Показать ещё</button>
+      </div>
+
+
+      <script>
+      document.addEventListener('DOMContentLoaded', function () {
+        document.querySelectorAll('.vp-stars[data-score]').forEach(function (el) {
+          var s = parseFloat(el.dataset.score || '0');
+          if (!isNaN(s)) el.style.setProperty('--rating', s.toFixed(1));
+        });
+      });
+      </script>
+
+      <script>
+      (function(){
+
+        document.querySelectorAll('.pp-card, .art-card').forEach(c=>{
+          const type = c.dataset.type; // у art-card это "art"
+          const showByTab = (key==='all') || (key==='texts' && type==='text') || (key==='artworks' && type==='art') || (key==='lessons' && type==='lesson');
+          c.dataset._tabShow = showByTab ? '1' : '0';
+        });
+        const cards = Array.from(document.querySelectorAll('.pp-card, .art-card'));
+        const tabs = document.querySelectorAll('.pp-tab');
+        const search = document.getElementById('pp-search-input');
+        const selStatus = document.getElementById('pp-status');
+        const selSort = document.getElementById('pp-sort');
+
+
+        function switchTab(key){
+          tabs.forEach(b=>b.classList.toggle('is-active', b.dataset.tab===key));
+          // В этой версии у нас один общий список (ALL), поэтому фильтрация просто по типу
+          applyFilters();
+          document.querySelectorAll('.pp-card').forEach(c=>{
+            const type = c.dataset.type;
+            const showByTab = (key==='all') || (key==='texts' && type==='text') || (key==='artworks' && type==='art') || (key==='lessons' && type==='lesson');
+            c.dataset._tabShow = showByTab ? '1' : '0';
+          });
+          applyFilters();
+        }
+
+        tabs.forEach(btn=>btn.addEventListener('click', ()=>switchTab(btn.dataset.tab)));
+
+        function applyFilters(){
+          const q = (search && search.value || '').trim().toLowerCase();
+          const st = selStatus ? selStatus.value : '';
+          const mode = selSort ? selSort.value : '-updated';
+
+          const cards = Array.from(document.querySelectorAll('.pp-card'));
+          const visible = [];
+
+          cards.forEach(card=>{
+            const byTab = card.dataset._tabShow !== '0';
+            const title = card.dataset.title || '';
+            const status = card.dataset.status || '';
+            const matches = byTab && (!q || title.includes(q)) && (!st || status===st);
+            card.style.display = matches ? '' : 'none';
+            if(matches) visible.push(card);
+          });
+
+          // Сортировка
+          const num = (v)=>Number(v)||0;
+          const getKey = (card)=>({
+            'title': card.dataset.title,
+            '-sales': -num(card.dataset.sales),
+            'price': num(card.dataset.price),
+            '-price': -num(card.dataset.price),
+            '-updated': -new Date(card.dataset.updated).getTime()
+          })[mode] ?? card.dataset.title;
+
+          visible.sort((a,b)=>{
+            const ka = getKey(a); const kb = getKey(b);
+            if(ka<kb) return -1; if(ka>kb) return 1; return 0;
+          });
+
+          const grid = document.querySelector('.pp-grid');
+          visible.forEach(c=>grid.appendChild(c));
+        }
+
+        [search, selStatus, selSort].forEach(el=>el && el.addEventListener('input', applyFilters));
+        // Инициализация
+        document.addEventListener('DOMContentLoaded', ()=>{
+          switchTab('all');
+          applyFilters();
+        });
+      })();
+      </script>
+    </section>
+
+    <dialog id="avatar-modal">
+      <div class="avatar-modal__head">
+        <strong>Новый аватар</strong>
+        <button type="button" class="avatar-close" aria-label="Закрыть">✕</button>
+      </div>
+      <div class="avatar-modal__content">
+        <div class="avatar-preview-wrap">
+          <img id="avatar-preview" alt="Предпросмотр" />
+          <input type="file" id="avatar-file" accept="image/*">
+        </div>
+        <div class="avatar-controls">
+          <button class="btn-profile ghost" type="button" id="avatar-cancel">Отмена</button>
+          <button class="btn-profile" type="button" id="avatar-upload">Загрузить</button>
+        </div>
+      </div>
+    </dialog>
     
-    <!-- Подключаем Cropper.js -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js" integrity="sha512-7rm+YGycD5JtF2naHh+ljKqR9DawAnq8Bx3kuFY5HwhLGqtK9nLDejTX/Jf1W/d7PVl3OpvnWr+iENc4Cqiugw==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
     <script>
-      // Функция смены цвета фона (если оставляем кнопку для вызова prompt)
-      function changeBackground() {
-        const color = prompt("Введите цвет фона (например: #ffcc00) или название цвета на английском (например: blue):");
-        if (color) {
-          document.querySelector('.profile-background').style.backgroundColor = color;
-          saveBackgroundColor(color);
-        }
+      const $ = s => document.querySelector(s);
+      const dlg = $('#avatar-modal');
+      const btnOpen = $('#open-avatar-modal');
+      const btnClose = dlg.querySelector('.avatar-close');
+      const btnCancel = $('#avatar-cancel');
+      const btnUpload = $('#avatar-upload');
+      const input = $('#avatar-file');
+      const preview = $('#avatar-preview');
+      const avatarImg = document.querySelector('.profile-avatar');
+
+      // Открыть/закрыть
+      btnOpen?.addEventListener('click', () => dlg.showModal());
+      const closeDlg = () => { dlg.close(); input.value = ''; preview.removeAttribute('src'); }
+      btnClose?.addEventListener('click', closeDlg);
+      btnCancel?.addEventListener('click', closeDlg);
+
+      // Предпросмотр
+      input?.addEventListener('change', () => {
+        const f = input.files?.[0];
+        if (!f) return (preview.removeAttribute('src'));
+        const reader = new FileReader();
+        reader.onload = e => preview.src = e.target.result;
+        reader.readAsDataURL(f);
+      });
+
+      // CSRF
+      function getCookie(name) {
+        const m = document.cookie.match('(^|;)\\s*' + name + '\\s*=\\s*([^;]+)');
+        return m ? m.pop() : '';
       }
-      function saveBackgroundColor(color) {
-        fetch("{% url 'save_background_color' %}", {
-          method: "POST",
-          headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': '{{ csrf_token }}'
-          },
-          body: JSON.stringify({'color': color})
-        })
-        .then(response => response.json())
-        .then(data => {
-          if(data.status !== 'success') {
-            alert("Ошибка сохранения цвета: " + data.message);
-          }
-        })
-        .catch((error) => {
-          console.error('Ошибка:', error);
-          alert("Ошибка отправки запроса.");
+
+      // Загрузка
+      btnUpload?.addEventListener('click', async () => {
+        const f = input.files?.[0];
+        if (!f) { alert('Выберите файл'); return; }
+        const fd = new FormData();
+        fd.append('avatar', f);
+
+        const res = await fetch("{% url 'upload_avatar' %}", {
+          method: 'POST',
+          headers: { 'X-CSRFToken': getCookie('csrftoken') },
+          body: fd
         });
-      }
-      
-      // Логика для смены аватара с использованием Cropper.js
-      const changeAvatarBtn = document.getElementById('change-avatar-btn');
-      const avatarInput = document.getElementById('avatar-input');
-      const cropperModal = document.getElementById('cropper-modal');
-      const cropImage = document.getElementById('crop-image');
-      const cropBtn = document.getElementById('crop-btn');
-      const cancelCropBtn = document.getElementById('cancel-crop-btn');
-      let cropper;
-      
-      changeAvatarBtn.addEventListener('click', function() {
-        avatarInput.click();
-      });
-      
-      avatarInput.addEventListener('change', function(event) {
-        const file = event.target.files[0];
-        if (file) {
-          if (file.size > 3 * 1024 * 1024) {
-            alert("Размер файла не должен превышать 3 МБ.");
-            return;
-          }
-          const reader = new FileReader();
-          reader.onload = function(e) {
-            cropImage.src = e.target.result;
-            cropperModal.style.display = "flex";
-            if (cropper) {
-              cropper.destroy();
-            }
-            cropper = new Cropper(cropImage, {
-              aspectRatio: 1,
-              viewMode: 1,
-            });
-          }
-          reader.readAsDataURL(file);
-        }
-      });
-      
-      document.querySelectorAll('input[name="background_color"]').forEach(input => {
-        input.addEventListener('change', () => {
-          const color = input.value;
-          document.querySelector('.profile-background').style.backgroundColor = color;
+        const data = await res.json();
+        if (!data.ok) { alert(data.error || 'Ошибка загрузки'); return; }
 
-          fetch("{% url 'save_background_color' %}", {
-            method: "POST",
-            headers: {
-              'Content-Type': 'application/json',
-              'X-CSRFToken': '{{ csrf_token }}'
-            },
-            body: JSON.stringify({ color })
-          });
-        });
+        // Обновим превью на странице + закроем модал
+        avatarImg?.setAttribute('src', data.url);
+        closeDlg();
       });
 
-
-      cropBtn.addEventListener('click', function() {
-        if (cropper) {
-          const canvas = cropper.getCroppedCanvas({
-            width: 300,
-            height: 300,
-          });
-          canvas.toBlob(function(blob) {
-            const croppedFile = new File([blob], "cropped_avatar.png", { type: "image/png" });
-            const dataTransfer = new DataTransfer();
-            dataTransfer.items.add(croppedFile);
-            avatarInput.files = dataTransfer.files;
-            cropperModal.style.display = "none";
-            // Обновляем аватар в режиме редактирования (если он там отображается)
-            document.querySelector('.profile-avatar').src = canvas.toDataURL("image/png");
-          }, "image/png");
-        }
-      });
-      
-      cancelCropBtn.addEventListener('click', function() {
-        cropperModal.style.display = "none";
-        if (cropper) {
-          cropper.destroy();
-        }
-        avatarInput.value = "";
-      });
-      
-      // Логика переключения между режимом просмотра и редактирования профиля
+      // Переключатель «Редактировать профиль» (показ/скрытие формы)
       const editBtn = document.getElementById('edit-profile-btn');
-      const cancelEditBtn = document.getElementById('cancel-edit-btn');
-      const profileEdit = document.getElementById('profile-edit');
-      const profileView = document.getElementById('profile-view');
-      
-      editBtn.addEventListener('click', function() {
-        profileEdit.style.display = 'block';
-        profileView.style.display = 'none';
+      const editBox = document.getElementById('profile-edit');
+      const cancelBtn = document.getElementById('cancel-edit-btn');
+      editBtn?.addEventListener('click', () => { editBox.style.display = 'block'; });
+      cancelBtn?.addEventListener('click', () => { editBox.style.display = 'none'; });
+    </script>
+
+
+    <script>
+      document.addEventListener('change', (e)=>{
+        const t = e.target;
+        if(t.name === 'background_color'){
+          if(/^#[0-9a-fA-F]{6}$/.test(t.value)){
+            document.documentElement.style.setProperty('--profile-bg-color', t.value);
+          }
+        }
+        if(t.name === 'theme-bg_color'){
+          if(/^#[0-9a-fA-F]{6}$/.test(t.value)){
+            document.documentElement.style.setProperty('--profile-bg-color', t.value);
+          }
+        }
       });
-      
-      if (cancelEditBtn) {
-        cancelEditBtn.addEventListener('click', function() {
-          profileEdit.style.display = 'none';
-          profileView.style.display = 'block';
-        });
-      }
     </script>
   </div>
+
+  <script src="{% static 'js/vip-backgrounds.js' %}"></script>
+  
 </body>
 </html>

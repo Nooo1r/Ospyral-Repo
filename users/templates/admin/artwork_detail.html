@@ -45,4 +45,19 @@
   <p>
     <a href="{% url 'users_admin:review_artworks' %}">← Вернуться к списку</a>
   </p>
+  <h3>Escrow</h3>
+  {% if open_escrows %}
+    <ul class="list-group mb-3">
+      {% for e in open_escrows %}
+        <li class="list-group-item d-flex justify-content-between align-items-center">
+          ID {{ e.id }} • {{ e.status }} {% if e.seconds_to_autorelease %} • авто-релиз через {{ e.seconds_to_autorelease }} сек.{% endif %}
+          {% if e.release_tx %}
+            <span class="badge bg-success">tx: {{ e.release_tx|slice:":10" }}…</span>
+          {% endif %}
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <div class="text-muted">Активных escrow нет.</div>
+  {% endif %}
 {% endblock %}

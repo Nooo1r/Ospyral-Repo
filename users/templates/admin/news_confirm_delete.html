@@ -1,0 +1,22 @@
+{% extends "admin/admin_base.html" %}
+{% block title %}Удалить новость — Администрация{% endblock %}
+
+{% block content %}
+<div class="container">
+  <h2>Удалить новость</h2>
+  <div class="card mt-2" style="padding:16px;">
+    <p>Вы действительно хотите <strong>удалить</strong> эту новость?</p>
+    <p style="margin:8px 0;"><strong>{{ object.title }}</strong></p>
+    <p style="white-space:pre-wrap;">{{ object.content|truncatechars:240 }}</p>
+    <p class="text-muted">Опубликована: {{ object.published_at|date:"d.m.Y H:i" }}</p>
+
+    <form method="post" class="mt-2">
+      {% csrf_token %}
+      <div style="display:flex;gap:8px;">
+        <button type="submit" class="btn btn-danger">Да, удалить</button>
+        <a class="btn" href="{% url 'users_admin:news_list' %}">Отмена</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

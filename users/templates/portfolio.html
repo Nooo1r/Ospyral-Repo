@@ -1,35 +1,48 @@
+{% extends "base.html" %}
 {% load static %}
 {% load portfolio_tags %}
 
-<!DOCTYPE html>
-<html lang="ru">
-<head>
-  <meta charset="UTF-8">
-  <title>Портфель</title>
-  <link rel="stylesheet" href="{% static 'css/base.css' %}">
-  <link rel="stylesheet" href="{% static 'css/portfolio.css' %}">
-  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
-</head>
-<body>
-  <!-- HEADER -->
-  <header class="header">
-    <div class="header-logo">
-      <img src="{% static 'images/logo.svg' %}" alt="Logo">
-    </div>
-    <div class="header-actions">
-      <span class="user-name">{{ user.username }}</span>
-    </div>
-  </header>
+{% block title %}Портфель — Ospyral{% endblock %}
 
-  <div class="portfolio-wrapper">
+{% block extra_css %}
+  <link rel="stylesheet" href="{% static 'css/portfolio.css' %}">
+  <link rel="stylesheet" href="{% static 'css/notifications.css' %}">
+  {% endblock %}
+
+{% block content %}
+  {% include "partials/notifications.html" %}
+    <header class="header">
+      <div class="header-logo"> 
+        <img class="ospyral-logo" src="{% static 'images/spyral.svg' %}"> <h4>Ospyral</h4>
+      </div>
+
+      <div class="header-actions">
+        <a class="user-profile-link" href="{% url 'edit_profile' %}">
+          <span class="user-name">{{ user.username }}</span>
+          <img
+            class="user-avatar"
+            src="{{ user.profile_image_url|default:'/static/images/placeholder.svg' }}"
+            alt="{{ user.username }}"
+            loading="lazy"
+          />
+        </a>
+      </div>
+
+      <div class="header-links">
+        <a href="{% url 'rules_overview' %}#terms"     class="header-link">Правила</a>
+        <a href="{% url 'rules_overview' %}#security"  class="header-link">Безопасность</a>
+        <a href="{% url 'about_us' %}"                 class="header-link">О нас</a>
+      </div>
+    </header>
+
+  <div class="portfolio-wrapper container">
     <!-- Sidebar -->
     <aside class="portfolio-sidebar">
       <h2>Мой портфель</h2>
       <nav>
         <ul>
           <li><a href="?tab=drafts"    class="{% if tab == 'drafts' %}active{% endif %}">Черновики ({{ drafts_count }} / 5)</a></li>
-          <li><a href="?tab=pending"   class="{% if tab == 'pending' %}active{% endif %}">На рассмотрении ({{ pending_count }})</a></li>
-          <li><a href="?tab=rejected"  class="{% if tab == 'rejected' %}active{% endif %}">Отклонённые ({{ rejected_count }})</a></li>
+          <li><a href="?tab=pending"   class="{% if tab == 'pending' %}active{% endif %}">На проверке ({{ review_count }})</a></li>
           <li><a href="?tab=on_sale"   class="{% if tab == 'on_sale' %}active{% endif %}">В продаже ({{ on_sale_count }})</a></li>
           <li><a href="?tab=purchased" class="{% if tab == 'purchased' %}active{% endif %}">Приобретённые</a></li>
         </ul>
@@ -38,6 +51,35 @@
 
     <!-- Content -->
     <main class="portfolio-content">
+
+      <form class="toolbar" method="get">
+        <input type="hidden" name="tab" value="{{ tab }}">
+        <div class="toolbar-left">
+          <div class="searchbox">
+            <input type="search" name="q" value="{{ q }}" placeholder="Найти по названию…" aria-label="Поиск">
+            {% if q %}
+              <button type="button" class="clear" onclick="this.closest('form').querySelector('[name=q]').value=''; this.closest('form').submit();" aria-label="Сбросить поиск">×</button>
+            {% endif %}
+          </div>
+          <div class="filters">
+            <label class="select">
+              <span>Сортировка</span>
+              <select name="sort" onchange="this.form.submit()">
+                <option value=""           {% if not sort %}selected{% endif %}>По дате (новые)</option>
+                <option value="old"        {% if sort == 'old' %}selected{% endif %}>По дате (старые)</option>
+                <option value="title"      {% if sort == 'title' %}selected{% endif %}>По названию A→Я</option>
+                <option value="title_desc" {% if sort == 'title_desc' %}selected{% endif %}>По названию Я→A</option>
+                <option value="price"      {% if sort == 'price' %}selected{% endif %}>По цене ↑</option>
+                <option value="price_desc" {% if sort == 'price_desc' %}selected{% endif %}>По цене ↓</option>
+              </select>
+            </label>
+          </div>
+        </div>
+        <div class="toolbar-right">
+          <a href="{% url 'create_product_hub' %}" class="btn btn-primary">+ Новый продукт</a>
+        </div>
+      </form>
+
       <h1 class="page-title">
         {% if tab == 'drafts' %}Черновики{% endif %}
         {% if tab == 'pending' %}На рассмотрении{% endif %}
@@ -50,14 +92,25 @@
 
         {# ------------------ ЧЕРНОВИКИ ------------------ #}
         {% if tab == 'drafts' %}
-          {% for p in drafts %}
+          {% for it in drafts %}
             <div class="card">
-              <h3>{{ p.title }}</h3>
-              <p>Создано: {{ p.created_at|date:"d.m.Y" }}</p>
+              <h3>{{ it.title }}</h3>
+              <p>Создано: {{ it.created_at|date:"d.m.Y" }}</p>
+
               <div class="card-actions">
-                <a href="{% url 'edit_text_product' p.pk %}" class="btn btn-primary">Продолжить</a>
-                <a href="{% url 'submit_text_product' p.pk %}" class="btn btn-secondary">Отправить на проверку</a>
-                <a href="{% url 'delete_text_product' p.pk %}" class="btn btn-danger">Удалить</a>
+                {% if it.type == 'text' %}
+                  <a href="{% url 'edit_text_product' it.id %}" class="btn btn-primary">Продолжить</a>
+                  <a href="{% url 'submit_text_product' it.id %}" class="btn btn-secondary">На модерацию</a>
+                  <form method="post" action="{% url 'delete_text_product' it.id %}">
+                    {% csrf_token %}<button class="btn btn-danger" type="submit">Удалить</button>
+                  </form>
+                {% elif it.type == 'art' %}
+                  {# Если есть отдельная страница редактирования артворка — подставь её сюда: edit_artwork #}
+                  <a href="{% url 'view_artwork_public' it.id %}" class="btn btn-secondary">Просмотр</a>
+                  {# Кнопки модерации/удаления артов — поставь свои URL, если есть: #}
+                  {# <a href="{% url 'submit_artwork' it.id %}" class="btn btn-secondary">На модерацию</a> #}
+                  {# <form method="post" action="{% url 'delete_artwork' it.id %}"> ... </form> #}
+                {% endif %}
               </div>
             </div>
           {% empty %}
@@ -65,96 +118,151 @@
           {% endfor %}
         {% endif %}
 
-        {# ------------------ НА РАССМОТРЕНИИ ------------------ #}
-        {% if tab == 'pending' %}
-          {% for p in pending %}
+
+        {# ------------------ НА ПРОВЕРКЕ ------------------ #}
+        {% if tab == 'review' %}
+          {% for it in review %}
             <div class="card">
-              <h3>{{ p.title }}</h3>
-              <p>Отправлено на проверку: {{ p.created_at|date:"d.m.Y" }}</p>
+              <div class="card-head">
+                <h3 class="card-title">{{ it.title }}</h3>
+
+                {# Бейдж статуса внутри объединённой вкладки #}
+                {% if it.moderation_state == 'pending' %}
+                  <span class="badge badge--pending">На проверке</span>
+                {% elif it.moderation_state == 'rejected' %}
+                  <span class="badge badge--rejected">Отклонено</span>
+                {% endif %}
+              </div>
+
+              <p class="card-sub">Создано: {{ it.created_at|date:"d.m.Y" }}</p>
+
               <div class="card-actions">
-                <a href="{% url 'delete_text_product' p.pk %}" class="btn btn-danger">Удалить</a>
+                {% if it.type == 'text' %}
+                  {# Действия зависят от статуса #}
+                  {% if it.moderation_state == 'pending' %}
+                    <form method="post" action="{% url 'delete_text_product' it.id %}">
+                      {% csrf_token %}<button class="btn btn-danger" type="submit">Удалить</button>
+                    </form>
+                  {% else %}
+                    <a href="{% url 'edit_text_product' it.id %}" class="btn btn-primary">Исправить</a>
+                    {# если используешь подтверждение причины отклонения: #}
+                    {# <form method="post" action="{% url 'acknowledge_rejection' it.id %}">
+                        {% csrf_token %}<button class="btn btn-secondary" type="submit">Принять причину</button>
+                      </form> #}
+                    <form method="post" action="{% url 'delete_text_product' it.id %}">
+                      {% csrf_token %}<button class="btn btn-danger" type="submit">Удалить</button>
+                    </form>
+                  {% endif %}
+
+                {% elif it.type == 'art' %}
+                  <a href="{% url 'view_artwork_public' it.id %}" class="btn btn-secondary">Просмотр</a>
+                  {# при необходимости добавь свои URL для отмены/повторной подачи #}
+                {% endif %}
               </div>
             </div>
           {% empty %}
-            <p class="empty">Нет продуктов на рассмотрении.</p>
+            <p class="empty">Работ на модерации нет.</p>
           {% endfor %}
         {% endif %}
+
 
         {# ------------------ ОТКЛОНЁННЫЕ ------------------ #}
         {% if tab == 'rejected' %}
-          {% for p in rejected %}
+          {% for it in rejected %}
             <div class="card">
-              <h3>{{ p.title }}</h3>
-              {% if p.rejection_reason %}<p>Причина: {{ p.rejection_reason }}</p>{% endif %}
+              <h3>{{ it.title }}</h3>
+              <p>Отклонено: {{ it.created_at|date:"d.m.Y" }}</p>
+              {# Причину отклонения можно вывести только для текстов, если поле есть: #}
+              {% if it.type == 'text' and it.rejection_reason %}
+                <p class="card-reason">Причина: {{ it.rejection_reason }}</p>
+              {% endif %}
               <div class="card-actions">
-                <a href="{% url 'edit_text_product' p.pk %}" class="btn btn-primary">Исправить</a>
-                {# согласуй с urls: 'acknowledge_rejection' или 'ack_rejection' #}
-                <a href="{% url 'acknowledge_rejection' p.pk %}" class="btn btn-secondary">Принять причину</a>
-                <a href="{% url 'delete_text_product' p.pk %}" class="btn btn-danger">Удалить</a>
+                {% if it.type == 'text' %}
+                  <a href="{% url 'edit_text_product' it.id %}" class="btn btn-primary">Исправить</a>
+                  <form method="post" action="{% url 'acknowledge_rejection' it.id %}">
+                    {% csrf_token %}<button class="btn btn-secondary" type="submit">Принять причину</button>
+                  </form>
+                  <form method="post" action="{% url 'delete_text_product' it.id %}">
+                    {% csrf_token %}<button class="btn btn-danger" type="submit">Удалить</button>
+                  </form>
+                {% elif it.type == 'art' %}
+                  {# аналоги действий для артворков — подставь свои URL, если нужны #}
+                  <a href="{% url 'view_artwork_public' it.id %}" class="btn btn-secondary">Просмотр</a>
+                {% endif %}
               </div>
             </div>
           {% empty %}
-            <p class="empty">Нет отклонённых продуктов.</p>
+            <p class="empty">Нет отклонённых работ.</p>
           {% endfor %}
         {% endif %}
+
+
 
         {# ------------------ В ПРОДАЖЕ ------------------ #}
         {% if tab == 'on_sale' %}
-          {% for p in on_sale %}
+          {% for it in on_sale %}
             <div class="card">
-              <h3>
-                {{ p.title }}
-                {% if p.nsfw %}<span class="nsfw-badge">NSFW</span>{% endif %}
-              </h3>
-              <p>Цена: {{ p.price }} {{ p.currency }}</p>
-
+              <h3>{{ it.title }}</h3>
+              <p>В продаже с: {{ it.created_at|date:"d.m.Y" }}</p>
               <div class="card-actions">
-                <a href="{% url 'public_view_text_product' p.pk %}" class="btn btn-secondary">Открыть</a>
-
-                {# Пауза / Возобновить — безопасно через POST #}
-                {% if p.is_active %}
-                  <form method="post" action="{% url 'stop_sale_text_product' p.pk %}">
-                    {% csrf_token %}
-                    <button type="submit" class="btn btn-secondary">Приостановить продажу</button>
+                {% if it.type == 'text' %}
+                  <a href="{% url 'public_view_text_product' it.id %}" class="btn btn-secondary">Открыть</a>
+                  {% if it.is_active %}
+                    <form method="post" action="{% url 'stop_sale_text_product' it.id %}">
+                      {% csrf_token %}<button type="submit" class="btn btn-secondary">Пауза</button>
+                    </form>
+                  {% else %}
+                    <form method="post" action="{% url 'resume_sale_text_product' it.id %}">
+                      {% csrf_token %}<button type="submit" class="btn btn-primary">Возобновить</button>
+                    </form>
+                  {% endif %}
+                  <form method="post" action="{% url 'delete_text_product' it.id %}">
+                    {% csrf_token %}<button type="submit" class="btn btn-danger">Удалить</button>
                   </form>
-                {% else %}
-                  <form method="post" action="{% url 'resume_sale_text_product' p.pk %}">
-                    {% csrf_token %}
-                    <button type="submit" class="btn btn-primary">Продолжить продажу</button>
+
+                {% elif it.type == 'art' %}
+                  <a href="{% url 'view_artwork_public' it.id %}" class="btn btn-secondary">Открыть</a>
+                  {% if it.is_active %}
+                    <form method="post" action="{% url 'stop_sale_artwork' it.id %}">
+                      {% csrf_token %}<button type="submit" class="btn btn-secondary">Пауза</button>
+                    </form>
+                  {% else %}
+                    <form method="post" action="{% url 'resume_sale_artwork' it.id %}">
+                      {% csrf_token %}<button type="submit" class="btn btn-primary">Возобновить</button>
+                    </form>
+                  {% endif %}
+                  <form method="post" action="{% url 'delete_artwork' it.id %}">
+                    {% csrf_token %}<button type="submit" class="btn btn-danger">Удалить</button>
                   </form>
                 {% endif %}
-
-                {# Удалить из магазина и портфеля владельца (soft-delete) #}
-                <form method="post" action="{% url 'delete_text_product' p.pk %}"
-                      onsubmit="return confirm('Убрать продукт из магазина и вашего портфеля? У покупателей он останется.');">
-                  {% csrf_token %}
-                  <button type="submit" class="btn btn-danger">Удалить</button>
-                </form>
               </div>
             </div>
           {% empty %}
-            <p class="empty">Нет активных товаров в продаже.</p>
+            <p class="empty">Здесь будут работы в продаже.</p>
           {% endfor %}
         {% endif %}
 
-        {# ------------------ ПРИОБРЕТЁННЫЕ ------------------ #}
+
+        {# ------------------ КУПЛЕННЫЕ ------------------ #}
         {% if tab == 'purchased' %}
-          {% for p in purchased_texts %}
+          {% for it in purchased %}
             <div class="card">
-              <h3>{{ p.title }}</h3>
-              {# если во view есть дата, покажи её, иначе убери строку ниже #}
-              {% if p.purchased_at %}<p>Куплено: {{ p.purchased_at|date:"d.m.Y" }}</p>{% endif %}
+              <h3>{{ it.title }}</h3>
+              <p>Куплено: {{ it.created_at|date:"d.m.Y" }}</p>
               <div class="card-actions">
-                <a href="{% url 'public_view_text_product' p.pk %}" class="btn btn-primary">Открыть</a>
+                {% if it.type == 'text' %}
+                  <a href="{% url 'public_view_text_product' it.id %}" class="btn btn-primary">Открыть</a>
+                {% elif it.type == 'art' %}
+                  <a href="{% url 'view_artwork_public' it.id %}" class="btn btn-primary">Открыть</a>
+                {% endif %}
               </div>
             </div>
           {% empty %}
             <p class="empty">Вы ещё ничего не приобрели.</p>
           {% endfor %}
         {% endif %}
-
       </div>
     </main>
   </div>
-</body>
-</html>
+
+{% endblock %}

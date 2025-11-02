@@ -1,0 +1,189 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}VIP-планы{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/wallets.css' %}">
+<style>
+  /* Карточки VIP-планов опираются на переменные из wallets.css */
+  .vip-wrap{max-width:1080px;margin:24px auto}
+  .vip-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+  @media (max-width:920px){.vip-grid{grid-template-columns:1fr 1fr}}
+  @media (max-width:640px){.vip-grid{grid-template-columns:1fr}}
+
+  .vip-card{background:var(--card);border:1px solid var(--border);border-radius:16px;box-shadow:var(--shadow-1);padding:16px;display:grid;gap:12px;position:relative;overflow:hidden}
+  .vip-card.current{border-color:#61d09666; box-shadow:0 0 0 1px rgba(97,208,150,.25), var(--shadow-2)}
+  .vip-head{display:flex;align-items:center;justify-content:space-between;gap:10px}
+  .vip-title{font-weight:900;font-size:1.2rem;letter-spacing:.2px}
+  .vip-badge{border:1px solid var(--border);border-radius:999px;padding:6px 10px;background:rgba(255,255,255,.05);font-size:.82rem}
+  .vip-boost{display:inline-flex;gap:6px;align-items:center;padding:6px 10px;border-radius:999px;background:rgba(255,255,255,.05);border:1px solid var(--border);font-weight:700}
+  .vip-boost .plus{background:linear-gradient(180deg,var(--gold-1),var(--gold-2));-webkit-background-clip:text;background-clip:text;color:transparent}
+
+  .vip-bg{position:absolute;inset:0;opacity:.25;pointer-events:none;mix-blend:screen}
+  .vip-bg.gold{background:radial-gradient(1200px 500px at -10% -20%, rgba(255,240,200,.35), transparent 55%), radial-gradient(800px 400px at 120% 120%, rgba(217,183,104,.25), transparent 55%)}
+  .vip-bg.star{background:
+      radial-gradient(1400px 600px at 10% -10%, rgba(180,200,255,.28), transparent 55%),
+      repeating-radial-gradient(circle at 20% 30%, rgba(255,255,255,.4), transparent 8px, transparent 16px)}
+  .vip-bg.galaxy{background:
+      radial-gradient(1200px 500px at 0% 0%, rgba(143,211,254,.22), transparent 60%),
+      radial-gradient(1100px 600px at 100% 100%, rgba(194,166,255,.22), transparent 60%)}
+
+  .tiers{display:grid;gap:8px}
+  .feat{display:grid;gap:6px;margin-top:4px}
+  .feat li{display:flex;gap:8px;align-items:flex-start}
+  .dot{width:6px;height:6px;border-radius:50%;background:linear-gradient(180deg,var(--gold-1),var(--gold-2));margin-top:8px;flex:0 0 6px}
+
+  .durations{display:grid;gap:8px}
+  .dur-row{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center}
+  .dur-left{display:flex;gap:8px;align-items:center}
+  .dur-title{font-weight:800}
+  .price{font-weight:900;letter-spacing:.2px}
+  .period{color:var(--muted);font-size:.92rem}
+  .actions{display:flex;gap:8px;align-items:center;justify-content:flex-end}
+
+  /* Подсказка про лимит */
+  .quota{color:var(--muted);font-size:.92rem}
+
+  /* Мягкий акцент у рекомендованной длительности (30d) */
+  .dur-row[data-best="true"]{border:1px dashed var(--border);border-radius:12px;padding:8px;background:rgba(255,255,255,.03)}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="vip-wrap">
+  <header class="page-head">
+    <div>
+      <h1 class="page-title">VIP-планы</h1>
+      <p class="subnote">Выбери уровень, получи преимущества и красивый фон профиля.</p>
+      {% if current and current.active %}
+        <p class="subnote">Текущий VIP активен до: <b>{{ current.end_at|date:"d.m.Y H:i" }}</b></p>
+      {% else %}
+        <p class="subnote">VIP ещё не активирован.</p>
+      {% endif %}
+    </div>
+    <div class="head-actions">
+      <a href="{% url 'wallets' %}" class="btn ghost">К кошелькам</a>
+    </div>
+  </header>
+
+  <section class="vip-grid">
+    {# --- GOLD --- #}
+    <article class="vip-card {% if current and current.active and current.plan.level == 'GOLD' %}current{% endif %}">
+      <div class="vip-bg gold"></div>
+      <div class="vip-head">
+        <div class="vip-title">Gold VIP</div>
+        <span class="vip-boost"><span class="plus">+40 000</span> популярности</span>
+      </div>
+
+      <ul class="feat">
+        <li><span class="dot"></span><div>Золотой блестящий фон профиля</div></li>
+        <li><span class="dot"></span><div>Приоритет продуктов в магазине</div></li>
+        <li><span class="dot"></span><div>Лимит загрузки: <b>1 продукт / 2 дня</b> <span class="quota">(48 ч)</span></div></li>
+      </ul>
+
+      <div class="durations">
+        {% for plan in plans %}
+          {% if plan.level == 'GOLD' %}
+          <div class="dur-row" data-best="{% if plan.duration_days == 30 %}true{% else %}false{% endif %}">
+            <div class="dur-left">
+              <span class="dur-title">
+                {% if plan.duration_days == 7 %}7 дней{% elif plan.duration_days == 30 %}30 дней{% elif plan.duration_days == 180 %}180 дней{% elif plan.duration_days == 365 %}365 дней{% else %}{{ plan.duration_days }} дней{% endif %}
+              </span>
+              <span class="period subnote">({{ plan.code }})</span>
+            </div>
+            <div class="actions">
+              <span class="price" data-micros="{{ plan.price_osp_micros }}" data-currency="OSP">… OSP</span>
+              <a class="btn primary" href="{% url 'buy_vip' plan.id %}">Купить</a>
+            </div>
+          </div>
+          {% endif %}
+        {% endfor %}
+      </div>
+    </article>
+
+    {# --- STAR --- #}
+    <article class="vip-card {% if current and current.active and current.plan.level == 'STAR' %}current{% endif %}">
+      <div class="vip-bg star"></div>
+      <div class="vip-head">
+        <div class="vip-title">Star VIP</div>
+        <span class="vip-boost"><span class="plus">+100 000</span> популярности</span>
+      </div>
+
+      <ul class="feat">
+        <li><span class="dot"></span><div>Сияющий звёздный фон</div></li>
+        <li><span class="dot"></span><div>(скоро) Бейджи к никам, рамки, бесплатный подарок</div></li>
+        <li><span class="dot"></span><div>Лимит загрузки: <b>1 продукт / день</b> <span class="quota">(24 ч)</span></div></li>
+      </ul>
+
+      <div class="durations">
+        {% for plan in plans %}
+          {% if plan.level == 'STAR' %}
+          <div class="dur-row" data-best="{% if plan.duration_days == 30 %}true{% else %}false{% endif %}">
+            <div class="dur-left">
+              <span class="dur-title">
+                {% if plan.duration_days == 7 %}7 дней{% elif plan.duration_days == 30 %}30 дней{% elif plan.duration_days == 180 %}180 дней{% elif plan.duration_days == 365 %}365 дней{% else %}{{ plan.duration_days }} дней{% endif %}
+              </span>
+              <span class="period subnote">({{ plan.code }})</span>
+            </div>
+            <div class="actions">
+              <span class="price" data-micros="{{ plan.price_osp_micros }}" data-currency="OSP">… OSP</span>
+              <a class="btn primary" href="{% url 'buy_vip' plan.id %}">Купить</a>
+            </div>
+          </div>
+          {% endif %}
+        {% endfor %}
+      </div>
+    </article>
+
+    {# --- GALAXY --- #}
+    <article class="vip-card {% if current and current.active and current.plan.level == 'GALAXY' %}current{% endif %}">
+      <div class="vip-bg galaxy"></div>
+      <div class="vip-head">
+        <div class="vip-title">Galaxy VIP</div>
+        <span class="vip-boost"><span class="plus">+250 000</span> популярности</span>
+      </div>
+
+      <ul class="feat">
+        <li><span class="dot"></span><div>Космический фон</div></li>
+        <li><span class="dot"></span><div>(скоро) Все дополнительные бонусы уровня Star</div></li>
+        <li><span class="dot"></span><div>Лимит загрузки: <b>2 продукта / день</b></div></li>
+      </ul>
+
+      <div class="durations">
+        {% for plan in plans %}
+          {% if plan.level == 'GALAXY' %}
+          <div class="dur-row" data-best="{% if plan.duration_days == 30 %}true{% else %}false{% endif %}">
+            <div class="dur-left">
+              <span class="dur-title">
+                {% if plan.duration_days == 7 %}7 дней{% elif plan.duration_days == 30 %}30 дней{% elif plan.duration_days == 180 %}180 дней{% elif plan.duration_days == 365 %}365 дней{% else %}{{ plan.duration_days }} дней{% endif %}
+              </span>
+              <span class="period subnote">({{ plan.code }})</span>
+            </div>
+            <div class="actions">
+              <span class="price" data-micros="{{ plan.price_osp_micros }}" data-currency="OSP">… OSP</span>
+              <a class="btn primary" href="{% url 'buy_vip' plan.id %}">Купить</a>
+            </div>
+          </div>
+          {% endif %}
+        {% endfor %}
+      </div>
+    </article>
+  </section>
+</div>
+
+<script>
+(function(){
+  const divisor = 1_000_000; 
+  const fmt = (n) => {
+    const x = n / divisor;
+    if (x >= 100) return x.toFixed(0);      
+    if (x >= 10)  return x.toFixed(1);
+    return x.toFixed(2);
+  };
+  document.querySelectorAll('.price[data-micros]').forEach(el=>{
+    const micros = parseInt(el.getAttribute('data-micros') || '0', 10);
+    el.textContent = `${fmt(micros)} OSP`;
+  });
+})();
+</script>
+{% endblock %}

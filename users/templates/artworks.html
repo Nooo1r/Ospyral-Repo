@@ -37,27 +37,29 @@
             <div class="artwork-list">
                 {% for artwork in artworks %}
                     <div class="artwork-card">
-                        {% if artwork.image %}
-                            <img src="{{ artwork.image.url }}" alt="{{ artwork.title }}" class="artwork-image">
+                        {% if artwork.original_image %}
+                            <img src="{{ artwork.original_image.url }}" alt="{{ artwork.title }}" class="artwork-image">
                         {% else %}
                             <img src="{% static 'images/artwork-placeholder.jpg' %}" alt="Placeholder" class="artwork-image">
                         {% endif %}
                         <h3>{{ artwork.title }}</h3>
                         <p>{{ artwork.description|truncatewords:10 }}</p>
-                        {% if artwork.status == 'sale' %}
-                            <span class="artwork-price">{{ artwork.price }} ₽</span>
-                            <a href="{% url 'buy_artwork' artwork.id %}" class="btn btn-buy">Купить</a>
-                        {% elif artwork.status == 'auction' %}
-                            <span class="artwork-bid">Текущая ставка: {{ artwork.current_bid|default:'Нет ставок' }} ₽</span>
-                            <a href="{% url 'bid_artwork' artwork.id %}" class="btn btn-bid">Сделать ставку</a>
-                        {% elif artwork.status == 'competition' %}
-                            <span class="artwork-status">Соревнование</span>
-                        {% endif %}
+
+                        <span class="artwork-price">
+                            {{ artwork.price }} {{ artwork.currency }}
+                        </span>
+
+                        <a href="{% url 'artwork_detail' artwork.id %}" class="btn btn-edit">Открыть</a>
+
                         {% if artwork.owner == user %}
-                            <a href="{% url 'edit_artwork' artwork.id %}" class="btn btn-edit">Редактировать</a>
-                            <a href="{% url 'delete_artwork' artwork.id %}" class="btn btn-delete">Удалить</a>
+                            <a href="{% url 'artwork_pages' artwork.id %}" class="btn btn-save">Страницы</a>
+                            <form action="{% url 'delete_artwork' artwork.id %}" method="post" style="display:inline">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-delete">Удалить</button>
+                            </form>
                         {% endif %}
                     </div>
+
                 {% empty %}
                     <p>Изображений пока нет.</p>
                 {% endfor %}

@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Возвраты и оспаривания{% endblock %}
+
+{% block extra_head %}
+  <link rel="stylesheet" href="{% static 'css/refund_hub.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="rf-wrap">
+  <div class="rf-head">
+    <h1 class="rf-title">Возврат продукции</h1>
+    <p class="rf-sub">Детально опишите причину — заявка будет отправлена на рассмотрение.</p>
+  </div>
+
+  <form action="{% url 'refund_request' %}" method="post" class="rf-form">
+    {% csrf_token %}
+
+    {% if selected %}
+      {# скрытые поля для сабмита, без обращения к form.initial #}
+      <input type="hidden" name="order_type" value="{{ selected.otype }}">
+      <input type="hidden" name="order_id"   value="{{ selected.order_id }}">
+
+      <div class="rf-grid">
+        <div><label>Тип продукта</label><div class="rf-card" style="padding:8px 12px">{{ selected.type }}</div></div>
+        <div><label>Категория</label><div class="rf-card" style="padding:8px 12px">{{ selected.category }}</div></div>
+        <div><label>ID продукта</label><div class="rf-card" style="padding:8px 12px">#{{ selected.product_id }}</div></div>
+        <div><label>ID заказа</label><div class="rf-card" style="padding:8px 12px">#{{ selected.order_id }}</div></div>
+        <div><label>Цена</label><div class="rf-card" style="padding:8px 12px">{{ selected.price }}</div></div>
+        <div><label>Покупатель</label><div class="rf-card" style="padding:8px 12px">{{ selected.buyer }}</div></div>
+        <div><label>Продавец</label><div class="rf-card" style="padding:8px 12px">{{ selected.seller }}</div></div>
+      </div>
+    {% else %}
+      {# без префилла — обычные поля выбора #}
+      <div class="rf-grid">
+        <div>
+          <label>Тип заказа</label>
+          <select class="input" name="order_type" required>
+            <option value="">—</option>
+            <option value="text" {% if form.initial.order_type == 'text' %}selected{% endif %}>Текстовый продукт</option>
+            <option value="art"  {% if form.initial.order_type == 'art'  %}selected{% endif %}>Артворк</option>
+          </select>
+        </div>
+        <div>
+          <label>ID заказа</label>
+          <input class="input" type="number" name="order_id" min="1" value="{{ form.initial.order_id|default:'' }}" required>
+        </div>
+      </div>
+    {% endif %}
+
+    <label style="display:block;margin:12px 0 6px 0">Причина</label>
+    <textarea name="reason" minlength="10" maxlength="399" placeholder="Опишите проблему" required></textarea>
+
+    <div class="rf-actions">
+      <button class="btn btn-danger" type="submit">Отправить на возврат</button>
+    </div>
+  </form>
+
+
+  </div>
+</div>
+{% endblock %}
+

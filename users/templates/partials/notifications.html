@@ -1,21 +1,66 @@
-{# templates/partials/notifications.html #}
 {% load static %}
+
 {# Сообщения Django #}
 {% if messages %}
-  <div class="flash-container">
+  <div class="toast-stack" role="region" aria-label="Уведомления">
     {% for message in messages %}
-      <div class="flash flash-{{ message.tags|default:'info' }}">{{ message }}</div>
+      <div class="toast toast-{{ message.tags|default:'info' }}"
+           data-duration="5000" role="status" aria-live="polite">
+        <div class="toast__content">{{ message }}</div>
+        <button class="toast__close" type="button" aria-label="Закрыть уведомление">×</button>
+        <div class="toast__timer" aria-hidden="true"></div>
+      </div>
     {% endfor %}
   </div>
 {% endif %}
 
-{# Блок уведомлений: отобразится, только если переменная передана во view #}
+{# Плашка «непрочитанные» — при необходимости #}
 {% if unread_notifications %}
   {% with unread_count=unread_notifications|length %}
     {% if unread_count %}
-      <div class="notifications">
+      <div class="notifications-compact">
         <a href="{% url 'notifications_list' %}">У вас {{ unread_count }} новых&nbsp;уведомлений</a>
       </div>
     {% endif %}
   {% endwith %}
 {% endif %}
+
+<script>
+(function(){
+  const root = document.currentScript && document.currentScript.previousElementSibling
+    ? document.currentScript.previousElementSibling.parentElement
+    : document;
+
+  const toasts = root.querySelectorAll('.toast-stack .toast');
+  toasts.forEach(el => {
+    const DEFAULT_MS = 5000;
+    const ms = parseInt(el.dataset.duration, 10) || DEFAULT_MS;
+    el.style.setProperty('--dur', `${ms}ms`);
+
+    const closeBtn = el.querySelector('.toast__close');
+    const bar = el.querySelector('.toast__timer');
+    const removeNow = () => el.remove();
+
+    let start = Date.now();
+    let remaining = ms;
+    let t = setTimeout(removeNow, remaining);
+
+    const pause = () => {
+      clearTimeout(t);
+      remaining -= (Date.now() - start);
+      if (bar) bar.style.animationPlayState = 'paused';
+    };
+    const resume = () => {
+      start = Date.now();
+      t = setTimeout(removeNow, remaining);
+      if (bar) bar.style.animationPlayState = 'running';
+    };
+
+    el.addEventListener('mouseenter', pause);
+    el.addEventListener('mouseleave', resume);
+    el.addEventListener('touchstart', pause, {passive:true});
+    el.addEventListener('touchend', resume);
+    if (closeBtn) closeBtn.addEventListener('click', removeNow);
+  });
+})();
+</script>

@@ -1,50 +1,167 @@
+{% extends "base.html" %}
 {% load static %}
-<link rel="stylesheet" href="{% static 'css/artwork_detail.css' %}">
+
+{% block title %}{{ artwork.title }} — детали арта{% endblock %}
+{% block extra_head %}
+  <link rel="stylesheet" href="{% static 'css/artwork_detail.css' %}">
+{% endblock %}
+{% block body_class %}store-body artdetail-body{% endblock %}
+{% url 'user_profile' username=artwork.owner.username as profile_url %}
 
 {% block content %}
-<div class="artwork-detail-wrapper">
+<div class="artwork-detail-wrapper app-content">
   <div class="artwork-header">
-    {% if artwork.original_image %}
-      <img src="{{ artwork.original_image.url }}" alt="{{ artwork.title }}" class="artwork-cover" />
-    {% endif %}
+    <div class="preview-wrap">
+      <img
+        src="{{ artwork.get_cover_url }}"
+        alt="{{ artwork.title }}"
+        class="artwork-cover"
+        loading="eager"
+        decoding="async"
+        fetchpriority="high"
+      >
+      <span class="wm">Preview</span>
+    </div>
+
+
     <div class="artwork-info">
-      <h1 class="title">{{ artwork.title }}</h1>
+      <h1 class="title">
+        {{ artwork.title }}
+        {% if request.user == artwork.owner %}
+          <span class="owner-badge">Ваш артворк</span>
+        {% endif %}
+        {% if artwork.nsfw %}
+          <span class="nsfw-pill">NSFW</span>
+        {% endif %}
+
+        {% if artwork.status %}
+          <span class="status-pill {{ artwork.status }}">{{ artwork.get_status_display }}</span>
+        {% endif %}
+      </h1>
+
       <div class="meta">
         <p><span>Категория:</span> {{ artwork.get_category_display }}</p>
         <p><span>Цена:</span> {{ artwork.price }} {{ artwork.get_currency_display }}</p>
+        <p class="art-author">
+          <span>Автор:</span>
+          {% if profile_url %}
+            <a href="{{ profile_url }}">{{ artwork.owner.username }}</a>
+          {% else %}
+            {{ artwork.owner.username }}
+          {% endif %}
+        </p>    
       </div>
+
       <p class="description">{{ artwork.description|default:"Без описания." }}</p>
-      <div class="actions">
-        <a href="{% url 'artwork_pages' artwork.pk %}" class="btn btn-primary">Редактировать</a>
-        <a href="{% url 'dashboard' %}" class="btn btn-secondary">Удалить и выйти</a>
+
+      {% comment %} Панель владельца / действия {% endcomment %}
+      <div class="owner-toolbar">
+        <a href="{% url 'artwork_pages' artwork.pk %}" class="btn-ghost">Страницы и цензура</a>
+
+        <form action="{% url 'delete_artwork' artwork.pk %}" method="post" class="inline" onsubmit="return confirm('Удалить из продажи?');">
+          {% csrf_token %}
+          <button type="submit" class="btn-danger">Удалить</button>
+        </form>
+
         {% if pages %}
-          <form action="{% url 'submit_for_review' artwork.pk %}" method="post">
+          <form action="{% url 'submit_for_review' artwork.pk %}" method="post" class="inline">
             {% csrf_token %}
-            <button type="submit" class="btn btn-approve">На модерацию</button>
+            <button type="submit" class="btn-secondary">На модерацию</button>
           </form>
         {% else %}
-          <button class="btn btn-disabled" disabled>Добавьте хотя бы одну страницу</button>
+          <button class="btn-ghost" disabled>Добавьте хотя бы одну страницу</button>
         {% endif %}
       </div>
+
+      {% if artwork.escrow_state %}
+        <div class="escrow-box">
+          <div class="escrow-row">
+            <span class="escrow-dot"></span>
+            <span class="escrow-text">Сделка: {{ artwork.get_escrow_state_display }}</span>
+          </div>
+          <div class="escrow-actions">
+            {% if artwork.can_open_dispute %}
+              <button type="button" class="btn-ghost" id="open-dispute">Открыть спор</button>
+            {% endif %}
+          </div>
+          <form id="dispute-form" class="dispute-form" hidden>
+            <textarea rows="4" placeholder="Опишите проблему..."></textarea>
+            <br>
+            <button class="btn-secondary" type="button" id="send-dispute">Отправить</button>
+          </form>
+        </div>
+      {% endif %}
     </div>
   </div>
-
   <h2 class="section-title">Страницы</h2>
-  <div class="page-gallery">
+
+  <div class="segmented" role="tablist" aria-label="Режим превью">
+    <button class="seg tab-btn active"         data-mode="censored"  type="button">Цензура</button>
+    <button class="seg tab-btn"         data-mode="original"  type="button">Оригинал</button>
+  </div>
+
+  <div class="page-gallery no-copy" id="pageGallery" data-mode="auto">
     {% for page in pages %}
-      <div class="page-card">
-        {% if page.censored_image %}
-          <img src="{{ page.censored_image.url }}" alt="Страница {{ page.order }}" />
-        {% elif page.image %}
-          <img src="{{ page.image.url }}" alt="Страница {{ page.order }}" />
+      {% with has_cens=page.censored_image %}
+      <div class="page-card" data-has-cens="{% if has_cens %}1{% else %}0{% endif %}">
+        <div class="img-wrap">
+          {% if page.image %}
+            <img
+              src="{{ page.image.url }}"
+              alt="Страница {{ page.order }} (оригинал)"
+              class="img original"
+              loading="lazy" decoding="async"
+            >
+          {% endif %}
+          {% if page.censored_image %}
+            <img
+              src="{{ page.censored_image.url }}"
+              alt="Страница {{ page.order }} (цензура)"
+              class="img censored"
+              loading="lazy" decoding="async"
+            >
+          {% endif %}
+        </div>
+
+        {% if has_cens %}
+          <span class="badge badge-censored">CENSORED</span>
         {% else %}
-          <div class="no-image">Нет изображения</div>
+          <span class="badge badge-nsfw">NSFW</span>
         {% endif %}
+
         <div class="page-number">#{{ page.order }}</div>
       </div>
+      {% endwith %}
     {% empty %}
       <p class="no-pages">Нет загруженных страниц.</p>
     {% endfor %}
   </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const gallery = document.getElementById('pageGallery');
+  const tabs = document.querySelectorAll('.segmented .tab-btn');
+
+  tabs.forEach(btn => {
+    btn.addEventListener('click', () => {
+      tabs.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      gallery.setAttribute('data-mode', btn.dataset.mode);
+    });
+  });
+
+  // опционально: простая логика «открыть спор» в escrow-блоке
+  const openDispute = document.getElementById('open-dispute');
+  const form = document.getElementById('dispute-form');
+  const send = document.getElementById('send-dispute');
+  if (openDispute && form) openDispute.addEventListener('click', () => form.hidden = !form.hidden);
+  if (send && form) send.addEventListener('click', () => {
+    // TODO: Ajax submit; пока просто сворачиваем
+    form.hidden = true;
+    alert('Заявка отправлена');
+  });
+});
+</script>
+
 {% endblock %}

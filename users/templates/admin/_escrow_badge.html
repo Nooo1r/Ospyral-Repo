@@ -1,0 +1,10 @@
+{% comment %}
+Ожидает, что в контексте будет либо product=p, либо artwork=a — находим список в open_escrows при детальном просмотре,
+а в списках — можешь выводить простой индикатор через product.orders.count/has_escrow.
+{% endcomment %}
+
+{% if open_escrows %}
+  <span class="badge bg-info">Escrow: {{ open_escrows|length }} активн.</span>
+{% else %}
+  {# в списках можно скрыть, чтобы не шумело #}
+{% endif %}

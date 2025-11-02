@@ -1,0 +1,22 @@
+{% extends "admin/admin_base.html" %}
+{% block title %}Начисление OSP — выполнено{% endblock %}
+
+{% block content %}
+<div class="container">
+  <h2>Готово</h2>
+  {% if receipt %}
+    <div class="card mt-2" style="padding:16px;">
+      <p>Пользователь: <strong>@{{ receipt.user }}</strong></p>
+      <p>Сумма: <strong>{{ receipt.amount }} OSP</strong></p>
+      <p>Reference: <code>{{ receipt.reference }}</code></p>
+      <p>Время: {{ receipt.ts }}</p>
+    </div>
+  {% else %}
+    <p>Начисление выполнено.</p>
+  {% endif %}
+  <div class="mt-2" style="display:flex;gap:8px;">
+    <a class="btn btn-primary" href="{% url 'users_admin:grant_osp' %}">Ещё начисление</a>
+    <a class="btn" href="{% url 'users_admin:admin_index' %}">В панель</a>
+  </div>
+</div>
+{% endblock %}

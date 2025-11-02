@@ -1,56 +1,341 @@
+
 {% load static %}
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-    <meta charset="UTF-8">
-    <title>{{ product.title }}</title>
-    <link rel="stylesheet" href="{% static 'css/view_text_product.css' %}">
+  <meta charset="UTF-8" />
+  <title>{{ product.title }}</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="{% static 'css/view_text_product.css' %}" />
+  <link rel="stylesheet" href="{% static 'css/notifications.css' %}" />
+
+  <!-- ethers.js подключаем ДО использования -->
+  <script src="https://cdn.jsdelivr.net/npm/ethers@6.13.1/dist/ethers.min.js"></script>
+
+  <!-- CSRF helper -->
+  <script>
+    function getCookie(name) {
+      const v = (`; ${document.cookie}`).match(`;\\s*${name}=([^;]+)`);
+      return v ? v[1] : null;
+    }
+    const CSRF = getCookie('csrftoken');
+  </script>
 </head>
 <body>
-  <div class="container">
-    <h1>{{ product.title }}</h1>
-    <p class="category">{{ product.get_category_display }}</p>
-    <p class="description">{{ product.description|default:"Без описания" }}</p>
+  {% include "partials/notifications.html" %}
 
-    <p class="author">
-    Автор:
-    <a href="{% url 'user_profile' product.owner.username %}" class="author-link">
-        {{ product.owner.username }}
-    </a>
-    </p>
+  <div class="vp-page">
 
-    {% if keywords %}
-    <section class="block">
-        <h2>Ключевые слова</h2>
-        <div class="tags">
-        {% for tag in keywords %}
-            <span class="tag">#{{ tag }}</span>
-        {% endfor %}
-        </div>
-    </section>
-    {% endif %}
+    <!-- ===== Top progress bar when reading ===== -->
+    <div class="vp-progress" id="vpProgress"></div>
 
-    <section class="block">
-      <h2>Стоимость</h2>
-      <p class="price">{{ product.price }} {{ product.get_currency_display }}</p>
-    </section>
-
-    {% if not can_view_content %}
-      <div class="note-warning">
-        <p>Вы видите только описание. Чтобы просмотреть содержимое, необходимо приобрести продукт.</p>
-        <form method="post" action="{% url 'buy_text_product' product.id %}">
-            {% csrf_token %}
-            <button type="submit" class="btn-buy">Приобрести за {{ product.price }} {{ product.get_currency_display }}</button>
-        </form>
+    <!-- ===== Header / title cluster ===== -->
+    <header class="vp-header">
+      <div class="vp-breadcrumbs">
+        <a href="/dashboard/" class="crumb">Ospyral</a>
+        <span class="sep">•</span>
+        <a href="/text-products/catalog/" class="crumb">Text Products Catalog</a>
+        <span class="sep">•</span>
+        <span class="crumb current" aria-current="page">{{ product.title }}</span>
       </div>
-    {% else %}
-      <section class="block">
-        <h2>Содержимое</h2>
-        <div class="text-content">
-          <pre>{{ decrypted_content }}</pre>
+
+      <h1 class="vp-title">{{ product.title }}</h1>
+
+      <div class="vp-meta">
+        <span class="vp-chip">
+          <span class="chip-dot"></span>
+          {{ product.get_category_display }}
+        </span>
+
+        {% if avg_rating is not None %}
+          <span class="vp-rating" aria-label="Рейтинг {{ avg_rating|floatformat:1 }} из 5">
+            <span class="vp-stars" data-score="{{ avg_rating|floatformat:1 }}" aria-hidden="true"></span>
+            <span class="vp-score">{{ avg_rating|floatformat:1 }}</span>
+          </span>
+        {% endif %}
+
+        <span class="vp-author">
+          Автор:
+          <a href="{% url 'user_profile' product.owner.username %}" class="author-link">{{ product.owner.username }}</a>
+        </span>
+      </div>
+
+      {% if keywords %}
+        <div class="vp-chip vp-tags" role="list">
+          {% for tag in keywords %}
+            <span role="listitem" class="vp-tag">#{{ tag }}</span>
+          {% endfor %}
         </div>
+      {% endif %}
+    </header>
+
+    <!-- ===== Layout: left content / right sticky action ===== -->
+    <main class="vp-layout">
+      <section class="vp-main">
+        <div class="vp-description card">
+          Описание:
+          <p>{{ product.description|default:"Без описания" }}</p>
+        </div>
+
+        {% if can_view_content %}
+          <section class="block">
+            <h2 class="block-title">Содержимое</h2>
+            <div class="text-content card">
+              <pre>{{ decrypted_content }}</pre>
+            </div>
+          </section>
+
+          {% if order and escrow.status == "HELD" %}
+            <div class="vp-actions-inline">
+              {% if order and order.product.currency == 'USDT' %}
+                <button id="releaseBtnText" class="btn btn-primary" data-orderid="{{ escrow.external_order_id }}">
+                  Подтвердить покупку (ончейн)
+                </button>
+              {% else %}
+                <form method="post" action="{% url 'confirm_text_order' order_id=order.id %}">
+                  {% csrf_token %}
+                  <button type="submit" class="btn btn-primary">Подтвердить покупку</button>
+                </form>
+              {% endif %}
+
+              <a class="btn btn-ghost bt-wide" href="{% url 'refunds_hub' %}?type=text&order={{ order.id }}">Возврат</a>
+            </div>
+          {% else %}
+            <p class="muted">Действия недоступны: заказ уже обработан.</p>
+          {% endif %}
+
+        {% else %}
+          <!-- LOCKED state: preview with blur -->
+          <div class="note-warning card">
+            <p>Вы видите только описание. Чтобы просмотреть содержимое, необходимо приобрести продукт.</p>
+          </div>
+        {% endif %}
+
+        {% if has_purchased and request.user != product.owner %}
+          <div class="vp-ratebox card">
+            <h3>Оценить продукт</h3>
+            {% if user_rating %}
+              <div class="vp-rated">
+                <span class="me">Ваша оценка:</span> {{ user_rating }} / 5 ★
+              </div>
+            {% else %}
+              <form method="post" action="{% url 'rate_text_product' product.id %}">
+                {% csrf_token %}
+                <div class="stars-input">
+                  {% for i in "12345" %}
+                    <input id="r{{ forloop.counter }}" type="radio" name="rating" value="{{ forloop.counter }}" required>
+                    <label for="r{{ forloop.counter }}" data-val="{{ forloop.counter }}" title="{{ forloop.counter }} из 5"></label>
+                  {% endfor %}
+                </div>
+                <div class="actions">
+                  <button type="submit" class="btn btn-primary btn-sm">Отправить</button>
+                </div>
+              </form>
+            {% endif %}
+          </div>
+        {% endif %}
+      
       </section>
-    {% endif %}
+
+      <!-- ===== Sticky aside: price & CTA ===== -->
+      <aside class="vp-aside" id="buy">
+        <div class="vp-pricecard card">
+          <div class="vp-pricewrap">
+            <span class="vp-label">Стоимость</span>
+            <div class="vp-price-line">
+              <span class="vp-price">{{ product.price|floatformat:2 }}</span>
+              <span class="vp-cur">{{ product.get_currency_display }}</span>
+            </div>
+          </div>
+
+          <div class="vp-quick">
+            {% if not can_view_content and request.user != product.owner and not has_purchased and product.is_active %}
+              {% if product.currency == 'USDT' %}
+                <button id="buyBtnUSDT" class="btn btn-primary" data-product-id="{{ product.id }}">
+                  Купить за {{ product.price|floatformat:2 }} {{ product.get_currency_display }}
+                </button>
+              {% else %}
+                <a class="btn btn-primary"
+                  href="{% url 'confirm_text_purchase' product.id %}">
+                  Приобрести за {{ product.price|floatformat:2 }} {{ product.get_currency_display }}
+                </a>
+              {% endif %}
+            {% elif has_purchased %}
+              <span class="vp-owned">Уже куплено</span>
+            {% elif not product.is_active %}
+              <span class="vp-unavailable">Товар снят с продажи</span>
+            {% endif %}
+
+            {% if can_view_content %}
+              <div class="vp-read-cta">
+                <a class="btn btn-primary btn-wide" href="{% url 'read_text_product' product.id %}">Открыть</a>
+                <a class="btn btn-ghost btn-wide" href="{% url 'download_text' product.id %}">Скачать</a>
+              </div>
+            {% endif %}
+
+            <ul class="vp-trust">
+              <li> Моментальный доступ к материалу</li>
+              <li> 48 часов — защита покупателя</li>
+              <li> Возможность скачать продукт</li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- Mobile sticky bar -->
+        <div class="vp-stickybar">
+          <div class="price-min">
+            <span class="val">{{ product.price|floatformat:2 }}</span>
+            <span class="cur">{{ product.get_currency_display }}</span>
+          </div>
+          {% if not can_view_content and request.user != product.owner and not has_purchased and product.is_active %}
+            {% if product.currency == 'USDT' %}
+              <button id="buyBtnUSDTm" class="btn btn-primary btn-wide" data-product-id="{{ product.id }}">Купить</button>
+            {% else %}
+              <a class="btn btn-primary btn-wide"
+                href="{% url 'confirm_text_purchase' product.id %}">
+                Купить
+              </a>
+            {% endif %}
+          {% endif %}
+        </div>
+      </aside>
+    </main>
+
   </div>
+
+  <!-- ===== Scripts: rating stars, progress, onchain buy/release ===== -->
+  <script>
+    // Stars render
+    (function(){
+      const el = document.querySelector('.vp-stars');
+      if(!el) return;
+      const score = parseFloat(el.dataset.score || '0');
+      const full = '★'.repeat(Math.floor(score));
+      const half = (score % 1 >= 0.5) ? '☆' : '';
+      const rest = '☆'.repeat(5 - Math.ceil(score));
+      el.textContent = full + half + rest;
+    })();
+
+    // Top progress bar while reading
+    (function(){
+      const bar = document.getElementById('vpProgress');
+      function update(){
+        const scrollTop = window.scrollY || document.documentElement.scrollTop;
+        const docH = document.documentElement.scrollHeight - window.innerHeight;
+        const p = docH > 0 ? (scrollTop / docH) * 100 : 0;
+        bar.style.width = p + '%';
+      }
+      update();
+      window.addEventListener('scroll', update, {passive:true});
+      window.addEventListener('resize', update);
+    })();
+
+    // On-chain buy (USDT) — shared handler for desktop & mobile button ids
+    (function(){
+      const KIND = 'text';
+      const btns = [document.getElementById('buyBtnUSDT'), document.getElementById('buyBtnUSDTm')].filter(Boolean);
+      if (btns.length === 0) return;
+
+      btns.forEach(btn=>{
+        btn.addEventListener('click', async () => {
+          try {
+            const PRODUCT_ID = Number(btn.dataset.productId || '0');
+            if (!PRODUCT_ID) return;
+            if (!window.ethereum) { alert('Нужен кошелёк (MetaMask)'); return; }
+
+            const provider = new ethers.BrowserProvider(window.ethereum);
+            const signer   = await provider.getSigner();
+
+            // 1) prepare
+            const form = new FormData();
+            form.append('kind', KIND);
+            form.append('id', PRODUCT_ID);
+            const prepResp = await fetch('{% url 'prepare_order' %}', {
+              method: 'POST', body: form, credentials: 'include', headers: {'X-CSRFToken': CSRF}
+            });
+            if (!prepResp.ok) throw new Error('prepare failed');
+            const prep = await prepResp.json();
+
+            // 2) network
+            const net = await provider.getNetwork();
+            if (Number(net.chainId) !== Number(prep.chainId)) {
+              alert('Переключите сеть в кошельке (chainId: ' + prep.chainId + ')');
+              return;
+            }
+
+            // 3) approve if needed
+            const erc20Abi = [
+              'function allowance(address owner, address spender) view returns (uint256)',
+              'function approve(address spender, uint256 amount) returns (bool)'
+            ];
+            const owner = await signer.getAddress();
+            const erc20 = new ethers.Contract(prep.tokenAddress, erc20Abi, signer);
+            const amount = BigInt(prep.amountBaseUnits);
+            const allowance = await erc20.allowance(owner, prep.escrowAddress);
+            if (allowance < amount) {
+              const txA = await erc20.approve(prep.escrowAddress, amount);
+              await txA.wait();
+            }
+
+            // 4) createOrder
+            const escrowAbi = ['function createOrder(bytes32 orderId, address token, uint256 amount) payable'];
+            const escrow = new ethers.Contract(prep.escrowAddress, escrowAbi, signer);
+            const tx = await escrow.createOrder(prep.orderId, prep.tokenAddress, amount);
+            const rc = await tx.wait();
+
+            // 5) confirm
+            const form2 = new FormData();
+            form2.append('kind', KIND);
+            form2.append('id', PRODUCT_ID);
+            form2.append('orderId', prep.orderId);
+            form2.append('txHash', rc.hash);
+            await fetch('{% url 'confirm_order' %}', {
+              method: 'POST', body: form2, credentials: 'include', headers: {'X-CSRFToken': CSRF}
+            });
+
+            alert('Платёж отправлен. Статус обновится после подтверждения сети.');
+            window.location.reload();
+          } catch(err){
+            console.error(err);
+            alert('Ошибка покупки: ' + (err?.message || err));
+          }
+        });
+      });
+    })();
+
+    // On-chain release
+    (function(){
+      const btn = document.getElementById('releaseBtnText');
+      if (!btn) return;
+      btn.addEventListener('click', async () => {
+        try {
+          const orderId = btn.dataset.orderid;
+          if (!window.ethereum) { alert('Нужен кошелёк (MetaMask)'); return; }
+          const provider = new ethers.BrowserProvider(window.ethereum);
+          const signer   = await provider.getSigner();
+          const escrowAbi = ['function release(bytes32 orderId) public'];
+          const escrow = new ethers.Contract('{{ ESCROW_ADDRESS }}', escrowAbi, signer);
+          const tx = await escrow.release(orderId);
+          const rc = await tx.wait();
+
+          const f = new FormData();
+          f.append('kind', 'text');
+          f.append('id', '{{ product.id }}');
+          f.append('orderId', orderId);
+          f.append('txHash', rc.hash);
+          await fetch('{% url 'confirm_order' %}', {
+            method: 'POST', body: f, credentials: 'include', headers: {'X-CSRFToken': CSRF}
+          });
+
+          alert('Релиз отправлен, статус обновится после подтверждения сети.');
+          window.location.reload();
+        } catch(err){
+          console.error(err);
+          alert('Ошибка релиза: ' + (err?.message || err));
+        }
+      });
+    })();
+  </script>
 </body>
 </html>
+

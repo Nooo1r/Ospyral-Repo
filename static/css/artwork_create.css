@@ -1,137 +1,92 @@
-:root {
+:root{
+  --bg: #0a0a0a;
+  --card: #15151a;
+  --border: #2b2b35;
+  --text: #e9e9ef;
+  --muted: #a9abbb;
   --gold: #d4af37;
-  --bronze: #cd7f32;
-  --card-bg: #181818;
-  --card-border: #2c2c2c;
-  --text: #f5f5f5;
-  --bg-dark: #0a0a0a;
-  --input-bg: #111;
-  --radius: 12px;
+  --bronze:#cd7f32;
+  --danger:#b91c1c;
+  --radius: 14px;
 }
 
-body {
-  background: var(--bg-dark);
-  color: var(--text);
-  font-family: 'Inter', 'Roboto', sans-serif;
-  margin: 0;
-  padding: 0;
-}
+body{ background:var(--bg); color:var(--text); }
 
-.container {
-  max-width: 540px;
-  margin: 70px auto 0;
-  padding: 40px 28px 36px;
-  background: linear-gradient(135deg, #181818 80%, #222 100%);
+.create-wrap{ max-width: 880px; margin: 56px auto 80px; padding: 0 24px; }
+.create-head h1{ margin:0 0 6px; font-size: 2rem; color: var(--gold); font-weight: 800; }
+.create-head .sub{ margin:0 0 16px; color: var(--muted); }
+
+.create-form{
+  background: var(--card);
+  border:1px solid var(--border);
   border-radius: var(--radius);
-  box-shadow: 0 8px 32px rgba(0,0,0,0.32);
+  padding: 22px 18px;
+  box-shadow: 0 10px 24px rgba(0,0,0,.25);
 }
 
-h1 {
-  color: var(--gold);
-  font-size: 2.2rem;
-  margin-bottom: 32px;
-  text-align: center;
+.form-grid{ display:grid; gap:16px; grid-template-columns: 1fr; }
+
+.field label{ color: var(--gold); font-weight: 700; margin-bottom:6px; display:block; }
+.input{
+  width:100%; border:1px solid var(--border); border-radius: 10px;
+  background:#0f0f14; color:#fff; padding:12px 12px; outline:none;
+}
+.input:focus{ border-color: var(--gold); box-shadow: 0 0 0 3px rgba(212,175,55,.18); }
+.textarea{ min-height: 120px; resize: vertical; }
+
+.field.two{ display:grid; grid-template-columns: 1fr 1fr; gap:12px; }
+.subfield label{ color: var(--gold); font-weight:700; margin-bottom:6px; display:block; }
+
+.switch{ display:flex; align-items:center; gap:10px; }
+.switch input[type="checkbox"]{ width:20px; height:20px; }
+.warn{ margin-top:8px; color:#ffb4b4; background: rgba(185,28,28,.15); border:1px solid rgba(185,28,28,.35); padding:8px 10px; border-radius:10px; }
+
+.filebox input[type="file"]{ padding:10px; background:#0f0f14; border-radius:10px; border:1px solid var(--border); color:#cbd5e1; }
+.file-help{ color: var(--muted); font-size:.92rem; margin-top:6px; }
+
+.cover-preview{ margin-top:10px; border:1px dashed var(--border); border-radius:12px; overflow:hidden; background:#0e0e13; }
+.cover-preview img{ display:block; width:100%; max-height: 360px; object-fit: cover; }
+
+.err{ margin-top:6px; color:#ffdada; background:#2a1010; border:1px solid #7f1d1d; padding:6px 10px; border-radius:8px; }
+
+.actions{ display:flex; gap:12px; flex-wrap:wrap; margin-top: 16px; }
+.btn{ display:inline-flex; align-items:center; justify-content:center; padding:12px 18px; border-radius: 12px; font-weight:800; border:1px solid transparent; cursor:pointer; text-decoration:none; }
+.btn-primary{ background: var(--gold); color:#111; }
+.btn-primary:hover{ background: var(--bronze); color:#fff; }
+.btn-secondary{ background:transparent; color: var(--gold); border-color: var(--gold); border:1px solid var(--gold); }
+.btn-secondary:hover{ background: var(--gold); color:#111; }
+
+@media (max-width: 700px){
+  .field.two{ grid-template-columns: 1fr; }
 }
 
-/* Форма */
-form {
-  background: var(--card-bg);
-  border: 1.5px solid var(--card-border);
-  border-radius: var(--radius);
-  padding: 32px 22px 26px;
-  box-shadow: 0 3px 12px rgba(0,0,0,0.18);
+.currency-segment{
+  display:flex; gap:8px; background:#0f1116; border:1px solid var(--border);
+  border-radius:12px; padding:6px;
 }
+.currency-segment .seg{
+  position:relative; display:inline-flex; align-items:center; gap:8px;
+  padding:8px 12px; border-radius:10px; cursor:pointer; user-select:none;
+  background:transparent; color:#e5e7eb; border:1px solid transparent; font-weight:800;
+}
+.currency-segment .seg input[type="radio"]{ position:absolute; inset:0; opacity:0; pointer-events:none; }
+.currency-segment .seg.active{ background:#1d2330; color:#fff; border-color:#2b2b35; }
+.currency-segment .seg:hover{ background:#141821; }
+.seg-title{ letter-spacing:.3px; }
 
-/* Стили для {{ form.as_p }} — все p, label, input */
-form p {
-  margin-bottom: 22px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
+.mini-hint{ margin-top:6px; color: var(--muted); font-size:.92rem; }
 
-form label {
-  color: var(--gold);
-  font-weight: 500;
-  margin-bottom: 3px;
-  letter-spacing: 0.02em;
+.with-counter{ position:relative; }
+.counter{
+  position:absolute; right:10px; bottom:8px; font-size:.82rem; color:var(--muted);
 }
-
-form input[type="text"],
-form input[type="number"],
-form select,
-form textarea {
-  background: var(--input-bg);
-  color: var(--text);
-  border: 1.5px solid var(--card-border);
-  border-radius: 7px;
-  padding: 13px 12px;
-  font-size: 1em;
-  box-sizing: border-box;
-  outline: none;
-  transition: border 0.2s;
+.dropbox{
+  border:1px dashed var(--border);
+  background:#0f1116;
 }
-form input[type="text"]:focus,
-form input[type="number"]:focus,
-form select:focus,
-form textarea:focus {
-  border-color: var(--gold);
-}
-
-form .helptext,
-form small {
-  color: #bbb;
-  font-size: 0.92em;
-  margin-top: 4px;
-  font-style: italic;
-}
-
-/* Кнопки */
-.btn {
-  display: inline-block;
-  padding: 12px 30px;
-  border-radius: var(--radius);
-  border: none;
-  font-size: 1em;
-  font-weight: 500;
-  cursor: pointer;
-  transition: background 0.2s, color 0.2s, box-shadow 0.2s;
-  margin-right: 16px;
-  margin-top: 12px;
-  margin-bottom: 6px;
-  box-shadow: 0 3px 10px rgba(0,0,0,0.15);
-  text-decoration: none;
-}
-
-.btn-primary {
-  background: var(--gold);
-  color: #111;
-}
-
-.btn-primary:hover {
-  background: var(--bronze);
-  color: #fff;
-}
-
-.btn-secondary {
-  background: transparent;
-  color: var(--gold);
-  border: 1.5px solid var(--gold);
-}
-
-.btn-secondary:hover {
-  background: var(--gold);
-  color: #111;
-}
-
-@media (max-width: 600px) {
-  .container {
-    padding: 8vw 2vw;
-  }
-  form {
-    padding: 5vw 2vw;
-  }
-  h1 {
-    font-size: 1.2rem;
-  }
+.dropbox.dragover{ border-color: var(--gold); box-shadow:0 0 0 3px rgba(212,175,55,.18); }
+.tag-input .tag-pills{ display:flex; gap:8px; flex-wrap:wrap; margin-top:8px; }
+.tag-pill{
+  padding:6px 10px; border:1px solid var(--border); border-radius:999px;
+  font-weight:700; font-size:.9rem; background:#13151c;
 }

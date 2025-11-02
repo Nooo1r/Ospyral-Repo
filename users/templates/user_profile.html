@@ -6,20 +6,24 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Профиль {{ visited_user.username }}</title>
   <link rel="stylesheet" href="{% static 'css/profile.css' %}">
-  <style>
-    :root {
-      --profile-bg-color: {{ profile.background_color|default:'#3498db' }};
-    }
-    .profile-background {
-      background-color: var(--profile-bg-color);
-    }
-  </style>
+  <link rel="stylesheet" href="{% static 'css/catalog_text_products.css' %}">
+  <link rel="stylesheet" href="{% static 'css/artwork_store.css' %}">
+
 </head>
 <body>
 
-  <div class="profile-background"></div>
+  {% with val=profile.background_color %}
+    <div class="profile-background
+                {% if val == 'vip-gold' %}bg--vip-gold{% elif val == 'vip-star' %}bg--vip-star{% elif val == 'vip-galaxy' %}bg--vip-galaxy{% endif %}">
+    </div>
+  {% endwith %}
 
-  <div class="profile-wrapper">
+  {% with v=profile.background_color %}
+  <div class="profile-wrapper"
+      {% if v == 'vip-gold' or v == 'vip-star' or v == 'vip-galaxy' %}
+        data-vip="{{ v }}"
+      {% endif %}>
+  {% endwith %}
     <div class="profile-top-row">
       <!-- Блок достижений -->
       <div class="achievements-box">
@@ -39,9 +43,15 @@
       <div class="center-box">
         <img class="profile-avatar" src="{{ visited_user.profile_image_url }}" alt="Avatar" loading="lazy">
         <div class="profile-details">
-          <p><strong>Имя пользователя:</strong> {{ visited_user.username }}</p>
-          <p><strong>Email:</strong> {{ visited_user.email }}</p>
-          <p><strong>Популярность:</strong> {{ popularity|default:"0" }}</p>
+          <h1>{{ visited_user.username }}</h1>
+          <p class="popularity-line">
+            <strong>Популярность:</strong>
+            {{ popularity_base }}
+            {% if vip_boost %}
+              <span class="vip-boost" title="Временный бонус от активного VIP">+{{ vip_boost }}</span>
+            {% endif %}
+          </p>
+          <p><strong>Количество продаж:</strong> {{ total_sales|default:"0" }}</p>
         </div>
       </div>
 
@@ -61,47 +71,183 @@
     </div>
 
     <!-- Продукция -->
-    <div class="personal-products">
-      <h3>Продукция пользователя</h3>
+    <section class="personal-products enhanced">
+      <div class="pp-head">
+        <h3 class="pp-title">Продукция пользователя</h3>
 
-      {% if text_products %}
-        <div class="product-category">
-          <h4>Текстовая продукция</h4>
-          <ul>
-            {% for tp in text_products %}
-              <li><a href="{% url 'view_text_product' tp.id %}">{{ tp.title }}</a></li>
-            {% endfor %}
-          </ul>
+        <div class="pp-controls">
+          <div class="pp-search">
+            <input id="pp-search-input" type="search" placeholder="Поиск по названию…" aria-label="Поиск продуктов">
+          </div>
+          <div class="pp-filters">
+            {# статус не даём менять и не показываем — мы и так отдали только продающиеся #}
+            <select id="pp-sort">
+              <option value="-updated">Сначала обновлённые</option>
+              <option value="title">По названию A→Z</option>
+              <option value="-sales">По продажам ↓</option>
+              <option value="price">По цене ↑</option>
+              <option value="-price">По цене ↓</option>
+            </select>
+          </div>
         </div>
-      {% endif %}
 
-      {% if artworks %}
-        <div class="product-category">
-          <h4>Артворки</h4>
-          <ul>
-            {% for art in artworks %}
-              <li><a href="{% url 'view_artwork_public' art.id %}">{{ art.title }}</a></li>
-            {% endfor %}
-          </ul>
+        <div class="pp-tabs" role="tablist" aria-label="Категории продуктов">
+          <button class="pp-tab is-active" role="tab" aria-selected="true" data-tab="all">Все</button>
+          <button class="pp-tab" role="tab" aria-selected="false" data-tab="texts">Тексты</button>
+          <button class="pp-tab" role="tab" aria-selected="false" data-tab="artworks">Изображения</button>
         </div>
-      {% endif %}
+      </div>
 
-      {% if lessons %}
-        <div class="product-category">
-          <h4>Уроки</h4>
-          <ul>
-            {% for lesson in lessons %}
-              <li><a href="{% url 'lesson_detail' lesson.id %}">{{ lesson.title }}</a></li>
-            {% endfor %}
-          </ul>
-        </div>
-      {% endif %}
+      <div class="art-grid" data-panel="all">
+        {% for p in text_products %}
+          {% with hex=p.owner.profile.bg_color vip=p.owner.profile.background_color %}
+            <a class="tp-card {% if vip == 'vip-gold' %}vip--gold{% endif %}"
+              href="{% url 'public_view_text_product' p.pk %}"
+              style="--ribbon-color: {{ hex|default:'#0b0d12' }};"
+              aria-label="Открыть «{{ p.title }}»">
 
-      {% if not text_products and not artworks and not lessons %}
-        <p>У пользователя пока нет продуктов.</p>
-      {% endif %}
-    </div>
+              <div class="tp-author">
+                {{ p.owner.get_display_name|default:p.owner.username }}
+              </div>
+
+              {% if p.avg_rating is not None %}
+                <span class="tp-rating" aria-label="Рейтинг {{ p.avg_rating|floatformat:1 }} из 5"
+                      title="Рейтинг {{ p.avg_rating|floatformat:1 }} / 5">
+                  <span class="vp-stars" data-score="{{ p.avg_rating|floatformat:1 }}" aria-hidden="true"></span>
+                </span>
+              {% endif %}
+
+              <div class="tp-title" style="--ribbon-color: inherit;" title="{{ p.title }}">{{ p.title }}</div>
+
+              <div class="tp-price">
+                <span class="tp-price-val">{{ p.price|floatformat:2 }}</span>
+                <span class="tp-currency">{{ p.currency|default:"OSP" }}</span>
+              </div>
+
+              <div class="tp-desc" aria-hidden="true">
+                <p>{{ p.description|default:"Без описания" }}</p>
+              </div>
+            </a>
+          {% endwith %}
+        {% endfor %}
+
+        {% if artworks %}
+          {% for a in artworks %}
+            <a class="art-card"
+              href="{% url 'view_artwork_public' a.id %}"
+              data-type="art"
+              data-status="{{ a.status }}"
+              data-title="{{ a.title|lower }}"
+              data-sales="{{ a.sales_count|default:0 }}"
+              data-price="{{ a.price|default:0 }}"
+              data-updated="{{ a.updated|date:'c' }}">
+
+              <div class="thumb">
+                {% if a.get_cover_image_url %}
+                  <img src="{{ a.get_cover_image_url }}" alt="{{ a.title }}" loading="lazy">
+                {% else %}
+                  <div class="thumb-fallback">Нет обложки</div>
+                {% endif %}
+                {% if a.nsfw %}
+                  <span class="pill pill-danger" title="Контент 18+">NSFW</span>
+                {% endif %}
+              </div>
+
+              <div class="meta">
+                <div class="title" title="{{ a.title }}">{{ a.title }}</div>
+                <div class="price">
+                  <span class="val">{{ a.price|floatformat:2 }}</span>
+                  <span class="ccy">{{ a.currency|default:"OSP" }}</span>
+                </div>
+              </div>
+            </a>
+          {% endfor %}
+        {% endif %}
+      </div>
+    </section>
+
+      <script>
+      document.addEventListener('DOMContentLoaded', function () {
+        document.querySelectorAll('.vp-stars[data-score]').forEach(function (el) {
+          var s = parseFloat(el.dataset.score || '0');
+          if (!isNaN(s)) el.style.setProperty('--rating', s.toFixed(1));
+        });
+      });
+      </script>
+
+      <script>
+      (function(){
+        document.querySelectorAll('.pp-card, .art-card').forEach(c=>{
+          const type = c.dataset.type; // у art-card это "art"
+          const showByTab = (key==='all') || (key==='texts' && type==='text') || (key==='artworks' && type==='art') || (key==='lessons' && type==='lesson');
+          c.dataset._tabShow = showByTab ? '1' : '0';
+        });
+        const cards = Array.from(document.querySelectorAll('.pp-card, .art-card'));
+        const tabs = document.querySelectorAll('.pp-tab');
+        const search = document.getElementById('pp-search-input');
+        const selStatus = document.getElementById('pp-status');
+        const selSort = document.getElementById('pp-sort');
+
+        function switchTab(key){
+          tabs.forEach(b=>b.classList.toggle('is-active', b.dataset.tab===key));
+          // В этой версии у нас один общий список (ALL), поэтому фильтрация просто по типу
+          applyFilters();
+          document.querySelectorAll('.pp-card').forEach(c=>{
+            const type = c.dataset.type;
+            const showByTab = (key==='all') || (key==='texts' && type==='text') || (key==='artworks' && type==='art') || (key==='lessons' && type==='lesson');
+            c.dataset._tabShow = showByTab ? '1' : '0';
+          });
+          applyFilters();
+        }
+
+        tabs.forEach(btn=>btn.addEventListener('click', ()=>switchTab(btn.dataset.tab)));
+
+        function applyFilters(){
+          const q = (search && search.value || '').trim().toLowerCase();
+          const st = selStatus ? selStatus.value : '';
+          const mode = selSort ? selSort.value : '-updated';
+
+          const cards = Array.from(document.querySelectorAll('.pp-card'));
+          const visible = [];
+
+          cards.forEach(card=>{
+            const byTab = card.dataset._tabShow !== '0';
+            const title = card.dataset.title || '';
+            const status = card.dataset.status || '';
+            const matches = byTab && (!q || title.includes(q)) && (!st || status===st);
+            card.style.display = matches ? '' : 'none';
+            if(matches) visible.push(card);
+          });
+
+          // Сортировка
+          const num = (v)=>Number(v)||0;
+          const getKey = (card)=>({
+            'title': card.dataset.title,
+            '-sales': -num(card.dataset.sales),
+            'price': num(card.dataset.price),
+            '-price': -num(card.dataset.price),
+            '-updated': -new Date(card.dataset.updated).getTime()
+          })[mode] ?? card.dataset.title;
+
+          visible.sort((a,b)=>{
+            const ka = getKey(a); const kb = getKey(b);
+            if(ka<kb) return -1; if(ka>kb) return 1; return 0;
+          });
+
+          const grid = document.querySelector('.pp-grid');
+          visible.forEach(c=>grid.appendChild(c));
+        }
+
+        [search, selStatus, selSort].forEach(el=>el && el.addEventListener('input', applyFilters));
+        // Инициализация
+        document.addEventListener('DOMContentLoaded', ()=>{
+          switchTab('all');
+          applyFilters();
+        });
+      })();
+      </script>
   </div>
 
+  <script src="{% static 'js/vip-backgrounds.js' %}"></script>
 </body>
 </html>

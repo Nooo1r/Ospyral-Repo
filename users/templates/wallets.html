@@ -1,54 +1,243 @@
 
 {% extends "base.html" %}
 {% load static %}
+{% block title %}Кошельки{% endblock %}
 
 {% block extra_css %}
   <link rel="stylesheet" href="{% static 'css/wallets.css' %}">
 {% endblock %}
 
 {% block content %}
-<section class="wallets-container">
-  <h2>Мой OSP-кошелёк</h2>
+<div class="container" style="max-width: 1200px; margin: 0 auto;">
+  <header class="page-head">
+    <div class="head-left">
+      <h1 class="page-title">Кошельки</h1>
+      <p class="subnote">Безопасные балансы и быстрые действия.</p>
+    </div>
+    <div class="head-actions">
+      <a href="{% url 'donate_osp' %}" class="btn primary">
+        <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        Пополнить OSP
+      </a>
+      <a href="{% url 'my_sales' %}" class="btn ghost">Продажи</a>
+      <a href="{% url 'my_purchases' %}" class="btn ghost">Покупки</a>
+      <a href="{% url 'ledger_history' %}" class="btn">История</a>
+      <a class="btn" href="{% url 'vip_plans' %}">VIP-планы</a>
+    </div>
+  </header>
 
-  {% for w in wallets %}
-    {% if w.currency == 'OSP' %}
-      <div class="wallet-card">
-        <p><strong>Адрес:</strong> <code>{{ w.address }}</code></p>
-        <p><strong>Баланс:</strong> {{ w.balance }} OSP</p>
+  <section class="two-col">
+    <div>
+      <div class="wallet-grid">
+        {% for w in wallets %}
+        <article class="wallet-card">
+          <div class="wallet-card__head">
+            <div>
+              <div class="wallet-card__title">{{ w.currency }} · Баланс</div>
+              <div class="wallet-amount">
+                <span class="amount">{{ w.balance|floatformat:2 }}</span>
+                <span class="ccy">{{ w.currency }}</span>
+              </div>
+            </div>
+            <button class="btn-gold-plus" data-open="actions-{{w.currency}}" aria-label="Открыть быстрые действия">+</button>
+          </div>
+
+          <div class="wallet-address">
+            <div class="label">Адрес</div>
+            <div class="row">
+              <code id="addr-{{w.currency}}" class="wallet-card__address">{{ w.address }}</code>
+              <button class="btn copy" data-copy="#addr-{{w.currency}}">
+                <svg class="i" viewBox="0 0 24 24"><path d="M8 8h10v12H8zM6 4h10v4" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
+                Скопировать
+              </button>
+            </div>
+          </div>
+
+          <div class="quick-actions" id="actions-{{w.currency}}" hidden>
+            <div class="qa-buttons">
+              {% if w.currency == 'OSP' %}
+                <a href="{% url 'donate_osp' %}" class="btn primary">Пополнить OSP</a>
+              {% endif %}
+            </div>
+
+            {% if w.currency == 'OSP' %}
+              <div class="qa-presets">
+                <div class="label">Быстрые суммы</div>
+                <div class="preset-row">
+                  {% if deposit_presets %}
+                    {% for p in deposit_presets %}
+                      <form method="get" action="{% url 'donate_osp' %}">
+                        <input type="hidden" name="amount" value="{{ p }}">
+                        <button class="btn ghost">+{{ p }} OSP</button>
+                      </form>
+                    {% endfor %}
+                  {% else %}
+                    {# Фолбэк, если по какой-то причине список не пришёл #}
+                    <form method="get" action="{% url 'donate_osp' %}"><input type="hidden" name="amount" value="5"><button class="btn ghost">+5 OSP</button></form>
+                    <form method="get" action="{% url 'donate_osp' %}"><input type="hidden" name="amount" value="10"><button class="btn ghost">+10 OSP</button></form>
+                    <form method="get" action="{% url 'donate_osp' %}"><input type="hidden" name="amount" value="25"><button class="btn ghost">+25 OSP</button></form>
+                    <form method="get" action="{% url 'donate_osp' %}"><input type="hidden" name="amount" value="50"><button class="btn ghost">+50 OSP</button></form>
+                    <form method="get" action="{% url 'donate_osp' %}"><input type="hidden" name="amount" value="100"><button class="btn ghost">+100 OSP</button></form>
+                  {% endif %}
+                </div>
+              </div>
+            {% endif %}
+          </div>
+
+          {% if w.recent %}
+          <div class="history">
+            <div class="label">Недавние транзакции</div>
+            <div class="table-responsive">
+              <table class="table">
+                <thead><tr><th>Тип</th><th>Сумма</th><th>Когда</th><th>Статус</th></tr></thead>
+                <tbody>
+                  {% for t in w.recent %}
+                  <tr>
+                    <td>{{ t.kind_display }}</td>
+                    <td>{{ t.amount|floatformat:2 }} {{ w.currency }}</td>
+                    <td>{{ t.created|date:"d.m.Y H:i" }}</td>
+                    <td>{{ t.status_display }}</td>
+                  </tr>
+                  {% empty %}
+                  <tr><td colspan="4" class="subnote">Пока пусто</td></tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </div>
+          {% endif %}
+        </article>
+        {% endfor %}
       </div>
+    </div>
 
-      <div class="donate-presets">
-        <h3>Быстрое пополнение</h3>
-        <div class="preset-buttons">
-          {# Используем список из контекста, а не литерал #}
-          {% for amt in deposit_presets %}
-            <a href="{% url 'osp-deposit-amount' amt %}" class="preset-btn">
-              {{ amt }} OSP
-            </a>
-          {% endfor %}
+    <aside>
+
+      <div class="card" style="padding:16px; margin-bottom:16px">
+        <h3 class="card-title" style="margin-bottom:8px">USDT кошелёк · MetaMask (BSC)</h3>
+        <p class="subnote">Подключите/смените адрес: подпишите nonce и введите код из email (2FA).</p>
+
+        <div class="row" style="display:flex; gap:8px; align-items:center; margin:8px 0 12px">
+          <input id="wallet-2fa" class="form-control" placeholder="Код из email (6 цифр)" style="max-width:220px">
+          <button id="btn-connect" class="btn primary">Подключить / Сменить</button>
         </div>
-        <a href="{% url 'osp-deposit' %}" class="button secondary">
-          Другая сумма
-        </a>
+        <small id="wallet-status" class="subnote"></small>
       </div>
 
-      <div class="deposit-history">
-        <h3>История пополнений</h3>
-        <ul>
-          {% for tx in w.deposit_txs %}
-            <li>
-              <span class="tx-date">{{ tx.created_at|date:"Y-m-d H:i" }}</span>
-              —
-              <span class="tx-amount">+{{ tx.amount }} OSP</span>
-            </li>
-          {% empty %}
-            <li>Пополнений пока нет.</li>
-          {% endfor %}
-        </ul>
-      </div>
-    {% endif %}
-  {% empty %}
-    <p>У вас пока нет кошельков.</p>
-  {% endfor %}
-</section>
+      <script>
+      (function(){
+        const $status = document.getElementById('wallet-status');
+        const $code   = document.getElementById('wallet-2fa');
+        const $btn    = document.getElementById('btn-connect');
+
+        async function mm() {
+          if (!window.ethereum) throw new Error("MetaMask не найден");
+          const [addr] = await window.ethereum.request({ method: 'eth_requestAccounts' });
+          return addr;
+        }
+
+        async function personalSign(addr, text) {
+          return await window.ethereum.request({
+            method: 'personal_sign',
+            params: [ text, addr ]
+          });
+        }
+
+        $btn?.addEventListener('click', async () => {
+          try {
+            $status.textContent = "Генерируем nonce и отправляем 2FA...";
+            const start = await fetch("{% url 'wallet_connect_start' %}", {
+              method:"POST", headers:{ "X-CSRFToken":"{{ csrf_token }}" }
+            }).then(r=>r.json());
+            if (!start.ok) throw new Error(start.error || "Ошибка старта");
+
+            const addr = await mm();
+            const signText = "Ospyral wallet link\nnonce=" + start.nonce; // должен совпадать с сервером
+            const sig = await personalSign(addr, signText);
+
+            const code = ($code.value || "").trim();
+            if (!code) { alert("Введите код из email"); return; }
+
+            const form = new FormData();
+            form.append("address", addr);
+            form.append("signature", sig);
+            form.append("code", code);
+            form.append("currency", "USDT");
+
+            $status.textContent = "Подтверждаем подпись и 2FA...";
+            const done = await fetch("{% url 'wallet_connect_verify' %}", {
+              method:"POST", body: form, headers:{ "X-CSRFToken":"{{ csrf_token }}" }
+            }).then(r=>r.json());
+
+            if (!done.ok) throw new Error(done.error || "Ошибка привязки");
+            $status.textContent = "Готово: " + done.address;
+            $code.value = "";
+          } catch (e) {
+            console.error(e);
+            $status.textContent = "Ошибка: " + e.message;
+          }
+        });
+      })();
+      </script>
+      
+        <h3 class="card-title">Журнал</h3>
+        <div class="table-responsive">
+          <table class="table">
+            <thead><tr><th>Дата</th><th>Тип</th><th>Сумма</th></tr></thead>
+            <tbody>
+              {% for rec in page_obj.object_list|slice:":6" %}
+                <tr>
+                  <td>{{ rec.created_at|date:"d.m H:i" }}</td>
+                  <td>{{ rec.kind }}</td>
+                  <td class="text-right">{{ rec.amount }} {{ rec.currency }}</td>
+                </tr>
+              {% empty %}
+                <tr><td colspan="3" class="subnote">Записей нет.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+    </aside>
+  </section>
+</div>
+
+<script>
+// toast
+const toast = (() => {
+  const el = document.createElement('div');
+  el.className = 'toast';
+  document.body.appendChild(el);
+  let t;
+  return (msg='Скопировано') => {
+    clearTimeout(t);
+    el.textContent = msg;
+    el.classList.add('show');
+    t = setTimeout(()=> el.classList.remove('show'), 1400);
+  };
+})();
+
+// copy buttons
+for (const btn of document.querySelectorAll('[data-copy]')) {
+  btn.addEventListener('click', () => {
+    const el = document.querySelector(btn.dataset.copy);
+    if (!el) return;
+    navigator.clipboard.writeText(el.textContent.trim());
+    toast('Скопировано');
+  });
+}
+
+// toggle quick actions (открывается по одному)
+for (const opener of document.querySelectorAll('[data-open]')) {
+  opener.addEventListener('click', () => {
+    const id = opener.getAttribute('data-open');
+    const box = document.getElementById(id);
+    if (!box) return;
+    const isHidden = box.hasAttribute('hidden');
+    document.querySelectorAll('.quick-actions').forEach(x => x.setAttribute('hidden',''));
+    if (isHidden) box.removeAttribute('hidden');
+  });
+}
+</script>
+
 {% endblock %}

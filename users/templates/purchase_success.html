@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}Покупка оформлена{% endblock %}
+
+{% block content %}
+  <div class="container" style="max-width: 720px; margin: 40px auto;">
+    <h1>Покупка оформлена</h1>
+
+    {% if is_text_order %}
+      <p>Спасибо! Доступ к текстовому продукту открыт, средства удержаны до подтверждения на 48 часов.</p>
+      <p>
+        <a class="btn btn-primary" href="{% url 'public_view_text_product' order.product.id %}">
+          Открыть продукт
+        </a>
+      </p>
+    {% else %}
+      <p>Спасибо! Покупка артворка прошла успешно. Средства удержаны до подтверждения на 48 часов.</p>
+      <ul>
+        <li><strong>Артворк:</strong> {{ order.artwork.title }}</li>
+        <li><strong>Цена:</strong> {{ order.amount }} {{ order.artwork.currency }}</li>
+        <li><strong>Статус заказа:</strong> {{ order.status }}</li>
+      </ul>
+      <p>
+        <a class="btn btn-primary" href="{% url 'view_artwork_public' order.artwork.id %}">
+          Вернуться к артворку
+        </a>
+      </p>
+    {% endif %}
+  </div>
+{% endblock %}

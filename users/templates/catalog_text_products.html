@@ -15,96 +15,108 @@
   <header class="store-hero">
     <div class="hero-inner">
       <div class="hero-topline">
-        <div class="hero-kicker">Ospyral • Text Store</div>
-        <div class="hero-stats">
-          <span class="dot"></span>
-          {{ page_obj.paginator.count }} продуктов
+        <div class="hero-kicker">
+          <a href="/dashboard/" class="crumb">Ospyral</a>
+          <span class="sep">•</span>
+          <a href="/text-products/catalog/" class="crumb">Text Products Catalog</a>
         </div>
       </div>
 
-      <h1 class="hero-title">Магазин текстовой продукции</h1>
-      <p class="hero-sub">Премиальные тексты, курируемые модерацией: ищи по названию, описанию или тегам.</p>
-
-      {# Быстрый поиск сразу в хедере #}
-      <form class="hero-search" method="get">
-        <input type="hidden" name="sort" value="{{ sort }}">
-        <input type="hidden" name="hide_nsfw" value="{{ hide_nsfw }}">
-        <input type="hidden" name="exclude_mine" value="{{ exclude_mine }}">
-        <input type="text" name="q" value="{{ query }}" placeholder="Поиск по названию, описанию, тегам…" />
-        <button type="submit" class="btn btn-primary">Найти</button>
-      </form>
+      <h1 class="hero-title">Текстовая продукция</h1>
+      <p class="hero-sub">Премиальная информационная продукция. Приобретайте интересную продукцию со всего мира.</p>
     </div>
   </header>
 
   {# ======= Липкая панель фильтров ======= #}
-  <div class="store-filters">
-    <form class="filters-inner" method="get">
-      <input type="text" name="q" value="{{ query }}" placeholder="Поиск…" class="filter-search" />
+  <section class="filters-bar">
+    <form method="get" class="filters" id="storeSearchForm">
+      <!-- Поиск -->
+      <input type="search" name="q" value="{{ q }}" class="flt flt-search"
+            placeholder="Поиск по названию или тегам…">
 
-      <div class="select-wrap">
-        <label for="sort" class="sr-only">Сортировка</label>
-        <select name="sort" id="sort">
-          <option value="-created"    {% if sort == '-created' %}selected{% endif %}>Сначала новые</option>
-          <option value="created"     {% if sort == 'created' %}selected{% endif %}>Сначала старые</option>
-          <option value="-price"      {% if sort == '-price' %}selected{% endif %}>Цена: по убыванию</option>
-          <option value="price"       {% if sort == 'price' %}selected{% endif %}>Цена: по возрастанию</option>
-          <option value="-avg_rating" {% if sort == '-avg_rating' %}selected{% endif %}>Рейтинг: высокий → низкий</option>
-          <option value="avg_rating"  {% if sort == 'avg_rating' %}selected{% endif %}>Рейтинг: низкий → высокий</option>
-        </select>
-      </div>
+      <!-- Категория -->
+      <select name="cat" class="flt">
+        <option value="">Все категории</option>
+        {% for v,label in categories %}
+          <option value="{{ v }}" {% if cat == v %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
 
-      <label class="chk">
-        <input type="checkbox" name="hide_nsfw" value="1" {% if hide_nsfw == '1' %}checked{% endif %}>
-        Скрывать NSFW
-      </label>
+      <!-- Валюта -->
+      <select name="ccy" class="flt">
+        <option value="">Любая валюта</option>
+        {% for v,label in currencies %}
+          <option value="{{ v }}" {% if ccy == v %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
 
-      <label class="chk">
-        <input type="checkbox" name="exclude_mine" value="1" {% if exclude_mine == '1' %}checked{% endif %}>
-        Не показывать мои
-      </label>
+      <!-- NSFW -->
+      <select name="nsfw" class="flt">
+        <option value=""      {% if nsfw == "" %}selected{% endif %}>Без NSFW (по умолчанию)</option>
+        <option value="1"     {% if nsfw == "1" %}selected{% endif %}>Показывать NSFW</option>
+        <option value="only"  {% if nsfw == "only" %}selected{% endif %}>Только NSFW</option>
+      </select>
 
-      <button type="submit" class="btn btn-ghost">Применить</button>
+      <!-- Диапазон цен -->
+      <input type="number" inputmode="decimal" min="0" step="0.01"
+            name="price_min" value="{{ pmin }}" class="flt flt-num" placeholder="Цена от">
+      <input type="number" inputmode="decimal" min="0" step="0.01"
+            name="price_max" value="{{ pmax }}" class="flt flt-num" placeholder="Цена до">
+
+      <!-- Сортировка -->
+      <select name="sort" class="flt">
+        <option value="new"        {% if sort == "new" %}selected{% endif %}>Сначала новые</option>
+        <option value="price_asc"  {% if sort == "price_asc" %}selected{% endif %}>Дешевле</option>
+        <option value="price_desc" {% if sort == "price_desc" %}selected{% endif %}>Дороже</option>
+      </select>
+
+      <button type="submit" class="btn btn-primary">Найти</button>
     </form>
 
-    {# Подсказка статуса выборки #}
-    <div class="filters-summary">
-      Найдено: <strong>{{ page_obj.paginator.count }}</strong>
-      • Стр. {{ page_obj.number }} из {{ page_obj.paginator.num_pages }}
+    <div class="filters-info">
+      <span class="dot"></span>
+      Стр. {{ page.number }} из {{ page.paginator.num_pages }}
     </div>
-  </div>
+  </section>
 
   {# ======= Сетка карточек ======= #}
-  <main class="product-grid">
+  <main class="tp-grid">
     {% for p in products %}
-      <article class="product-card">
-        <header class="product-header">
-          <h3 class="product-title">
-            {{ p.title }}
-            {% if p.nsfw %}<span class="pill pill-danger" title="Контент 18+">NSFW</span>{% endif %}
-          </h3>
-          {% if p.avg_rating %}
-            <div class="rating" aria-label="Рейтинг {{ p.avg_rating|floatformat:1 }} из 5">
-              <span class="stars" data-score="{{ p.avg_rating|floatformat:1 }}"></span>
-              <span class="rating-num">{{ p.avg_rating|floatformat:1 }}</span>
-            </div>
-          {% endif %}
-        </header>
+      {% with hex=p.owner.profile.bg_color vip=p.owner.profile.background_color %}
+        <a class="tp-card
+                  {% if     vip == 'vip-gold'   %}vip--gold
+                  {% elif   vip == 'vip-star'   %}vip--star
+                  {% elif   vip == 'vip-galaxy' %}vip--galaxy
+                  {% endif %}"
+          href="{% url 'public_view_text_product' p.pk %}"
+          style="--ribbon-color: {{ hex|default:'#0b0d12' }};"
+          aria-label="Открыть «{{ p.title }}»">
 
-        <p class="product-description">
-          {{ p.description|default:"Без описания" }}
-        </p>
-
-        <footer class="product-footer">
-          <div class="price-wrap">
-            <span class="product-price">{{ p.price }}</span>
-            <span class="currency">{{ p.currency }}</span>
+          <div class="tp-author">
+            {{ p.owner.get_display_name|default:p.owner.username }}
+            {% if p.nsfw %}<span class="pill pill-danger" title="18+">NSFW</span>{% endif %}
           </div>
 
-          <a class="btn btn-accent" href="{% url 'public_view_text_product' p.pk %}">
-            Открыть
-          </a>
-        </footer>
-      </article>
+          {% if p.avg_rating is not None %}
+            <span class="tp-rating" aria-label="Рейтинг {{ p.avg_rating|floatformat:1 }} из 5"
+                  title="Рейтинг {{ p.avg_rating|floatformat:1 }} / 5">
+              <span class="vp-stars" data-score="{{ p.avg_rating|floatformat:1 }}" aria-hidden="true"></span>
+            </span>
+          {% endif %}
+
+          {# дублируем переменную на ленту (унаследует из карточки) #}
+          <div class="tp-title" style="--ribbon-color: inherit;" title="{{ p.title }}">{{ p.title }}</div>
+
+          <div class="tp-price">
+            <span class="tp-price-val">{{ p.price|floatformat:2 }}</span>
+            <span class="tp-currency">{{ p.currency }}</span>
+          </div>
+
+          <div class="tp-desc" aria-hidden="true">
+            <p>{{ p.description|default:"Без описания" }}</p>
+          </div>
+        </a>
+      {% endwith %}
     {% empty %}
       <section class="empty-state">
         <div class="empty-emoji">🕵️</div>
@@ -136,6 +148,17 @@
   {% endif %}
 
   <script>
+  document.addEventListener('DOMContentLoaded', function () {
+    document.querySelectorAll('.vp-stars[data-score]').forEach(function (el) {
+      var s = parseFloat(el.dataset.score || '0');
+      if (!isNaN(s)) {
+        el.style.setProperty('--rating', s.toFixed(1));
+      }
+    });
+  });
+  </script>
+
+  <script>
     // Визуальные звёзды рейтинга
     document.querySelectorAll('.stars').forEach(el => {
       const score = parseFloat(el.dataset.score || '0');
@@ -158,5 +181,21 @@
         t = setTimeout(() => searchInput.form.requestSubmit(), 450);
       });
     }
+
+  document.querySelectorAll('.product-card').forEach(card => {
+    card.addEventListener('pointermove', e => {
+      const rect = card.getBoundingClientRect();
+      const x = Math.round(((e.clientX - rect.left) / rect.width) * 100);
+      card.style.setProperty('--mx', x + '%');
+    });
+  });
+
+  document.querySelectorAll('.tp-card').forEach(card=>{
+    card.addEventListener('pointermove', e=>{
+      const r = card.getBoundingClientRect();
+      const x = ((e.clientX - r.left) / r.width) * 100;
+      card.style.setProperty('--mx', x + '%');
+    });
+  });
   </script>
 {% endblock %}

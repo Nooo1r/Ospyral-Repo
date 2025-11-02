@@ -63,6 +63,17 @@ body {
   gap: 14px;
 }
 
+  .vip-boost {
+    font-weight: 600;
+    margin-left: 6px;
+    padding: 2px 6px;
+    border-radius: 10px;
+    background: rgba(255, 215, 0, .12); /* золотистая подсветка */
+    border: 1px solid rgba(255, 215, 0, .35);
+    backdrop-filter: blur(2px);
+  }
+
+
 .profile-details p {
   margin: 0;
   font-size: 1.05rem;

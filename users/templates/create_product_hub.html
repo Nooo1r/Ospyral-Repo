@@ -1,0 +1,164 @@
+
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Мастерская — Ospyral{% endblock %}
+
+{% block extra_css %}
+  <link rel="stylesheet" href="{% static 'css/create_product_hub.css' %}">
+{% endblock %}
+
+{% block content %}
+
+    <header class="header">
+      <div class="header-logo"> 
+        <img class="ospyral-logo" src="{% static 'images/spyral.svg' %}"> <h4>Ospyral</h4>
+      </div>
+
+      <div class="header-actions">
+        <a class="user-profile-link" href="{% url 'edit_profile' %}">
+          <span class="user-name">{{ user.username }}</span>
+          <img
+            class="user-avatar"
+            src="{{ user.profile_image_url|default:'/static/images/placeholder.svg' }}"
+            alt="{{ user.username }}"
+            loading="lazy"
+          />
+        </a>
+      </div>
+
+      <div class="header-links">
+        <a href="{% url 'rules_overview' %}#terms"     class="header-link">Правила</a>
+        <a href="{% url 'rules_overview' %}#security"  class="header-link">Безопасность</a>
+        <a href="{% url 'about_us' %}"                 class="header-link">О нас</a>
+      </div>
+    </header>
+
+<div class="container hub-container">
+  <h2>Мастерская Ospyral</h2>
+
+  {% if blocked %}
+    <div class="alert alert-warning">
+      Бесплатный шаблон будет доступен через:
+      <strong><span id="cooldown-timer">—:—:—</span></strong>
+    </div>
+  {% else %}
+    <div class="alert alert-info">
+      Доступно шаблонов для создания нового продукта: 1
+    </div>
+  {% endif %}
+
+      <div class="hub">
+        <div class="hub-cards">
+            
+          <a href="{% url 'add_text_product' %}" class="hub-card card-text" data-tilt>
+            <div class="card-3d">
+              <div class="card-ribbon card1">Новый текстовый продукт</div>
+
+              <div class="hub-card-inner">
+                <div class="card-description">
+                  <h4>
+                    • Создайте новую текстовую работу для публикации и монетизации.<br>
+                    • Поддерживаются статьи, исследования, книги и авторские материалы до 100 страниц.<br>
+                    • Определите категорию, укажите цену и при необходимости отметьте NSFW(18+).<br>
+                    • Все тексты проходят модерацию перед размещением в магазине.<br>
+                    • Публикуйте только оригинальные материалы, соблюдая правила платформы.<br>
+                  </h4>
+                </div>
+
+                <!-- СЦЕНА ИКОНОК -->
+                <div class="card-icon">
+                  <span class="sway sway--big">
+                    <img class="icon-notebook" src="{% static 'images/notebook-icon.png' %}" alt="Блокнот" loading="lazy">
+                  </span>
+                  <span class="sway sway--tool">
+                    <img class="icon-pen"      src="{% static 'images/pen-icon.png' %}"      alt="Ручка"    loading="lazy">
+                  </span>
+                </div>
+              </div>
+            </div>
+          </a>
+
+          <!-- ART ALBUM -->
+          <a href="{% url 'artwork_create' %}" class="hub-card card-art" data-tilt>
+            <div class="card-3d">
+              <div class="card-ribbon card2">Новый альбом изображений</div>
+
+              <div class="hub-card-inner">
+                <div class="card-description">
+                  <h4>
+                    • Создайте новый визуальный продукт.<br>
+                    • Альбомы содержат до 10 страниц и 4000 копий.<br>
+                    • Поддерживаются иллюстрации, живопись, фотографии и цифровое искусство.<br>
+                    • Задайте название, описание и количество копий продукта перед публикацией.<br>
+                    • Каждое изображение проверяется модерацией на соответствие правилам.<br>
+                    • Не забудьте нанести цензуру на этапе цензурирования.<br>
+                  </h4>
+                </div>
+
+                <!-- СЦЕНА ИКОНОК -->
+                <div class="card-icon">
+                  <span class="sway sway--big">
+                    <img class="canvas" src="{% static 'images/canvas-icon.png' %}" alt="Холст" loading="lazy">
+                  </span>
+                  <span class="sway sway--tool">
+                    <img class="brush"  src="{% static 'images/brush-icon.png' %}"  alt="Кисть" loading="lazy">
+                  </span>
+                </div>
+              </div>
+            </div>
+          </a>
+        </div>
+      </div>
+{% if blocked and remaining_seconds %}
+<script>
+(function(){
+  var remain = {{ remaining_seconds|default:0 }};
+  function fmt(n){ return n<10?('0'+n):(''+n); }
+  function tick(){
+    if (remain <= 0) { document.getElementById('cooldown-timer').textContent = '00:00:00'; return; }
+    var h = Math.floor(remain/3600);
+    var m = Math.floor((remain%3600)/60);
+    var s = remain%60;
+    document.getElementById('cooldown-timer').textContent = fmt(h)+':'+fmt(m)+':'+fmt(s);
+    remain -= 1;
+    requestAnimationFrame(function(){ setTimeout(tick, 1000); });
+  }
+  tick();
+})();
+</script>
+
+{% endif %}
+
+
+<script>
+(function(){
+  const MAX_TILT = 7;
+  const cards = document.querySelectorAll('.hub-card[data-tilt]');
+  cards.forEach(card => {
+    const inner = card.querySelector('.hub-card-inner');
+    let raf = null;
+    function applyTilt(e){
+      const r = card.getBoundingClientRect();
+      const cx = r.left + r.width/2, cy = r.top + r.height/2;
+      const dx = (e.clientX - cx) / (r.width / 2);
+      const dy = (e.clientY - cy) / (r.height / 2);
+      const rx = (+dy * MAX_TILT), ry = (-dx * MAX_TILT);
+      if (raf) cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(()=>{ inner.style.transform = `rotateX(${rx}deg) rotateY(${ry}deg)`; });
+    }
+    function resetTilt(){ if (raf) cancelAnimationFrame(raf); inner.style.transform = 'rotateX(0) rotateY(0)'; }
+    card.addEventListener('mousemove', applyTilt);
+    card.addEventListener('mouseleave', resetTilt);
+    card.addEventListener('mouseenter', () => {
+      const pen = card.querySelector('.icon-pen, .brush');
+      if (!pen) return;
+      pen.style.animation = 'none'; void pen.offsetWidth;
+      pen.style.animation = 'wiggle 900ms ease-in-out 1';
+    }, { passive:true });
+  });
+})();
+</script>
+
+
+{% endblock %}

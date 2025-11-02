@@ -1,0 +1,244 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <title>{{ artwork.title }} — просмотр</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+      :root { --bg:#0a0a0a; --line:#242424; --text:#f2f2f2; --gold:#d4af37; }
+      html,body{margin:0;height:100%;background:var(--bg);color:var(--text);font:500 16px/1.5 system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial; overscroll-behavior:none}
+      .topbar{
+        position:fixed;left:0;right:0;top:0;height:54px;display:flex;align-items:center;gap:8px;
+        padding:0 14px;background:rgba(10,10,10,.8);backdrop-filter:saturate(1.2) blur(6px);
+        border-bottom:1px solid var(--line); z-index:10
+      }
+      .btn{display:inline-flex;align-items:center;gap:8px;padding:8px 12px;border:1px solid var(--line);
+        border-radius:12px;background:#111;color:#eee;cursor:pointer;user-select:none}
+      .btn:hover{background:#151515}
+      .grow{flex:1}
+      .page-ind{min-width:120px;text-align:center}
+      .stage{position:fixed;inset:54px 0 0 0;overflow:hidden;touch-action:none}
+      .img{position:absolute;top:50%;left:50%;transform-origin:0 0;will-change:transform; user-select:none; -webkit-user-drag:none}
+      .hint{position:fixed;left:12px;bottom:10px;color:#bbb;font-size:.9rem;opacity:.85}
+    </style>
+</head>
+<body>
+
+<div class="topbar">
+  <button class="btn" id="prevBtn">←</button>
+  <div class="page-ind"><span id="cur">{{ start_page }}</span> / <span id="total">{{ images|length }}</span></div>
+  <button class="btn" id="nextBtn">→</button>
+  <div class="grow"></div>
+  <button class="btn" id="fitBtn">По ширине</button>
+  <button class="btn" id="fit1Btn">1:1</button>
+  <button class="btn" id="zoomOut">−</button>
+  <button class="btn" id="zoomIn">+</button>
+  <a class="btn" href="javascript:history.back()">Закрыть</a>
+</div>
+
+<div class="stage" id="stage">
+  <img id="img" class="img" alt="">
+</div>
+
+
+<script>
+  const images = {{ images|safe }};
+  let page = Math.max(1, Math.min({{ start_page }}, images.length));
+
+  const stage = document.getElementById('stage');
+  const imgEl = document.getElementById('img');
+  const curEl = document.getElementById('cur');
+  const totalEl = document.getElementById('total');
+  totalEl.textContent = images.length;
+
+  // Текущее состояние трансформации
+  let scale = 1, tx = 0, ty = 0;
+
+  // Режимы подгонки
+  const FitMode = { CONTAIN: 'contain', FIT_WIDTH: 'fit_width', ONE: '1:1' };
+  let fitMode = FitMode.CONTAIN;
+
+  function apply(){
+    // Применяем translate/scale с центровкой
+    const cx = stage.clientWidth/2;
+    const cy = stage.clientHeight/2;
+    imgEl.style.transform = `translate(${cx + tx}px, ${cy + ty}px) translate(-50%,-50%) scale(${scale})`;
+  }
+
+  function clampPan(){
+    // мягкое ограничение, чтобы картинка не «улетала»
+    const w = (imgEl.naturalWidth  || imgEl.width ) * scale;
+    const h = (imgEl.naturalHeight || imgEl.height) * scale;
+    const maxX = Math.max(0, (stage.clientWidth  + w )/2);
+    const maxY = Math.max(0, (stage.clientHeight + h )/2);
+    // чуть-чуть допускаем выход (20%)
+    const marginX = stage.clientWidth * 0.2;
+    const marginY = stage.clientHeight * 0.2;
+    tx = Math.min(maxX + marginX, Math.max(-maxX - marginX, tx));
+    ty = Math.min(maxY + marginY, Math.max(-maxY - marginY, ty));
+  }
+
+  function zoomAt(clientX, clientY, dz){
+    const rect = stage.getBoundingClientRect();
+    const prev = scale;
+
+    // ИНВЕРСИЯ колеса: вниз — уменьшаем; вверх — увеличиваем
+    const factor = (dz > 0 ? 0.9 : 1.1);
+    scale = Math.max(.1, Math.min(6, scale * factor));
+
+    // сохраняем точку под курсором
+    const dx = clientX - rect.left - stage.clientWidth/2 - tx;
+    const dy = clientY - rect.top  - stage.clientHeight/2 - ty;
+    tx -= dx*(scale/prev - 1);
+    ty -= dy*(scale/prev - 1);
+
+    clampPan(); apply();
+    fitMode = FitMode.ONE; // ручной зум = считаем 1:1/пользовательский
+  }
+
+  function fitContain(){
+    // Вписать целиком (как "весь экран")
+    const nw = imgEl.naturalWidth  || 1;
+    const nh = imgEl.naturalHeight || 1;
+    const sw = stage.clientWidth;
+    const sh = stage.clientHeight;
+    scale = Math.min(sw/nw, sh/nh) * 0.98; // небольшой отступ
+    tx = 0; ty = 0; apply();
+    fitMode = FitMode.CONTAIN;
+  }
+
+  function fitWidth(){
+    const nw = imgEl.naturalWidth  || 1;
+    const sw = stage.clientWidth;
+    scale = (sw/nw) * 0.98;
+    tx = 0; ty = 0; apply();
+    fitMode = FitMode.FIT_WIDTH;
+  }
+
+  function setOneToOne(){
+    scale = 1; tx = 0; ty = 0; apply();
+    fitMode = FitMode.ONE;
+  }
+
+  function loadPage(n) {
+    page = n; curEl.textContent = page;
+    imgEl.src = images[page-1].url;
+
+    // Чтобы корректно вписать — ждём onload
+    imgEl.onload = () => {
+      if (fitMode === FitMode.ONE) setOneToOne();
+      else if (fitMode === FitMode.FIT_WIDTH) fitWidth();
+      else fitContain();
+    };
+  }
+
+  // Колесо (инвертировано)
+  stage.addEventListener('wheel', (e)=>{
+    e.preventDefault();
+    zoomAt(e.clientX, e.clientY, e.deltaY);
+  }, {passive:false});
+
+  // Перетаскивание (pan)
+  let dragging=false, sx=0, sy=0;
+  stage.addEventListener('mousedown', (e)=>{ dragging=true; sx=e.clientX; sy=e.clientY; });
+  window.addEventListener('mouseup', ()=> dragging=false);
+  window.addEventListener('mousemove', (e)=>{
+    if(!dragging) return;
+    tx += (e.clientX - sx); ty += (e.clientY - sy);
+    sx=e.clientX; sy=e.clientY; clampPan(); apply();
+  });
+
+  // Двойной клик — Fit ↔ 1:1
+  stage.addEventListener('dblclick', (e)=>{
+    if (fitMode === FitMode.ONE) {
+      fitContain();
+    } else {
+      // прыгнем в 1:1 с увеличением к курсору
+      const targetScale = Math.max(1, scale);
+      const steps = 3;
+      for (let i=0;i<steps;i++) zoomAt(e.clientX, e.clientY, -1); // немного приблизить
+      setOneToOne();
+    }
+  });
+
+  // Клавиши
+  window.addEventListener('keydown', (e)=>{
+    if(e.key==='ArrowLeft'){ if(page>1) loadPage(page-1); }
+    if(e.key==='ArrowRight'){ if(page<images.length) loadPage(page+1); }
+    if(e.key==='1'){ setOneToOne(); }
+    if(e.key.toLowerCase()==='f'){
+      // цикл режимов: CONTAIN → FIT_WIDTH → 1:1 → CONTAIN
+      if (fitMode===FitMode.CONTAIN) fitWidth();
+      else if (fitMode===FitMode.FIT_WIDTH) setOneToOne();
+      else fitContain();
+    }
+  });
+
+  // Кнопки панели
+  document.getElementById('prevBtn').onclick = ()=> page>1 && loadPage(page-1);
+  document.getElementById('nextBtn').onclick = ()=> page<images.length && loadPage(page+1);
+  document.getElementById('fitBtn').onclick  = fitWidth;
+  document.getElementById('fit1Btn').onclick = setOneToOne;
+  document.getElementById('zoomIn').onclick  = ()=> zoomAt(stage.clientWidth/2, stage.clientHeight/2, -1);
+  document.getElementById('zoomOut').onclick = ()=> zoomAt(stage.clientWidth/2, stage.clientHeight/2, +1);
+
+  // Anti-drag copy
+  imgEl.addEventListener('dragstart', e=> e.preventDefault());
+
+  // Тач-жесты: pinch-to-zoom + свайпы
+  let touchMode = { active:false, pinch:false, lastD:0, startX:0, startY:0 };
+  stage.addEventListener('touchstart', (e)=>{
+    if(e.touches.length===1){
+      touchMode = { active:true, pinch:false, startX:e.touches[0].clientX, startY:e.touches[0].clientY, lastD:0 };
+    } else if (e.touches.length===2){
+      touchMode.active=true; touchMode.pinch=true;
+      const dx = e.touches[0].clientX - e.touches[1].clientX;
+      const dy = e.touches[0].clientY - e.touches[1].clientY;
+      touchMode.lastD = Math.hypot(dx, dy);
+    }
+  }, {passive:true});
+
+  stage.addEventListener('touchmove', (e)=>{
+    if(!touchMode.active) return;
+    if(touchMode.pinch && e.touches.length===2){
+      e.preventDefault();
+      const dx = e.touches[0].clientX - e.touches[1].clientX;
+      const dy = e.touches[0].clientY - e.touches[1].clientY;
+      const d = Math.hypot(dx, dy);
+      const centerX = (e.touches[0].clientX + e.touches[1].clientX)/2;
+      const centerY = (e.touches[0].clientY + e.touches[1].clientY)/2;
+      zoomAt(centerX, centerY, touchMode.lastD - d); // уменьшение дистанции = отдаление
+      touchMode.lastD = d;
+    } else if(!touchMode.pinch && e.touches.length===1){
+      const x = e.touches[0].clientX, y = e.touches[0].clientY;
+      tx += (x - touchMode.startX); ty += (y - touchMode.startY);
+      touchMode.startX = x; touchMode.startY = y;
+      clampPan(); apply();
+    }
+  }, {passive:false});
+
+  stage.addEventListener('touchend', (e)=>{
+    // короткий свайп → перелистывание
+    if(!touchMode.pinch && e.changedTouches && e.changedTouches[0]){
+      const dx = e.changedTouches[0].clientX - touchMode.startX;
+      if(Math.abs(dx) > 80){
+        if(dx < 0 && page<images.length) loadPage(page+1);
+        if(dx > 0 && page>1)           loadPage(page-1);
+      }
+    }
+    touchMode = { active:false, pinch:false, lastD:0, startX:0, startY:0 };
+  });
+
+  // Рефит при ресайзе
+  window.addEventListener('resize', ()=>{
+    if (fitMode===FitMode.CONTAIN) fitContain();
+    else if (fitMode===FitMode.FIT_WIDTH) fitWidth();
+    else apply();
+  });
+
+  // Инициализация
+  function init(){ if(images.length){ loadPage(page); } }
+  init();
+</script>
+</body>
+</html>

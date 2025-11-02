@@ -1,0 +1,20 @@
+<form method="get" class="card p-3" style="display:grid;grid-template-columns:repeat(6,1fr);gap:8px">
+  <input name="q" value="{{ q }}" placeholder="Поиск: заголовок / описание / автор" class="form-control">
+  <input name="owner" value="{{ owner }}" placeholder="Автор: username/email" class="form-control">
+
+  <select name="status" class="form-select">
+    <option value="">Статус (все)</option>
+    <option value="pending" {% if status == "pending" %}selected{% endif %}>Ожидает</option>
+    <option value="approved" {% if status == "approved" %}selected{% endif %}>Одобрено</option>
+    <option value="rejected" {% if status == "rejected" %}selected{% endif %}>Отклонено</option>
+  </select>
+
+  <select name="currency" class="form-select">
+    <option value="">Валюта (все)</option>
+    <option value="OSP" {% if currency == "OSP" %}selected{% endif %}>OSP</option>
+    <option value="USDT" {% if currency == "USDT" %}selected{% endif %}>USDT</option>
+  </select>
+
+  <button class="btn btn-primary">Применить</button>
+  <a href="?" class="btn btn-outline-secondary">Сброс</a>
+</form>

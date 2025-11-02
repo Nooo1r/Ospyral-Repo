@@ -1,205 +1,374 @@
-/* База страницы */
+/* ===== База страницы ===== */
 .store-body {
-  background: #0f0f12;
-  color: #e8e8ea;
-  font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
-  margin: 0;
+  background:#0f0f12; color:#e8e8ea;
+  font-family:"Segoe UI", system-ui, -apple-system, sans-serif; margin:0;
 }
 
-/* ====== HERO ====== */
+/* ===== Hero (если используется на странице) ===== */
 .store-hero {
-  position: relative;
+  position:relative;
   background:
-    radial-gradient(1200px 600px at 20% -10%, rgba(122,58,236,.25), transparent 55%),
+    radial-gradient(1200px 600px at 20% -10%, #750000, transparent 55%),
     radial-gradient(900px 500px at 80% -20%, rgba(234,88,12,.25), transparent 50%),
     linear-gradient(180deg, #12121a 0%, #101015 100%);
-  border-bottom: 1px solid rgba(255,255,255,0.06);
-}
-
-.hero-inner {
-  max-width: 1220px;
-  margin: 0 auto;
-  padding: 56px 24px 36px;
-}
-
-.hero-topline{
-  display:flex; align-items:center; justify-content:space-between;
-  font-size: 0.95rem; color:#a6a6b0; margin-bottom:10px;
-}
-.hero-topline .hero-kicker{ letter-spacing:.3px; }
-.hero-topline .hero-stats{ display:flex; align-items:center; gap:8px; }
-.hero-topline .dot{ width:6px; height:6px; border-radius:50%; background:#22c55e; box-shadow:0 0 10px #22c55e; }
-
-.hero-title {
-  margin: 0;
-  font-size: clamp(24px, 3.4vw, 42px);
-  font-weight: 800;
-  color: #fff;
-  letter-spacing: .2px;
-}
-
-.hero-sub {
-  margin: 8px 0 18px;
-  color: #bdbdc7;
-  max-width: 56ch;
-}
-
-.hero-search {
-  display:flex; gap:10px; align-items:center; margin-top: 8px;
-}
-.hero-search input[type="text"]{
-  flex:1; min-width:240px;
-  padding: 12px 14px;
-  background: #17171d;
-  color:#fff;
-  border:1px solid #2b2b35;
-  border-radius: 12px;
-  outline: none;
-}
-.hero-search input[type="text"]:focus{
-  border-color:#6d28d9; box-shadow:0 0 0 3px rgba(109,40,217,0.25);
-}
-
-/* ====== Липкая панель фильтров ====== */
-.store-filters {
-  position: sticky;
-  top: 0;
-  z-index: 20;
-  backdrop-filter: blur(8px);
-  background: rgba(16,16,21,0.75);
   border-bottom:1px solid rgba(255,255,255,0.06);
 }
-
-.filters-inner{
-  max-width:1220px;
-  margin:0 auto;
-  padding: 12px 24px;
+.hero-inner { max-width:1220px; margin:0 auto; padding:56px 24px 36px; }
+.hero-topline{ display:flex; align-items:center; justify-content:space-between; font-size:.95rem; color:#a6a6b0; margin-bottom:10px; }
+.hero-topline .hero-kicker{ letter-spacing:.3px; }
+.hero-title{ margin:0; font-size:clamp(24px,3.4vw,42px); font-weight:800; color:#fff; letter-spacing:.2px; }
+.hero-sub{ margin:8px 0 18px; color:#bdbdc7; max-width:56ch; }
+.crumb{color:#bdbdc7}
+/* ===== Липкая панель фильтров ===== */
+.filters-bar{
+  position: sticky; top: 0; z-index: 20;
+  backdrop-filter: blur(8px);
+  background: rgba(16,16,21,.75);
+  border-bottom:1px solid rgba(255,255,255,0.06);
+}
+.filters{
+  max-width:1220px; margin:0 auto; padding: 12px 24px;
   display:flex; flex-wrap:wrap; gap:10px; align-items:center;
 }
-
-.filter-search{
-  flex: 1 1 260px;
-  min-width: 220px;
-  padding: 10px 12px;
-  background:#15151a; color:#fff;
-  border:1px solid #2b2b35; border-radius:10px;
+.flt{
+  padding:10px 12px; border-radius:10px;
+  background:#15151a; color:#fff; border:1px solid #2b2b35;
 }
-
-.select-wrap select{
-  padding: 10px 12px;
-  background:#15151a; color:#fff;
-  border:1px solid #2b2b35; border-radius:10px;
-}
-
-.chk{
-  display:flex; align-items:center; gap:8px;
-  padding: 6px 10px; border:1px solid #2b2b35; border-radius:10px;
-  background:#14141a; color:#d9d9e0;
-}
-
+.flt-search{ flex:1 1 260px; min-width:220px; }
+.flt-num{ width:130px; }
 .btn{
   display:inline-flex; align-items:center; justify-content:center;
   padding:10px 14px; border-radius:10px; border:1px solid transparent;
   font-weight:700; cursor:pointer; text-decoration:none;
 }
-.btn-primary{ background:#6d28d9; color:#fff; }
+.btn-primary{ background:#400075; color:#fff; }
 .btn-primary:hover{ background:#7c3aed; }
 .btn-ghost{ background:#111117; color:#d6d6df; border-color:#2b2b35; }
-.btn-ghost:hover{ background:#181823; }
+.btn-ghost:hover{ background:#313131; }
 
-.filters-summary{
-  max-width:1220px; margin:0 auto; padding: 0 24px 10px;
-  font-size:.95rem; color:#9fa0aa;
+.filters-info{
+  max-width:1220px; margin: -4px auto 8px; padding: 0 24px 8px; color:#9fa0aa;
+  display:flex; align-items:center; gap:8px; font-size:.95rem;
+}
+.dot{ width:6px; height:6px; border-radius:50%; background:#22c55e; box-shadow:0 0 10px #22c55e; }
+
+/* Кнопки (минимально — если глобальные уже есть, можно убрать этот блок) */
+.btn{
+  display:inline-flex; align-items:center; justify-content:center;
+  padding:10px 14px; border-radius:10px; border:1px solid transparent;
+  font-weight:700; cursor:pointer; text-decoration:none;
+}
+.btn-primary{ background:#750000; color:#fff; }
+.btn-primary:hover{ background:#880000; }
+
+.filters-summary{ max-width:1220px; margin:0 auto; padding:0 24px 10px; font-size:.95rem; color:#9fa0aa; }
+
+/* ===== Новая сетка и квадратные карточки ===== */
+.tp-grid{
+  display:grid; gap:16px;
+  grid-template-columns:repeat(4, 1fr);
+  max-width:1220px; margin:0 auto 60px; padding:24px;
+}
+@media (max-width:1200px){ .tp-grid{ grid-template-columns:repeat(3, 1fr);} }
+@media (max-width:860px) { .tp-grid{ grid-template-columns:repeat(2, 1fr);} }
+@media (max-width:520px) { .tp-grid{ grid-template-columns:1fr; } }
+
+
+.tp-card{ 
+  --ink-1: color-mix(in oklab, black 40%, var(--ribbon-color)); /* заголовки */
+  --ink-2: color-mix(in oklab, black 55%, var(--ribbon-color)); /* автор/метки */
+  --ink-3: color-mix(in oklab, black 70%, var(--ribbon-color)); /* цена/мелкий текст */
+}
+.tp-title { color: var(--ink-1); }
+.tp-author, .tp-meta { color: var(--ink-2); }
+.tp-price { color: var(--ink-3); }
+
+/* Чуть светлее на hover, но всё ещё читаемо */
+.tp-card:hover {
+  --ink-1: color-mix(in oklab, black 35%, var(--ribbon-color));
+  --ink-2: color-mix(in oklab, black 50%, var(--ribbon-color));
+  --ink-3: color-mix(in oklab, black 65%, var(--ribbon-color));
 }
 
-/* ====== Сетка товаров ====== */
-.product-grid{
-  max-width: 1220px;
-  padding: 24px;
-  margin: 0 auto 60px;
-  display:grid; gap:18px;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+/* Если есть «лента/плашка» с фоном из var(--ribbon-color), чуть затемним сам фон */
+.tp-ribbon, .tp-badge, .tp-chip {
+  background: color-mix(in oklab, var(--ribbon-color) 85%, black);
+  border: 1px solid color-mix(in oklab, var(--ribbon-color) 60%, black);
+  color: var(--ink-1);
+}
+.tp-chip { color: var(--ink-2); }
+
+.tp-card{
+  position:relative; display:block; aspect-ratio:1/1; cursor:pointer;
+  border-radius:20px; overflow:hidden; isolation:isolate;
+  background: radial-gradient(120% 120% at 0% 0%, #750000, rgba(0,0,0,.22)) #0b0d12;
+  border:1px solid rgba(255,255,255,.08);
+  box-shadow:0 10px 28px rgba(0,0,0,.38);
+  transition: transform .2s ease, box-shadow .25s ease, border-color .25s ease, background .25s ease;
+  text-decoration:none;
+}
+.tp-card:hover{ transform:translateY(-6px); box-shadow:0 16px 44px rgba(0,0,0,.45); border-color:rgba(255,255,255,.14); }
+.tp-card:focus-visible{ outline:2px solid #60a5fa; outline-offset:2px; }
+
+/* мягкий «glow» */
+.tp-card::after{
+  content:""; position:absolute; inset:-1px; pointer-events:none;
+  background:
+    radial-gradient(500px 180px at var(--mx,75%) -10%, rgba(120,144,255,.16), transparent 60%),
+    radial-gradient(240px 120px at 10% 110%, rgba(0,255,204,.12), transparent 60%);
+  opacity:0; transition:opacity .25s ease;
+}
+.tp-card:hover::after{ opacity:1; }
+
+/* Автор сверху по центру */
+.tp-author{
+  position:absolute; left:50%; transform:translateX(-50%); top:12px;
+  display:flex; align-items:center; gap:8px;
+  color:#e5e7eb; font-weight:700; font-size:.92rem;
+  background:rgba(10,12,18,.6); border:1px solid rgba(255,255,255,.08);
+  padding:6px 12px; border-radius:8px; backdrop-filter:blur(4px);
+}
+.pill{ padding:.08rem .45rem; border-radius:8px; font-size:.72rem; font-weight:800; }
+.pill-danger{ background:#dc2626; color:#fff; }
+
+/* Название — центральная лента */
+.tp-title{
+  position:absolute; left:0px; right:0px; top:50%; transform:translateY(-50%);
+  text-align:center; color:#f3f4f6; font-size:1.02rem; font-weight:800; line-height:1.3;
+  padding:10px 14px; border-radius:0px; backdrop-filter: blur(4px);
+
+  /* Основной фон — используют цвет профиля */
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--ribbon-color, #0b0d12) 70%, transparent) 0%,
+      color-mix(in srgb, var(--ribbon-color, #0b0d12) 92%, transparent) 100%
+    );
+  border:1px solid color-mix(in srgb, var(--ribbon-color, #0b0d12) 30%, transparent);
 }
 
-.product-card{
-  background:#141419;
-  border:1px solid rgba(255,255,255,0.06);
-  border-radius:16px;
-  box-shadow: 0 10px 24px rgba(0,0,0,0.28);
-  display:flex; flex-direction:column; gap:8px;
-  transition: transform .2s ease, box-shadow .2s ease;
-}
-.product-card:hover{ transform: translateY(-2px); box-shadow: 0 12px 28px rgba(0,0,0,0.34); }
-
-.product-header{
-  display:flex; align-items:flex-start; justify-content:space-between;
-  padding:16px 16px 0 16px;
-  gap:10px;
+@supports not (background: color-mix(in srgb, #000 50%, #fff 50%)) {
+  .tp-title{
+    background: var(--ribbon-color);
+    border-color: rgba(255,255,255,.12);
+  }
 }
 
-.product-title{
-  margin:0; font-size:1.05rem; color:#fff; letter-spacing:.2px;
-  display:flex; align-items:center; gap:8px; flex:1 1 auto;
+
+.tp-author, .tp-price{
+  border-color: color-mix(in srgb, var(--ribbon-color, #0b0d12) 30%, transparent);
+  background: color-mix(in srgb, var(--ribbon-color, #0b0d12) 35%, rgba(12,15,20,55));
 }
 
-.pill{
-  padding:2px 6px; border-radius:8px; font-size:.75rem; font-weight:800; letter-spacing:.2px;
+
+/* Цена снизу по центру */
+.tp-price{
+  position:absolute; left:50%; transform:translateX(-50%); bottom:12px;
+  color:#e8f0ff; font-weight:900; padding:6px 12px; border-radius:999px;
+  background:rgba(12,15,20,.6); border:1px solid rgba(255,255,255,.08);
+  backdrop-filter:blur(4px);
 }
-.pill-danger{ background: #b91c1c; color:#fff; }
+.tp-price-val{ font-size:1.02rem; }
+.tp-currency{ opacity:.8; margin-left:6px; }
 
-.rating{ display:flex; align-items:center; gap:6px; color:#ffcc66; }
-.rating .stars{ font-size: .95rem; letter-spacing: 1px; }
-.rating .rating-num{ font-weight:700; font-size:.95rem; color:#ffd27a; }
-
-.product-description{
-  padding: 0 16px;
-  color:#c8c8d3; line-height:1.45;
-  display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden;
-  min-height: 3.9em;
+/* Описание — показывается при hover/focus */
+.tp-desc{
+  position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+  padding:16px; text-align:center; color:#e5e7eb;
+  background:linear-gradient(180deg, rgba(10,12,18,.00) 0%, rgba(10,12,18,.85) 30%, rgba(10,12,18,.95) 100%);
+  opacity:0; translate:0 8px; transition:opacity .22s ease, translate .22s ease;
+}
+.tp-card:hover .tp-desc, .tp-card:focus-visible .tp-desc{ opacity:1; translate:0 0; }
+.tp-desc p{
+  max-width:90%; font-size:.94rem; line-height:1.45;
+  display:-webkit-box; -webkit-line-clamp:7; -webkit-box-orient:vertical; overflow:hidden;
+}
+/* При появлении описания прячем базовые элементы */
+.tp-card:hover .tp-author, .tp-card:hover .tp-title, .tp-card:hover .tp-price,
+.tp-card:focus-visible .tp-author, .tp-card:focus-visible .tp-title, .tp-card:focus-visible .tp-price{
+  opacity:0; transition:opacity .18s ease;
 }
 
-.product-footer{
-  margin-top:auto;
-  padding: 14px 16px 16px 16px;
-  border-top:1px solid rgba(255,255,255,0.06);
-  display:flex; align-items:center; justify-content:space-between; gap:12px;
-}
-
-.price-wrap{ display:flex; align-items:baseline; gap:6px; }
-.product-price{ color:#ffd27a; font-weight:800; }
-.currency{ color:#9da0ad; font-weight:700; }
-
-.btn-accent{
-  background:#10b981; color:#0b0f0d; font-weight:800;
-  padding:10px 14px; border-radius:10px; text-decoration:none;
-}
-.btn-accent:hover{ filter:brightness(1.08); }
-
-/* ====== Пагинация ====== */
+/* ===== Пагинация ===== */
 .pager{
-  max-width:1220px; margin: 0 auto 60px; padding: 0 24px;
+  max-width:1220px; margin:0 auto 60px; padding:0 24px;
   display:flex; gap:8px; flex-wrap:wrap; align-items:center; justify-content:center;
 }
 .page{
   display:inline-flex; align-items:center; justify-content:center;
-  min-width:36px; height:36px; padding:0 10px;
-  border-radius:10px; border:1px solid #2b2b35; background:#12121a; color:#e8e8ea;
-  text-decoration:none; font-weight:700;
+  min-width:36px; height:36px; padding:0 10px; border-radius:10px;
+  border:1px solid #2b2b35; background:#12121a; color:#e8e8ea; text-decoration:none; font-weight:700;
 }
 .page:hover{ background:#171723; }
 .page.active{ background:#6d28d9; border-color:#6d28d9; color:#fff; cursor:default; }
 .page.prev, .page.next{ padding:0 12px; }
 
-/* ====== Пустое состояние ====== */
+/* ===== Пустое состояние ===== */
 .empty-state{
-  grid-column: 1/-1;
-  background: linear-gradient(180deg,#12121a,#101018);
+  grid-column:1/-1; background:linear-gradient(180deg,#12121a,#101018);
   border:1px dashed rgba(255,255,255,0.1);
   border-radius:16px; padding:40px; text-align:center;
 }
-.empty-emoji{ font-size: 34px; margin-bottom:8px; }
+.empty-emoji{ font-size:34px; margin-bottom:8px; }
 .empty-state h3{ margin:8px 0 6px; color:#fff; }
 .empty-state p{ color:#b9b9c6; }
 
-/* Утилиты/доступность */
+/* ===== Утилиты и доступность ===== */
 .sr-only{ position:absolute; left:-9999px; width:1px; height:1px; overflow:hidden; }
+@media (prefers-reduced-motion: reduce){
+  .tp-card, .tp-card::after, .tp-desc{ transition:none; }
+}
+
+/* ===== VIP GOLD — аккуратный «премиум» фон с мягким шиммером ========== */
+.vip--gold{
+  position: relative;
+  overflow: hidden;
+  /* глубокая тёплая подложка */
+  background:
+    radial-gradient(140% 120% at 0% 0%, #2b2210 0%, transparent 60%),
+    radial-gradient(120% 100% at 100% 100%, #1f170a 0%, transparent 55%),
+    #0b0d12;
+  border: 1px solid rgba(230, 198, 110, .22);
+}
+
+/* Контент жёстко поверх фоновых слоёв (не меняет layout и позиции) */
+.vip--gold > * { z-index: 2; }
+
+/* Диагональный мягкий «шиммер» — тонкий и ненавязчивый */
+.vip--gold::before{
+  content:"";
+  position:absolute; inset:-20%;
+  pointer-events:none; z-index:0;
+  background:
+    linear-gradient( 120deg,
+      rgba(255, 236, 180, .10) 0%,
+      rgba(255, 236, 180, .18) 12%,
+      rgba(255, 236, 180, .10) 24%,
+      transparent 40%,
+      transparent 60%,
+      rgba(255, 236, 180, .10) 76%,
+      rgba(255, 236, 180, .16) 88%,
+      rgba(255, 236, 180, .10) 100%);
+  mix-blend-mode: screen;
+  transform: translate3d(-12%, -8%, 0) rotate(0.001deg);
+  animation: vipGoldShimmer 7.2s linear infinite;
+}
+
+@keyframes vipGoldShimmer{
+  0%   { transform: translate3d(-12%, -8%, 0); opacity:.85; }
+  50%  { transform: translate3d( 10%,  8%, 0); opacity:.95; }
+  100% { transform: translate3d(-12%, -8%, 0); opacity:.85; }
+}
+
+/* Едва заметные «искры» — редкие, не режут глаз и не «ломают» фон */
+.vip--gold::after{
+  content:"";
+  position:absolute; inset:0;
+  pointer-events:none; z-index:1;
+  background:
+    radial-gradient(1px 1px at 12% 22%, rgba(255,230,150,.65) 99%, transparent) ,
+    radial-gradient(1px 1px at 34% 68%, rgba(255,220,140,.55) 99%, transparent) ,
+    radial-gradient(1px 1px at 58% 32%, rgba(255,240,190,.70) 99%, transparent) ,
+    radial-gradient(1px 1px at 76% 54%, rgba(255,230,150,.60) 99%, transparent) ,
+    radial-gradient(1px 1px at 88% 18%, rgba(255,220,140,.50) 99%, transparent);
+  opacity:.6;
+  animation: vipGoldSpark 3.8s ease-in-out infinite;
+}
+
+@keyframes vipGoldSpark{
+  0%,100%{ opacity:.52 }
+  50%    { opacity:.75 }
+}
+
+
+/* STAR — тёмно-синий бархат с лёгким мерцанием */
+.vip--star{
+  position: relative; overflow:hidden;
+  background:
+    radial-gradient(140% 120% at 10% -10%, #0f1a38 0%, transparent 55%),
+    radial-gradient(120% 100% at 90% 110%, #0a0f1f 0%, transparent 50%),
+    #0b0d12;
+  border:1px solid rgba(160,180,255,.18);
+}
+.vip--star > *{ z-index:2; }
+.vip--star::before{
+  content:""; position:absolute; inset:-20%; pointer-events:none; z-index:0;
+  background:
+    radial-gradient(1px 1px at 18% 22%, rgba(255,255,255,.70) 99%, transparent),
+    radial-gradient(1px 1px at 42% 38%, rgba(255,255,255,.60) 99%, transparent),
+    radial-gradient(1px 1px at 66% 64%, rgba(255,255,255,.65) 99%, transparent),
+    radial-gradient(1px 1px at 78% 26%, rgba(255,255,255,.58) 99%, transparent);
+  opacity:.55;
+  animation: starCardTwinkle 6s ease-in-out infinite;
+}
+@keyframes starCardTwinkle{ 0%,100%{opacity:.52} 50%{opacity:.66} }
+
+/* GALAXY — фиолетовые туманности (спокойные), без «дождя» */
+.vip--galaxy{
+  position: relative; overflow:hidden;
+  background:
+    radial-gradient(800px 520px  at 15% 20%, rgba(210,170,255,.22), transparent 60%),
+    radial-gradient(680px 480px  at 85% 75%, rgba(255,140,210,.18), transparent 60%),
+    radial-gradient(720px 500px  at 60% 40%, rgba(160,120,255,.16), transparent 60%),
+    #0b0d12;
+  border:1px solid rgba(199,154,255,.20);
+}
+.vip--galaxy > *{ z-index:2; }
+.vip--galaxy::before{
+  content:""; position:absolute; inset:-15%;
+  background:
+    radial-gradient(60px 60px at 30% 28%, rgba(255,255,255,.42), transparent 60%),
+    radial-gradient(52px 52px at 62% 54%, rgba(255,255,255,.38), transparent 60%),
+    radial-gradient(56px 56px at 78% 36%, rgba(255,255,255,.40), transparent 60%);
+  mix-blend-mode: screen; filter: blur(1px); opacity:.30; pointer-events:none;
+  animation: galaxyCardPulse 12s ease-in-out infinite;
+}
+@keyframes galaxyCardPulse{ 0%,100%{opacity:.26} 50%{opacity:.42} }
+
+
+
+/* ===== Рейтинг под ником (как на деталке) ===== */
+.tp-rating{
+  position:absolute;
+  left:50%; transform:translateX(-50%);
+  top:44px; /* аккуратно под .tp-author */
+  display:inline-flex; align-items:center; gap:6px;
+}
+
+/* Текстовая маска «★★★★★» с частичной заливкой */
+.vp-stars{
+  position: relative;
+  display:inline-block;
+  font-size:14px; line-height:1; letter-spacing:1px;
+  height:1em;
+  /* максимально совместимые цвета (без color-mix) */
+  --star-empty: rgba(255,255,255,.28);
+  --star-fill:  #FFC107;
+  filter: drop-shadow(0 1px 0 rgba(0,0,0,.35));
+}
+.vp-stars::before{
+  content:"★★★★★";
+  color: var(--star-empty);
+  opacity:.95;
+}
+.vp-stars::after{
+  content:"★★★★★";
+  color: var(--star-fill);
+  position:absolute; left:0; top:0; white-space:nowrap; overflow:hidden;
+  width: calc( (var(--rating) / 5) * 100% );
+}
+
+/* Цифра рядом (как на деталке) — маленькая и ненавязчивая */
+.vp-score{
+  font-size:12px; opacity:.8;
+}
+
+/* Чтобы звёзды не конфликтовали с hover-эффектами карточки */
+.tp-card:hover .tp-rating,
+.tp-card:focus-visible .tp-rating{
+  opacity:.0; transition:opacity .18s ease;
+}
+@media (max-width:520px){
+  .tp-rating{ top:40px; }
+  .vp-stars{ font-size:13px; }
+}

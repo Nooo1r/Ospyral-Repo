@@ -1,42 +1,148 @@
 
-<h1>{{ product.title }}</h1>
+{% load static %}
 
-<div class="badges">
-  <span class="badge">Статус: {{ product.get_status_display }}</span>
-  {% if product.is_active %}<span class="badge success">В продаже</span>{% else %}<span class="badge warning">Снято с продажи</span>{% endif %}
-  {% if product.is_deleted %}<span class="badge danger">Удалён из магазина</span>{% endif %}
-  {% if product.nsfw %}<span class="badge nsfw">NSFW</span>{% endif %}
-</div>
+<!DOCTYPE html>
 
-<div class="metrics">
-  <div>Продаж: {{ sales_count|default:0 }}</div>
-  <div>Средняя оценка: {{ avg_rating|default:"—" }}</div>
-</div>
+<html lang="ru">
 
-{% if rejection_reason %}
-<div class="card danger">
-  <b>Причина отклонения:</b>
-  <p>{{ rejection_reason }}</p>
-  <a class="btn" href="{{ urls.ack_reject }}">Понял, вернуться в черновик</a>
-</div>
-{% endif %}
+<head>
+  <meta charset="UTF-8" />
+  <title>Панель автора · {{ product.title }}</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="{% static 'css/view_text_product.css' %}" />
+  <style>
+    /* === Owner Panel (op-*) — дополняет view_text_product.css === */
+    .op-wrap{max-width:1200px;margin:0 auto;padding:28px 20px 80px}
+    .op-head{padding-top:10px;padding-bottom:14px;border-bottom:1px solid var(--line);margin-bottom:18px}
+    .op-title{font-size:2rem;line-height:1.2;margin:6px 0;color:var(--gold)}
+    .op-meta{display:flex;flex-wrap:wrap;gap:10px;align-items:center;color:var(--muted)}
 
-{% if blocked_until %}
-<div class="card warning">
-  <b>Блокировка продаж до:</b> {{ blocked_until }} {% if block_reason %} ({{ block_reason }}){% endif %}
-</div>
-{% endif %}
+    .op-badges{display:flex;flex-wrap:wrap;gap:8px}
+    .badge{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:999px;padding:6px 10px;background:linear-gradient(180deg,#0f0f0f,#0b0b0b);font-size:.9rem}
+    .badge.success{border-color:#2ecc71aa}
+    .badge.warning{border-color:#f6c26baa}
+    .badge.danger{border-color:#e74c3caa}
+    .badge.nsfw{border-color:#e74c3caa}
 
-<div class="actions">
-  {% if can_edit %}<a class="btn" href="{{ urls.edit }}">Редактировать</a>{% endif %}
-  {% if can_submit %}<a class="btn" href="{{ urls.submit }}">Отправить на модерацию</a>{% endif %}
-  {% if can_stop %}<form method="post" action="{{ urls.stop_sale }}">{% csrf_token %}<button class="btn">Снять с продажи</button></form>{% endif %}
-  {% if can_resume %}<form method="post" action="{{ urls.resume_sale }}">{% csrf_token %}<button class="btn">Вернуть в продажу</button></form>{% endif %}
-  {% if can_delete %}<form method="post" action="{{ urls.delete }}" onsubmit="return confirm('Удалить из магазина? Покупатели сохранят доступ.');">{% csrf_token %}<button class="btn danger">Удалить из магазина</button></form>{% endif %}
-  <a class="btn outline" href="{{ urls.public_preview }}" target="_blank">Публичный предпросмотр</a>
-</div>
+    .op-metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:10px}
+    .metric{background:linear-gradient(180deg,#121212,#0f0f0f);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+    .metric .k{color:var(--muted);font-size:.9rem}
+    .metric .v{font-weight:800;font-size:1.1rem;color:#eaeaea}
 
-<hr/>
+    .op-layout{display:grid;grid-template-columns:1fr 360px;gap:24px;align-items:start}
+    @media (max-width: 980px){.op-layout{grid-template-columns:1fr}}
 
-<h2>Контент</h2>
-<article class="content">{{ content|linebreaksbr }}</article>
+    .op-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+    .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:10px 14px;border-radius:12px;border:1px solid var(--line);cursor:pointer;transition:transform .15s ease, box-shadow .2s ease, background .2s ease}
+    .btn:hover{transform:translateY(-1px)}
+    .btn.primary{background:linear-gradient(180deg,#1f1a08,#151107);color:#fff;border-color:#3b300f}
+    .btn.ghost{background:#0f0f0f;color:#e0e0e0}
+    .btn.outline{background:transparent}
+    .btn.danger{background:#1a0e0e;border-color:#3a1717;color:#ffd9d9}
+
+    .op-note{padding:14px;border:1px solid var(--line);border-radius:12px;background:linear-gradient(180deg,#131313,#0e0e0e);margin-bottom:12px}
+    .op-note.warning{border-color:#f6c26b66}
+    .op-note.danger{border-color:#e74c3c66}
+
+    .op-card{background:linear-gradient(180deg,#121212,#0f0f0f);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow)}
+    .op-card .hd{padding:14px 16px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between}
+    .op-card .hd .t{font-weight:800;color:var(--gold)}
+    .op-card .bd{padding:16px}
+
+    .op-aside{position:sticky;top:18px;display:grid;gap:12px}
+    .op-side-kv{display:grid;gap:8px}
+    .kv{display:flex;align-items:center;justify-content:space-between;gap:8px;border:1px solid var(--line);border-radius:12px;padding:10px 12px;background:#0f0f0f}
+    .kv .k{color:var(--muted);font-size:.9rem}
+    .kv .v{font-weight:800}
+
+    .content-pre{margin:0;white-space:pre-wrap;word-wrap:break-word;font:400 .95rem/1.6 ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;color:#ddd}
+    .help{color:var(--muted);font-size:.9rem}
+
+    .op-toolbar{display:flex;gap:8px;flex-wrap:wrap}
+    .op-toolbar .btn{padding:8px 12px;border-radius:10px;font-size:.95rem}
+  </style>
+</head>
+<body>
+  <div class="op-wrap">
+
+    <!-- Header -->
+    <header class="op-head">
+      <div class="vp-breadcrumbs">
+        <a href="/dashboard/" class="crumb">Ospyral</a>
+        <span class="sep">•</span>
+        <a href="/text-products/my/" class="crumb">Text Products Catalog</a>
+        <span class="sep">•</span>
+        <span class="crumb current" aria-current="page">{{ product.title }}</span>
+      </div>
+
+      <h1 class="op-title">{{ product.title }}</h1>
+
+      <div class="op-meta">
+        <div class="op-badges">
+          <span class="badge">Статус: {{ product.get_status_display }}</span>
+          {% if product.is_active %}<span class="badge success">В продаже</span>{% else %}<span class="badge warning">Снято с продажи</span>{% endif %}
+          {% if product.is_deleted %}<span class="badge danger">Удалён из магазина</span>{% endif %}
+          {% if product.nsfw %}<span class="badge nsfw">NSFW</span>{% endif %}
+        </div>
+      </div>
+
+      <div class="op-metrics">
+        <div class="metric"><div class="k">Продаж</div><div class="v">{{ sales_count|default:0 }}</div></div>
+        <div class="metric"><div class="k">Средняя оценка</div><div class="v">{{ avg_rating|default:"—" }}</div></div>
+        <div class="metric"><div class="k">Цена</div><div class="v">{{ product.price|floatformat:2 }} {{ product.get_currency_display }}</div></div>
+      </div>
+
+      <div class="op-actions">
+        {% if can_edit %}<a class="btn ghost" href="{{ urls.edit }}">Редактировать</a>{% endif %}
+        {% if can_submit %}<a class="btn primary" href="{{ urls.submit }}">Отправить на модерацию</a>{% endif %}
+        {% if can_stop %}<form method="post" action="{{ urls.stop_sale }}">{% csrf_token %}<button class="btn">Снять с продажи</button></form>{% endif %}
+        {% if can_resume %}<form method="post" action="{{ urls.resume_sale }}">{% csrf_token %}<button class="btn">Вернуть в продажу</button></form>{% endif %}
+        {% if can_delete %}<form method="post" action="{{ urls.delete }}" onsubmit="return confirm('Удалить из магазина? Покупатели сохранят доступ.');">{% csrf_token %}<button class="btn danger">Удалить из магазина</button></form>{% endif %}
+      </div>
+    </header>
+
+    {% if rejection_reason %}
+      <div class="op-note danger">
+        <b>Причина отклонения:</b>
+        <p class="help" style="margin:6px 0 0">{{ rejection_reason }}</p>
+        <a class="btn ghost" style="margin-top:10px" href="{{ urls.ack_reject }}">Подтвердить</a>
+      </div>
+    {% endif %}
+
+    {% if blocked_until %}
+      <div class="op-note warning">
+        <b>Блокировка продаж до:</b> {{ blocked_until }} {% if block_reason %} ({{ block_reason }}){% endif %}
+      </div>
+    {% endif %}
+
+    <!-- Layout -->
+    <div class="op-layout">
+
+      <!-- LEFT: content -->
+      <section class="op-card">
+        <div class="hd">
+          <div class="t">Контент</div>
+        </div>
+        <div class="bd">
+          <article class="content-pre">{{ content|linebreaksbr }}</article>
+        </div>
+      </section>
+
+      <!-- RIGHT: aside -->
+      <aside class="op-aside">
+        <section class="op-card">
+          <div class="hd"><div class="t">Параметры</div></div>
+          <div class="bd op-side-kv">
+            <div class="kv"><div class="k">Категория</div><div class="v">{{ product.get_category_display }}</div></div>
+            <div class="kv"><div class="k">Валюта</div><div class="v">{{ product.get_currency_display }}</div></div>
+            <div class="kv"><div class="k">NSFW</div><div class="v">{% if product.nsfw %}Да{% else %}Нет{% endif %}</div></div>
+            <div class="kv"><div class="k">Создан</div><div class="v">{{ product.created_at|date:"d.m.Y H:i" }}</div></div>
+          </div>
+        </section>
+      </aside>
+    </div>
+
+  </div>
+
+</body>
+</html>

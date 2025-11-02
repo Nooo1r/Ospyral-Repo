@@ -1,13 +1,30 @@
+{% load static csp %}
+
 {% load static widget_tweaks %}
 <!DOCTYPE html>
 <html lang="ru">
 <head>
   <meta charset="UTF-8">
-  <title>Регистрация</title>
+  <title>Регистрация — Ospyral</title>
   <link rel="stylesheet" href="{% static 'css/auth.css' %}">
-  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
 </head>
 <body class="auth-body">
+
+  <a class="auth-back" href="{% url 'home' %}" aria-label="На главную">
+    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" class="auth-back__icon">
+      <path d="M14 7l-5 5 5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+  </a>
+
+
+  <!-- Фон: звёзды + связи + aurora -->
+  <div class="bg-wrap" aria-hidden="true">
+    <canvas id="field"></canvas>
+    <canvas id="links"></canvas>
+    <div class="aurora"></div>
+  </div>
+
 
   <div class="auth-container">
     <div class="auth-card">
@@ -18,18 +35,21 @@
 
         {% render_field form.username class="auth-input" placeholder="Имя пользователя" %}
         {% render_field form.email class="auth-input" placeholder="Email" %}
-        {% render_field form.first_name class="auth-input" placeholder="Имя" %}
-        {% render_field form.last_name class="auth-input" placeholder="Фамилия" %}
         {% render_field form.password1 class="auth-input" placeholder="Пароль" %}
         {% render_field form.password2 class="auth-input" placeholder="Повторите пароль" %}
 
-        {# скрытое поле для Turnstile-токена #}
         {% render_field form.cf_turnstile_response type="hidden" id="cf-turnstile-response" %}
 
-        {# сам виджет Cloudflare Turnstile #}
         <div class="cf-turnstile" data-sitekey="{{ site_key }}"></div>
 
-        <button type="submit" class="auth-button">Зарегистрироваться</button>
+        <div class="auth-consent">
+          <input type="checkbox" id="agree_register" name="agree_rules" required>
+          <label for="agree_register">
+            Я подтверждаю, что ознакомился(-ась) и согласен(-на) с <a class="rules" href="/rules/" target="_blank" rel="noopener">Правилами Ospyral</a>.
+          </label>
+        </div>
+
+        <button type="submit" class="auth-button magnet" disabled>Зарегистрироваться</button>
       </form>
 
       {% if form.errors %}
@@ -38,24 +58,174 @@
         </div>
       {% endif %}
 
+      <div class="toast-stack" id="toast-stack">
+        {% for message in messages %}
+          <div class="auth-toast{% if message.tags %} {{ message.tags }}{% endif %}">{{ message }}</div>
+        {% endfor %}
+      </div>
+
       <div class="auth-footer">
         Уже есть аккаунт? <a href="{% url 'login' %}">Войти</a>
       </div>
     </div>
   </div>
 
-  {# подключаем Turnstile API и инициализируем виджет #}
   <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
-  <script>
+  <script nonce="{{ request.csp_nonce }}">
     document.addEventListener('DOMContentLoaded', function() {
-      turnstile.render('.cf-turnstile', {
-        sitekey: '{{ site_key }}',
-        callback: function(token) {
-          document.getElementById('cf-turnstile-response').value = token;
-        }
-      });
+      if (window.turnstile) {
+        turnstile.render('.cf-turnstile', {
+          sitekey: '{{ site_key }}',
+          callback: function(token) {
+            document.getElementById('cf-turnstile-response').value = token;
+          }
+        });
+      }
     });
   </script>
+
+  <script nonce="{{ request.csp_nonce }}">
+    // === Общий интерактив для auth-страниц ===
+    const DPR = Math.max(1, window.devicePixelRatio || 1);
+    const field = document.getElementById('field');
+    const links = document.getElementById('links');
+    const ctx = field.getContext('2d');
+    const ltx = links.getContext('2d');
+    let stars = [];
+    let mouse = { x: -9999, y: -9999 };
+
+    function sizeCanvas(c){
+      const r = c.getBoundingClientRect();
+      c.width = Math.floor(r.width * DPR);
+      c.height = Math.floor(r.height * DPR);
+    }
+    function resize(){
+      sizeCanvas(field); sizeCanvas(links); spawn();
+    }
+    function spawn(){
+      const w = field.width / DPR, h = field.height / DPR;
+      const count = Math.floor((w*h)/9000);
+      stars = Array.from({length: count}, ()=>({
+        x: Math.random()*w,
+        y: Math.random()*h,
+        z: Math.random()*0.9 + 0.1,
+        r: Math.random()*1.6 + .5,
+        vx: (Math.random()*0.8 + 0.08) * (Math.random()<.5?-1:1),
+        vy: (Math.random()*0.8 + 0.08) * (Math.random()<.5?-1:1),
+      }));
+    }
+    function drawStars(){
+      const w = field.width / DPR, h = field.height / DPR;
+      ctx.clearRect(0,0,w,h);
+      for(const s of stars){
+        s.x += s.vx * s.z * .35; s.y += s.vy * s.z * .35;
+        if(s.x<-8||s.x>w+8||s.y<-8||s.y>h+8){ s.x = Math.random()*w; s.y = Math.random()*h; }
+        ctx.globalAlpha = 0.65 * s.z; ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, Math.PI*2); ctx.fillStyle = '#fff'; ctx.fill();
+      }
+    }
+    function drawLinks(){
+      const w = links.width / DPR, h = links.height / DPR;
+      ltx.clearRect(0,0,w,h);
+      ltx.lineWidth = 1; ltx.strokeStyle = 'rgba(245,211,108,.20)';
+      const thresh = 120;
+      for(let i=0;i<stars.length;i++){
+        const a = stars[i];
+        const dx = a.x - mouse.x, dy = a.y - mouse.y; const d = Math.hypot(dx,dy);
+        if(d < 180){ a.x += (mouse.x - a.x) * 0.008; a.y += (mouse.y - a.y) * 0.008; }
+        for(let j=i+1;j<i+12 && j<stars.length;j++){
+          const b = stars[j];
+          const dd = (a.x-b.x)**2 + (a.y-b.y)**2;
+          if(dd < thresh*thresh){
+            const alpha = 0.28 * (1 - Math.sqrt(dd)/thresh);
+            ltx.globalAlpha = alpha; ltx.beginPath(); ltx.moveTo(a.x,a.y); ltx.lineTo(b.x,b.y); ltx.stroke();
+          }
+        }
+      }
+    }
+    function loop(){ drawStars(); drawLinks(); requestAnimationFrame(loop); }
+    window.addEventListener('resize', resize, {passive:true}); resize(); loop();
+
+    // Cursor ring
+    const ring = document.getElementById('ring');
+    window.addEventListener('mousemove', (e)=>{
+      const x = e.clientX, y = e.clientY;
+      mouse.x = x; mouse.y = y;
+      ring.style.transform = `translate3d(${x-22}px, ${y-22}px, 0)`;
+    });
+
+    // Magnetic button(s)
+    for(const m of document.querySelectorAll('.magnet')){
+      m.addEventListener('mousemove', (e)=>{
+        const r = m.getBoundingClientRect();
+        const cx = r.left + r.width/2, cy = r.top + r.height/2;
+        const dx = (e.clientX - cx) / (r.width/2);
+        const dy = (e.clientY - cy) / (r.height/2);
+        m.style.transform = `translate(${dx*6}px, ${dy*6}px)`;
+      });
+      m.addEventListener('mouseleave', ()=>{ m.style.transform = 'translate(0,0)'; });
+    }
+  </script>
+
+  <script>
+    (function(){
+      const stack = document.getElementById('toast-stack');
+      if(!stack) return;
+      const toasts = Array.from(stack.querySelectorAll('.auth-toast'));
+      toasts.forEach((el, i) => {
+        const delay = 3500 + i*400;
+        setTimeout(() => { el.classList.add('fade'); }, delay);
+        setTimeout(() => { el.remove(); }, delay + 650);
+      });
+    })();
+  </script>
+
+  <script nonce="{{ request.csp_nonce }}">
+    (function() {
+      // ищем форму авторизации/регистрации на странице
+      const form = document.querySelector('.auth-form');
+      if (!form) return;
+
+      // чекбокс согласия (ищем по name, чтобы не зависеть от id)
+      const agree = form.querySelector('input[type="checkbox"][name="agree_rules"]');
+      // основная кнопка формы
+      const btn = form.querySelector('.auth-button');
+
+      if (!agree || !btn) return;
+
+      // функция актуализации состояния
+      const update = () => {
+        const on = !!agree.checked;
+        btn.disabled = !on;
+        // если используешь “магнит”, не двигаем disabled-кнопку
+        if (btn.disabled) {
+          btn.style.transform = 'none';
+        }
+      };
+
+      // первичная инициализация
+      update();
+
+      // обновляем при клике/изменении чекбокса
+      agree.addEventListener('change', update);
+
+      // если у тебя есть “магнит” для кнопок — блокируем его на выключенной
+      const isMagnet = btn.classList.contains('magnet');
+      if (isMagnet) {
+        btn.addEventListener('mousemove', (e) => {
+          if (btn.disabled) return; // выключено — никаких эффектов
+          const r = btn.getBoundingClientRect();
+          const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+          const dx = (e.clientX - cx) / (r.width / 2);
+          const dy = (e.clientY - cy) / (r.height / 2);
+          btn.style.transform = `translate(${dx * 6}px, ${dy * 6}px)`;
+        });
+        btn.addEventListener('mouseleave', () => {
+          btn.style.transform = 'translate(0,0)';
+        });
+      }
+    })();
+  </script>
+
 
 </body>
 </html>

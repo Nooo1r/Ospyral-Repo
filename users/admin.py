@@ -1,7 +1,21 @@
-# users/admin.py
 
 from django.contrib import admin
-from .models import TextProduct, Artwork, CustomUser
+from .models import (
+    TextProduct, Artwork, 
+    CustomUser, LedgerEntry,
+    VIPPlan,
+    BannedFingerprint, News,
+    )
+from .money import micros_to_usd
+
+
+@admin.register(News)
+class NewsAdmin(admin.ModelAdmin):
+    list_display  = ('title', 'published_at', 'is_published', 'author')
+    list_filter   = ('is_published', 'published_at')
+    search_fields = ('title', 'content')
+    date_hierarchy = 'published_at'
+    ordering = ('-published_at',)
 
 @admin.register(TextProduct)
 class TextProductAdmin(admin.ModelAdmin):
@@ -91,14 +105,94 @@ class ArtworkAdmin(admin.ModelAdmin):
         queryset.update(is_active=True)
     unblock_artworks.short_description = 'Вернуть в продажу выбранные работы'
 
-    
+
 @admin.register(CustomUser)
 class CustomUserAdmin(admin.ModelAdmin):
-    list_display = ('username','email','is_active','is_staff')
+    list_display = ('username','email','is_active','is_staff','is_banned','ban_until')
     search_fields = ('username','email')
-    actions = ['block_users','unblock_users']
+    actions = ['ban_7d', 'ban_30d', 'ban_forever', 'unban_users']
 
-    def block_users(self, request, queryset):
-        queryset.update(is_active=False)
-    def unblock_users(self, request, queryset):
-        queryset.update(is_active=True)
+    def ban_7d(self, request, qs):
+        from django.utils import timezone
+        from .utils import kill_user_sessions
+        until = timezone.now() + timezone.timedelta(days=7)
+        reason = "Нарушение правил (7 дней)"
+        for u in qs:
+            u.is_banned = True
+            u.ban_reason = reason
+            u.ban_until = until
+            u.save(update_fields=['is_banned','ban_reason','ban_until'])
+            kill_user_sessions(u.id)
+    ban_7d.short_description = "Забанить на 7 дней"
+
+    def ban_30d(self, request, qs):
+        from django.utils import timezone
+        from .utils import kill_user_sessions
+        until = timezone.now() + timezone.timedelta(days=30)
+        reason = "Нарушение правил (30 дней)"
+        for u in qs:
+            u.is_banned = True
+            u.ban_reason = reason
+            u.ban_until = until
+            u.save(update_fields=['is_banned','ban_reason','ban_until'])
+            kill_user_sessions(u.id)
+    ban_30d.short_description = "Забанить на 30 дней"
+
+    def ban_forever(self, request, qs):
+        from .utils import kill_user_sessions
+        for u in qs:
+            u.is_banned = True
+            u.ban_reason = "Нарушение правил (навсегда)"
+            u.ban_until = None
+            u.save(update_fields=['is_banned','ban_reason','ban_until'])
+            kill_user_sessions(u.id)
+    ban_forever.short_description = "Забанить навсегда"
+
+    def unban_users(self, request, qs):
+        for u in qs:
+            u.is_banned = False
+            u.ban_reason = ""
+            u.ban_until = None
+            u.save(update_fields=['is_banned','ban_reason','ban_until'])
+    unban_users.short_description = "Снять бан"
+
+@admin.register(BannedFingerprint)
+class BannedFingerprintAdmin(admin.ModelAdmin):
+    list_display = ("ip_hash", "ua_hash", "device_id", "expires_at", "created_at")
+    list_filter  = ("expires_at", "created_at")
+    search_fields = ("ip_hash", "ua_hash", "device_id")
+    readonly_fields = ("created_at",)
+
+@admin.register(LedgerEntry)
+class LedgerEntryAdmin(admin.ModelAdmin):
+    list_display = ("created_at","user","wallet","side","kind","currency","amount_micros","balance_after_micros","reference","external_tx_hash")
+    list_filter  = ("side","kind","currency","created_at")
+    search_fields= ("reference","external_tx_hash","user__email","user__username")
+    date_hierarchy = "created_at"
+    ordering = ("-created_at",) 
+    list_select_related = ("user","wallet")
+    raw_id_fields = ("user","wallet")
+    
+def format_osp(micros: int) -> str:
+    d = micros_to_usd(micros)  # Decimal с 6 знаками после запятой
+    s = format(d.normalize(), 'f')  # без научной нотации
+    if '.' in s:
+        s = s.rstrip('0').rstrip('.')
+    return f"{s} OSP"
+
+
+@admin.register(VIPPlan)
+class VIPPlanAdmin(admin.ModelAdmin):
+    list_display = (
+        "code", "title", "level", "duration_days",
+        "price_pretty", "popularity_boost", "daily_quota",
+        "min_interval_days", "is_active",
+    )
+    list_filter  = ("level", "is_active")
+    search_fields = ("code", "title")
+    ordering = ("level", "duration_days")
+
+    # показываем цену в OSP, используя money.py
+    def price_pretty(self, obj):
+        return format_osp(obj.price_osp_micros)
+    price_pretty.short_description = "Цена (OSP)"

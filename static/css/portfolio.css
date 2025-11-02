@@ -8,55 +8,91 @@ body {
   min-height: 100vh;
 }
 
-/* HEADER */
-.header {
+:root{
+  --hdr-bg: rgba(14,14,18,0.46);
+  --hdr-border: rgba(255,212,94,0.35);
+  --hdr-shadow: 0 10px 24px -16px rgba(0,0,0,0.8);
+  --gold: #ffd45e;
+  --gold-2: #d4af37;
+  --text: #e8e8ee;
+  --muted: #9aa0a6;
+}
+
+/* ====== Шапка (общая) ====== */
+header.header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  padding: 30px 40px;
+  box-sizing: border-box;
+  background: var(--hdr-bg);
+  border-image: linear-gradient(90deg, transparent 0%, var(--hdr-border) 35%, var(--hdr-border) 65%, transparent 100%) 1;
+  border-bottom: 1px solid transparent;
+  backdrop-filter: blur(8px);
+  color: #fff;
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  background: linear-gradient(to right, #1a1a1a, #000);
-  padding: 20px 40px;
-  border-bottom: 2px solid #d4af37;
-  position: sticky;
-  top: 0;
-  z-index: 10;
+  z-index: 999;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.8);
 }
 
-.header-logo img {
-  height: 40px;
+
+.header-logo {
+  position: absolute;
+  display: flex;
+  gap: 15px;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 1000;
+  font-family: 'Lucida Grande';
+  font-size: 26px;
 }
+.ospyral-logo { filter: drop-shadow(0 0 10px rgba(255,255,255,0.8)); }
+
 
 .header-links {
+  position: absolute;
+  top: 35%;
+  left: 3%;
   display: flex;
+  flex-direction: row;
   gap: 20px;
 }
 
 .header-link {
-  color: #ccc;
+  color: #ffffff;
   text-decoration: none;
+  font-size: 16px;
   font-weight: bold;
-  position: relative;
   transition: color 0.3s ease;
 }
 
-.header-link::after {
-  content: "";
-  position: absolute;
-  bottom: -5px;
-  left: 0;
-  width: 0%;
-  height: 2px;
-  background: #d4af37;
-  transition: width 0.3s ease;
+.header-link:hover {
+  color: var(--gold);
+  text-decoration: underline;
 }
 
-.header-link:hover::after,
-.header-link.active::after {
-  width: 100%;
-}
 
 .header-actions {
-  color: #d4af37;
-  font-weight: bold;
+  position: absolute; right: 24px; top: 50%; transform: translateY(-50%);
+  display: flex; align-items: center;
+}
+.user-profile-link {
+  display: inline-flex; align-items: center; gap: 12px;
+  padding: 6px 10px; border-radius: 8px;
+  transition: background-color .2s ease, box-shadow .2s ease;
+}
+.user-profile-link:hover { background-color: rgba(255,255,255,.1); box-shadow: var(--shadow-sm); }
+.user-name { color: #fff; font-weight: 700; font-size: 14px; white-space: nowrap; }
+.user-avatar {
+  width: 36px; height: 36px; border-radius: 8px; object-fit: cover;
+  border: 2px solid var(--gold); transition: transform .25s ease, box-shadow .25s ease, border-color .25s ease;
+}
+.user-profile-link:hover .user-avatar {
+  transform: translateY(-1px) scale(1.03);
+  border-color: #fff; box-shadow: 0 4px 12px rgba(0,0,0,.35);
 }
 
 /* WRAPPER */
@@ -198,4 +234,155 @@ body {
 
 .btn-secondary:hover {
   background: #6b7280;
+}
+
+/* --- Toolbar --- */
+.toolbar{
+  display:flex; justify-content:space-between; align-items:center;
+  gap:16px; margin-bottom:20px; flex-wrap:wrap;
+}
+.toolbar-left{ display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
+.searchbox{ position:relative; }
+.searchbox input{
+  width:260px; max-width:60vw; padding:10px 32px 10px 12px; border-radius:10px; border:1px solid #2a2a2a;
+  background:#0f0f0f; color:#fff; outline:none;
+}
+.searchbox .clear{
+  position:absolute; right:6px; top:50%; transform:translateY(-50%);
+  width:26px; height:26px; border-radius:50%; border:0; background:#2a2a2a; color:#ccc; cursor:pointer;
+}
+.select{ display:flex; align-items:center; gap:8px; color:#aaa; }
+.select select{
+  background:#0f0f0f; color:#fff; border:1px solid #2a2a2a; border-radius:10px; padding:8px 10px;
+}
+.btn.btn-primary{ background:#d4af37; color:#000; }
+.btn.btn-primary:hover{ background:#f2d46a; }
+
+/* --- Card with thumbnail --- */
+.card{ padding:0; overflow:hidden; display:flex; flex-direction:column; }
+.card .thumb{
+  position:relative; aspect-ratio: 4/3; background:#0c0c0c;
+}
+.card .thumb img{
+  width:100%; height:100%; object-fit:cover; display:block;
+  filter:saturate(1.05) contrast(1.02);
+}
+.thumb--empty{
+  width:100%; height:100%; display:grid; place-items:center; color:#777; font-size:.95rem;
+  background: repeating-linear-gradient(45deg, #131313, #131313 10px, #151515 10px, #151515 20px);
+}
+.badge{
+  position:absolute; top:10px; left:10px; padding:4px 8px; border-radius:999px;
+  font-size:.75rem; font-weight:700; letter-spacing:.02em;
+  background:#2a2a2a; color:#eee; border:1px solid #3a3a3a;
+}
+.badge.nsfw{ background:crimson; border-color:#ff6b6b; }
+.badge.warn{ background:#8a6d00; border-color:#d4af37; color:#000; }
+.badge.danger{ background:#5f1d1d; border-color:#b91c1c; }
+.badge.info{ background:#1f2937; border-color:#3b82f6; }
+
+.card .card-body{ padding:16px; display:flex; flex-direction:column; gap:10px; }
+.card-title{
+  margin:0; font-size:1.05rem; font-weight:700; color:#fff;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+.card-meta{ margin:0; color:#bdbdbd; font-size:.9rem; }
+.card-meta .muted{ color:#8c8c8c; }
+
+.card-reason{
+  margin:0; padding:8px 10px; border:1px dashed #b91c1c; border-radius:8px; background:#2a1414; color:#ffb4b4;
+  font-size:.9rem;
+}
+
+.card-actions{
+  margin-top:auto; display:flex; gap:8px; flex-wrap:wrap;
+}
+.card-actions form{ display:inline; }
+
+/* --- Empty state --- */
+.empty-state{
+  grid-column: 1 / -1; text-align:center; padding:40px 16px; background:#171717; border:1px dashed #2a2a2a;
+  border-radius:16px;
+}
+.empty-ico{ font-size:2rem; margin-bottom:6px; }
+.empty-title{ font-weight:800; color:#d4af37; margin-bottom:6px; }
+.empty-sub{ color:#bdbdbd; margin-bottom:12px; }
+
+/* --- Sidebar polish (тонкая подправка) --- */
+.portfolio-sidebar nav a{ display:flex; justify-content:space-between; align-items:center; }
+
+/* ====== POLISH: Toolbar, Grid, Cards, Empty states ====== */
+
+/* Toolbar */
+.toolbar{
+  display:flex; justify-content:space-between; align-items:center;
+  gap:16px; margin-bottom:20px; flex-wrap:wrap;
+}
+.toolbar-left{ display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
+.searchbox{ position:relative; }
+.searchbox input{
+  width:280px; max-width:60vw; padding:10px 36px 10px 12px;
+  border-radius:10px; border:1px solid #2a2a2a; background:#0f0f0f; color:#fff; outline:none;
+}
+.searchbox .clear{
+  position:absolute; right:6px; top:50%; transform:translateY(-50%);
+  width:26px; height:26px; border-radius:50%; border:0; background:#2a2a2a; color:#ccc; cursor:pointer;
+}
+.select{ display:flex; align-items:center; gap:8px; color:#aaa; }
+.select select{
+  background:#0f0f0f; color:#fff; border:1px solid #2a2a2a; border-radius:10px; padding:8px 10px;
+}
+
+/* Grid */
+.card-grid{
+  display:grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap:16px;
+}
+
+/* Card */
+.card{
+  background:#101010; border:1px solid #1d1d1d; border-radius:14px;
+  padding:16px; display:flex; flex-direction:column; gap:10px;
+  transition: transform .08s ease, box-shadow .2s ease, border-color .2s;
+}
+.card:hover{
+  transform: translateY(-2px);
+  border-color:#2a2a2a;
+  box-shadow: 0 8px 20px rgba(0,0,0,.35);
+}
+.card h3{
+  margin:0; font-size:1.05rem; font-weight:700; color:#fff;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+.card p{ margin:.15rem 0; color:#c9c9c9; }
+.card .card-reason{
+  margin-top:2px; padding:8px 10px; border:1px dashed #b91c1c; border-radius:8px;
+  background:#2a1414; color:#ffb4b4; font-size:.9rem;
+}
+
+/* Actions */
+.card-actions{ margin-top:auto; display:flex; flex-wrap:wrap; gap:8px; }
+.card-actions form{ display:inline; }
+.btn{ appearance:none; border:1px solid #2a2a2a; border-radius:10px; padding:8px 12px; cursor:pointer;
+  background:#151515; color:#f0f0f0; line-height:1; font-weight:600; }
+.btn:hover{ border-color:#3a3a3a; background:#181818; }
+.btn-primary{ background:#d4af37; color:#111; border-color:#d4af37; }
+.btn-primary:hover{ background:#f2d46a; }
+.btn-secondary{ background:#1b1b1b; color:#eaeaea; }
+.btn-danger{ background:#3a1515; border-color:#5a1d1d; color:#ffbdbd; }
+.btn-danger:hover{ background:#521b1b; }
+
+/* Sidebar — выравнивание счётчиков справа */
+.portfolio-sidebar nav a{
+  display:flex; justify-content:space-between; gap:12px;
+}
+
+/* Page title */
+.page-title{ margin:10px 0 18px; font-size:1.25rem; }
+
+/* Empty state */
+.empty{
+  grid-column: 1 / -1; text-align:center; padding:28px 16px; background:#171717;
+  border:1px dashed #2a2a2a; border-radius:16px; color:#cfcfcf;
 }

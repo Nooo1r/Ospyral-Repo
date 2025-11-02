@@ -1,57 +1,283 @@
 {% load static %}
+
+
 <!DOCTYPE html>
 <html lang="ru">
 <head>
   <meta charset="UTF-8">
   <title>{{ artwork.title }}</title>
   <link rel="stylesheet" href="{% static 'css/artwork_detail.css' %}">
+  <script src="https://cdn.jsdelivr.net/npm/ethers@6.13.1/dist/ethers.min.js"></script>
 </head>
 <body>
-  <div class="container">
-    <header class="header">
-      <a href="/" class="logo-link">
-        <img src="{% static 'images/logo.svg' %}" alt="Ospyral" class="logo">
-      </a>
-    </header>
+  <div class="artwork-detail-wrapper">
+    <div class="artwork-header">
 
-    <main class="artwork-detail">
-      <h1 class="artwork-title">{{ artwork.title }}</h1>
-
-      <div class="meta">
-        <p><strong>Категория:</strong> {{ artwork.category }}</p>
-        <p>
-          <strong>Цена:</strong>
-          {% if artwork.currency == 'USD' %}
-            ${{ artwork.price }}
-          {% elif artwork.currency == 'COIN' %}
-            {{ artwork.price }} 🧿
-          {% else %}
-            {{ artwork.price }} <span class="text-muted">(неизвестная валюта)</span>
-          {% endif %}
-        </p>
+      <div class="vp-breadcrumbs">
+        <a href="/dashboard/" class="crumb">Ospyral</a>
+        <span class="sep">•</span>
+        <a href="/artwork/store/" class="crumb">Artwork Store</a>
+        <span class="sep">•</span>
+        <span class="crumb current" aria-current="page">{{ artwork.title }}</span>
       </div>
 
-      <div class="block gallery">
-        <h2>Страницы</h2>
-        <div class="gallery-view">
-          {% for page in pages %}
-            <div class="artwork-page">
-              <img src="{{ page.image.url }}" alt="Page {{ forloop.counter }}">
-            </div>
-          {% endfor %}
-        </div>
+      <span class="nsfw-pill" {% if not artwork.nsfw %}style="display:none"{% endif %}>NSFW</span>
+    </div>
+      <main class="artwork-detail">
+        <h1 class="title">{{ artwork.title }}</h1>
 
-        {% if not has_access %}
-          <div class="box locked">
-            🔒 Чтобы увидеть оригинал, приобретите продукт.
-          </div>
-          <form action="{% url 'buy_artwork' artwork.id %}" method="post" class="mt-3">
-            {% csrf_token %}
-            <button type="submit" class="btn btn-buy">Купить за {{ artwork.price }} {% if artwork.currency == 'USD' %}$ {% else %}🧿{% endif %}</button>
-          </form>
+        <section class="meta">
+          <p><span>Категория:</span> {{ artwork.get_category_display }}</p>
+          <p>
+            <span>Цена:</span>
+            {% if artwork.currency == 'USDT' %}
+              ${{ artwork.price|floatformat:2 }}
+            {% elif artwork.currency == 'OSP' %}
+              {{ artwork.price|floatformat:2 }} OSP
+            {% else %}
+              {{ artwork.price|floatformat:2 }} <span class="text-muted">(Неизвестная валюта)</span>
+            {% endif %}
+          </p>
+          <p class="art-author">
+            <span>Автор:</span>
+            <a class="author-link" href="{% url 'user_profile' artwork.owner.username %}">
+              {{ artwork.owner.username }}
+            </a>
+          </p>
+          {% if artwork.nsfw %}<p class="nsfw-pill" title="Контент 18+">NSFW</p>{% endif %}
+          <p><span>Доступных копий:</span> {{ artwork.available_copies }}</p>
+          <p><span>Описание:</span> {{ artwork.description }}</p>
+        </section>
+
+
+        {% if not has_access and artwork.is_active and artwork.available_copies > 0 and request.user != artwork.owner %}
+          <section class="actions" aria-label="Покупка" id="buy">
+            {% if artwork.currency == 'USDT' %}
+              <button type="button" id="buyBtnUSDTArt" class="btn btn-primary" data-product-id="{{ artwork.id }}">
+                Купить за {{ artwork.price|floatformat:2 }} $
+              </button>
+              <p class="hint muted">Оплата через USDT-эскроу; понадобится кошелёк (MetaMask).</p>
+            {% else %}
+              <a class="btn btn-primary"
+                href="{% url 'confirm_artwork_purchase' artwork.id %}">
+                Приобрести: {{ artwork.price|floatformat:2 }} {{ artwork.get_currency_display }}
+              </a>
+            {% endif %}
+
+            <section class="secondary-actions" aria-label="Действия">
+              <a class="btn btn-secondary" href="{% url 'artwork_viewer' artwork.id %}">Полноэкранный просмотр</a>
+
+              {% if has_access or request.user.is_staff or request.user.id == artwork.owner_id %}
+                <a class="btn btn-secondary" href="{% url 'download_artwork_zip' artwork.id %}">Скачать ZIP</a>
+              {% endif %}
+            </section>
+
+          </section>
         {% endif %}
-      </div>
-    </main>
-  </div>
+
+
+        {# ===== ЭСКРОУ (если есть активный заказ) ===== #}
+        {% if order and escrow and escrow.status == 'HELD' %}
+          <section class="escrow-box" role="status" aria-live="polite">
+            <div class="escrow-row">
+              <div class="escrow-dot"></div>
+              <div class="escrow-text">
+                Средства удержаны. Авто-подтверждение через
+                <span id="escrow-countdown" data-seconds="{{ seconds_to_autorelease|default:0 }}">—:—</span>.
+                {% if escrow.disputed %}<span class="pill pill-danger">Возврат</span>{% endif %}
+              </div>
+            </div>
+
+            <div class="escrow-actions">
+              {% if artwork.currency == 'USDT' %}
+                <button class="btn btn-primary" type="button" id="releaseBtnArt" data-orderid="{{ escrow.external_order_id }}">Подтвердить (он-чейн)</button>
+              {% else %}
+                <form action="{% url 'confirm_art_order' order.id %}" method="post" class="inline">
+                  {% csrf_token %}
+                  <button class="btn btn-primary" type="submit">Подтвердить</button>
+                </form>
+              {% endif %}
+
+              <a class="btn btn-danger" href="{% url 'refunds_hub' %}?type=art&order={{ order.id }}">Возврат</a>
+            </div>
+
+            {% if artwork.currency == 'USDT' %}
+              <p class="hint muted">Для USDT окончательное подтверждение — ончейн транзакция <code>release()</code>; статус обновится после события.</p>
+            {% endif %}
+          </section>
+        {% endif %}
+
+
+
+        {# ===== ГАЛЕРЕЯ ===== #}
+        <section aria-labelledby="pages-title">
+          <h2 id="pages-title" class="section-title">Страницы</h2>
+
+          
+          {% if has_access %}
+            <div class="page-gallery no-copy" oncontextmenu="return false">
+              {% for page in pages %}
+
+                <div class="page-card">
+                  <a href="{% url 'artwork_viewer' artwork.id %}?page={{ forloop.counter }}">
+                    <img class="no-copy" src="{{ page.image.url }}" alt="Страница {{ forloop.counter }}" loading="lazy" draggable="false">
+                  </a>
+                  <div class="page-number">#{{ forloop.counter }}</div>
+                </div>
+
+              {% empty %}
+                <p class="no-pages">У этого артворка нет загруженных страниц.</p>
+              {% endfor %}
+            </div>
+          {% else %}
+            <div class="page-gallery no-copy" oncontextmenu="return false">
+              {% for page in artwork.pages.all|dictsort:"order" %}
+
+                <div class="page-card">
+                  <a href="{% url 'artwork_viewer' artwork.id %}?page={{ forloop.counter }}">
+                    <img class="no-copy"
+                        src="{% if page.censored_image %}{{ page.censored_image.url }}{% else %}{{ page.image.url }}{% endif %}"
+                        alt="Страница {{ forloop.counter }}{% if page.censored_image %} (цензурировано){% else %} (свободный доступ){% endif %}"
+                        loading="lazy" draggable="false">
+                  </a>
+                  {% if page.censored_image %}
+                    <span class="badge badge-censored" title="Показывается цензурная версия">CENSORED</span>
+                  {% else %}
+                    <span class="badge badge-sfw" title="Автор не наносил цензуру">FREE</span>
+                  {% endif %}
+                  <div class="page-number">Страница {{ forloop.counter }}</div>
+                </div>
+                
+              {% empty %}
+                <p class="no-pages">У этого артворка нет загруженных страниц.</p>
+              {% endfor %}
+            </div>
+          {% endif %}
+        </section>
+
+        {% if avg_rating %}
+          <div class="card">
+            <strong>Рейтинг:</strong>
+            <span class="vp-stars" data-score="{{ avg_rating|floatformat:1 }}"></span>
+            <span class="vp-score">{{ avg_rating|floatformat:1 }}</span>
+          </div>
+        {% endif %}
+
+        {% if has_access and request.user != artwork.owner %}
+          {% if user_rating %}
+            <div class="card success">
+              <strong>Ваша оценка:</strong> {{ user_rating }} / 5
+            </div>
+          {% else %}
+            <form method="post" action="{% url 'rate_artwork' artwork.id %}" class="card">
+              {% csrf_token %}
+              <h3>Оценить артворк</h3>
+              <div class="stars-input">
+                {% for v in "12345" %}
+                  <label style="margin-right:8px;">
+                    <input type="radio" name="rating" value="{{ forloop.counter }}" required>
+                    {{ forloop.counter }}★
+                  </label>
+                {% endfor %}
+              </div>
+              <button type="submit" class="btn btn-primary" style="margin-top:8px;">Отправить оценку</button>
+            </form>
+          {% endif %}
+        {% endif %}
+      </main>
+
+      <!-- Мобильная панель покупки -->
+      {% if not has_access and artwork.is_active and artwork.available_copies > 0 and request.user != artwork.owner %}
+        <div class="vp-stickybar">
+          <div class="price-min"><span class="val">{{ artwork.price|floatformat:2 }}</span><span class="cur">{{ artwork.get_currency_display }}</span></div>
+          {% if artwork.currency == 'USDT' %}
+            <button id="buyBtnUSDTArtM" class="btn btn-wide" data-product-id="{{ artwork.id }}">Купить</button>
+          {% else %}
+            <form method="post" action="{% url 'buy_artwork' artwork.id %}" class="inline">
+              {% csrf_token %}
+              <button class="btn btn-primary btn-wide" type="submit">Купить</button>
+
+            </form>
+          {% endif %}
+        </div>
+      {% endif %}
+
+    <script>
+      // ===== Countdown for escrow =====
+      (function(){
+        const node = document.getElementById('escrow-countdown');
+        if(!node) return;
+        let sec = parseInt(node.dataset.seconds||'0',10);
+        function fmt(s){const m=Math.floor(s/60);const r=s%60;return `${String(m).padStart(2,'0')}:${String(r).padStart(2,'0')}`}
+        node.textContent = fmt(sec);
+        const t = setInterval(()=>{ sec=Math.max(0,sec-1); node.textContent=fmt(sec); if(sec<=0) clearInterval(t); },1000);
+      })();
+
+      // ===== On-chain BUY (USDT) — desktop & mobile buttons share handler =====
+      (function(){
+        const btns=[document.getElementById('buyBtnUSDTArt'), document.getElementById('buyBtnUSDTArtM')].filter(Boolean);
+        if(btns.length===0) return;
+
+        btns.forEach(btn=>btn.addEventListener('click',()=>onchainBuy(+btn.dataset.productId).catch(e=>{console.error(e);alert('Ошибка покупки: '+(e?.message||e));})));
+
+        async function onchainBuy(PRODUCT_ID){
+          if(!window.ethereum){ alert('Нужен кошелёк (MetaMask)'); return; }
+          const provider = new ethers.BrowserProvider(window.ethereum);
+          const signer = await provider.getSigner();
+
+          // 1) prepare
+          const f = new FormData(); f.append('kind','art'); f.append('id', String(PRODUCT_ID));
+          const prepResp = await fetch('{% url 'prepare_order' %}', { method:'POST', body:f, credentials:'include', headers:{'X-CSRFToken': CSRF} });
+          if(!prepResp.ok) throw new Error('prepare failed');
+          const prep = await prepResp.json();
+
+          // 2) chain check
+          const net = await provider.getNetwork();
+          if(Number(net.chainId)!==Number(prep.chainId)){ alert('Переключите сеть в кошельке (chainId: '+prep.chainId+')'); return; }
+
+          // 3) approve if needed
+          const erc20Abi=['function allowance(address owner,address spender)view returns(uint256)','function approve(address spender,uint256 amount) returns(bool)'];
+          const token = new ethers.Contract(prep.tokenAddress||prep.token, erc20Abi, signer);
+          const my = await signer.getAddress();
+          const required = BigInt(prep.amountBaseUnits||prep.amount);
+          const allowance = await token.allowance(my, prep.escrowAddress||prep.escrow);
+          if(allowance < required){ const txA = await token.approve(prep.escrowAddress||prep.escrow, required); await txA.wait(); }
+
+          // 4) createOrder
+          const escrowAbi=['function createOrder(bytes32 orderId,address token,uint256 amount) payable'];
+          const escrow = new ethers.Contract(prep.escrowAddress||prep.escrow, escrowAbi, signer);
+          const tx = await escrow.createOrder(prep.orderId, prep.tokenAddress||prep.token, required);
+          const rc = await tx.wait();
+
+          // 5) notify backend
+          const f2 = new FormData(); f2.append('kind','art'); f2.append('id', String(PRODUCT_ID)); f2.append('orderId', prep.orderId); f2.append('txHash', rc.hash);
+          await fetch('{% url 'confirm_order' %}', { method:'POST', body:f2, credentials:'include', headers:{'X-CSRFToken': CSRF} });
+          alert('Платёж подтверждён. Средства будут переведены автору.');
+          document.querySelector('.escrow-box')?.remove();
+        }
+      })();
+
+      // ===== On-chain release (USDT) =====
+      (function(){
+        const btn = document.getElementById('releaseBtnArt');
+        if(!btn) return;
+        btn.addEventListener('click',()=>releaseOnchain(btn.dataset.orderid).catch(e=>{console.error(e);alert('Ошибка релиза: '+(e?.message||e));}));
+
+        async function releaseOnchain(orderId){
+          if(!window.ethereum){ alert('Нужен кошелёк (MetaMask)'); return; }
+          const provider=new ethers.BrowserProvider(window.ethereum);
+          const signer=await provider.getSigner();
+          const escrowAbi=['function release(bytes32 orderId) public'];
+          const escrow = new ethers.Contract('{{ ESCROW_ADDRESS }}', escrowAbi, signer);
+          const tx=await escrow.release(orderId); const rc=await tx.wait();
+
+          const f=new FormData(); f.append('kind','art'); f.append('id','{{ artwork.id }}'); f.append('orderId', orderId); f.append('txHash', rc.hash);
+          await fetch('{% url 'confirm_order' %}', {method:'POST', body:f, credentials:'include', headers:{'X-CSRFToken': CSRF}});
+          alert('Релиз отправлен. Средства скоро будут переведены.');
+          document.querySelector('.escrow-box')?.remove();
+        }
+      })();
+    </script>
 </body>
 </html>
+

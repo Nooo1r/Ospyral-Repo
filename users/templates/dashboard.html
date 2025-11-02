@@ -7,16 +7,23 @@
 
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+<link rel="stylesheet" href="{% static 'css/notifications.css' %}">
 {% endblock %}
 
 {% block content %}
+
+  {% include "partials/notifications.html" %}
+<canvas id="cosmic-bg" aria-hidden="true"></canvas>
+<div class="gold-aurora" aria-hidden="true">
+</div>
+
 
 <div class="cursor-bg-dot" aria-hidden="true"></div>
   <!-- Шапка сайта -->
 
     <header class="header">
       <div class="header-logo"> 
-        <img src="{% static 'images/logo.svg' %}">
+        <img class="ospyral-logo" src="{% static 'images/spyral.svg' %}"> <h4>Ospyral</h4>
       </div>
 
       <div class="header-actions">
@@ -32,9 +39,9 @@
       </div>
 
       <div class="header-links">
-        <a href="#security" class="header-link">Безопасность</a>
-        <a href="#description" class="header-link">Описание</a>
-        <a href="#about-us" class="header-link">О нас</a>
+        <a href="{% url 'rules_overview' %}#terms"     class="header-link">Правила</a>
+        <a href="{% url 'rules_overview' %}#security"  class="header-link">Безопасность</a>
+        <a href="{% url 'about_us' %}"                 class="header-link">О нас</a>
       </div>
     </header>
 
@@ -46,7 +53,7 @@
             
             <a href="{% url 'catalog_text_products' %}" class="dashboard-card card-text">
               
-              <div class="card-ribbon">Текстовая продукция</div>
+              <div class="card-ribbon card1">Текстовая продукция</div>
               <div class="dashboard-card-inner">
                 <div class="card-inner">
                   <div class="card-description"><h4>
@@ -65,7 +72,7 @@
             
             <a href="{% url 'artwork_store' %}" class="dashboard-card card-art">
               
-              <div class="card-ribbon">Галерея изображений</div>
+              <div class="card-ribbon card2">Галерея изображений</div>
               <div class="dashboard-card-inner">
                 <div class="card-inner">
                   <div class="card-description"><h4>
@@ -83,7 +90,7 @@
             </a>
             
             <a href="{% url 'lesson_list' %}" class="dashboard-card card-lesson">
-              <div class="card-ribbon">Образовательные уроки</div>
+              <div class="card-ribbon card3">Образовательные уроки</div>
               <div class="dashboard-card-inner">
                 <div class="card-inner">
                   <div class="card-description"><h4>
@@ -214,16 +221,152 @@
     <section class="news-feed">
       <div class="container">
         <h2>Лента новостей:</h2>
-        {% for item in news_items %}
-          <div class="news-item">
-            <span class="news-date">{{ item.date }}</span>
-            <p>{{ item.text }}</p>
-          </div>
+        {% for n in news_items %}
+          <article class="news-item">
+            <div>
+              <h3 style="margin:0 0 6px 0;color:#ffd45e">{{ n.title }}</h3>
+              <p>{{ n.content|linebreaksbr }}</p>
+            </div>
+            <span class="news-date">{{ n.published_at|date:"d.m.Y H:i" }}</span>
+          </article>
         {% empty %}
           <p>Новостей нет.</p>
         {% endfor %}
       </div>
     </section>
+
+<script>
+(() => {
+  const c = document.getElementById('cosmic-bg');
+  if (!c) return;
+
+  const mediaReduce = window.matchMedia('(prefers-reduced-motion: reduce)');
+  const reduce = mediaReduce.matches;
+  const mobile = Math.max(screen.width, screen.height) < 820;
+
+  // На мобильных или при сниженной анимации — полностью отключаем Canvas
+  if (mobile || reduce) {
+    c.remove();
+    return;
+  }
+
+  // ===== ПАРАМЕТРЫ ПРОИЗВОДИТЕЛЬНОСТИ
+  const DPR = Math.min(1.5, window.devicePixelRatio || 1); // жёсткий кап DPR
+  const TARGET_FPS = 30;                                    // целевая частота
+  const FRAME_DELTA = 1000 / TARGET_FPS;
+
+  const ctx = c.getContext('2d', { alpha: true });
+  let W = 0, H = 0;
+  let stars = [];
+  let last = 0;
+
+  // ===== СПРАЙТ "ЗОЛОТОЙ ЗВЕЗДЫ" (вместо дорогого shadowBlur)
+  const starSprite = (() => {
+    const s = document.createElement('canvas');
+    const S = 48; // базовый размер спрайта
+    s.width = s.height = S;
+    const g = s.getContext('2d');
+
+    const grd = g.createRadialGradient(S/2, S/2, 0, S/2, S/2, S/2);
+    // яркое "ядро" и тёплое золотое свечение
+    grd.addColorStop(0.0, 'rgba(255,212,94,0.95)');
+    grd.addColorStop(0.35,'rgba(255,212,94,0.55)');
+    grd.addColorStop(0.75,'rgba(212,175,55,0.18)');
+    grd.addColorStop(1.0, 'rgba(212,175,55,0.0)');
+
+    g.fillStyle = grd;
+    g.beginPath();
+    g.arc(S/2, S/2, S/2, 0, Math.PI * 2);
+    g.fill();
+    return s;
+  })();
+
+  function pick(min, max){ return min + Math.random() * (max - min); }
+
+  function makeStars() {
+    // Количество частиц ~ площади, но с мягкими пределами
+    const base = Math.round((W * H) / 16000);
+    const N = Math.min(100, Math.max(40, base));
+    stars.length = 0;
+    for (let i = 0; i < N; i++) {
+      stars.push({
+        x: Math.random() * W,
+        y: Math.random() * H,
+        // scale управляет итоговым размером drawImage
+        scale: pick(0.35, 1.0),
+        alpha: pick(0.35, 0.85),
+        vx: (Math.random() - 0.5) * 0.05,  // медленное дрейфование
+        vy: (Math.random() - 0.5) * 0.05,
+        tw: Math.random() * Math.PI * 2     // фаза для мерцания
+      });
+    }
+  }
+
+  function resize() {
+    const w = window.innerWidth;
+    const h = window.innerHeight;
+
+    // Избегаем лишних перерасчётов
+    if (w === W && h === H) return;
+
+    W = w; H = h;
+    c.width  = Math.floor(W * DPR);
+    c.height = Math.floor(H * DPR);
+    c.style.width  = W + 'px';
+    c.style.height = H + 'px';
+    ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+
+    makeStars();
+  }
+
+  // дебаунс ресайза
+  let rTO = null;
+  window.addEventListener('resize', () => {
+    clearTimeout(rTO);
+    rTO = setTimeout(resize, 120);
+  }, { passive: true });
+
+  function step(ts) {
+    if (ts - last < FRAME_DELTA) {
+      requestAnimationFrame(step);
+      return;
+    }
+    last = ts;
+
+    ctx.clearRect(0, 0, W, H);
+
+    for (const s of stars) {
+      // позиция
+      s.x += s.vx;
+      s.y += s.vy;
+      if (s.x < 0) s.x += W; else if (s.x > W) s.x -= W;
+      if (s.y < 0) s.y += H; else if (s.y > H) s.y -= H;
+
+      // плавное мерцание (дёшево)
+      const pulse = 0.6 + 0.4 * Math.sin(ts * 0.001 + s.tw);
+
+      const size = 16 * s.scale * pulse; // итоговый диаметр
+      const R = size;                     // drawImage отталкиваем от центра
+      ctx.globalAlpha = s.alpha * (0.8 * pulse);
+      ctx.drawImage(starSprite, s.x - R/2, s.y - R/2, R, R);
+    }
+
+    // Вернуть альфу на случай пост-эффектов
+    ctx.globalAlpha = 1;
+    requestAnimationFrame(step);
+  }
+
+  // Позволяет вручную снизить нагрузку: <body data-eco="1">
+  const eco = document.body.getAttribute('data-eco') === '1';
+  if (eco) {
+    // в эко-режиме немного уменьшим спрайт и скорость
+    starSprite.width *= 0.75; starSprite.height *= 0.75;
+  }
+
+  resize();
+  requestAnimationFrame(step);
+})();
+</script>
 
 <script>
 document.addEventListener('DOMContentLoaded', () => {

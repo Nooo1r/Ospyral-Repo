@@ -1,0 +1,52 @@
+{# users/templates/admin/disputes_list.html #}
+{% extends "admin/admin_base.html" %}
+{% block content %}
+<h1>Споры (DISPUTED)</h1>
+<table class="adminlist">
+  <thead>
+    <tr>
+      <th>ID</th>
+      <th>Order</th>
+      <th>Buyer</th>
+      <th>Seller</th>
+      <th>Amount</th>   
+      <th>Reason</th>
+      <th>Created</th>
+      <th>Approved?</th>
+      <th>Actions</th>
+    </tr>
+  </thead>
+  <tbody>
+  {% for e in page.object_list %}
+    <tr>
+      <td>#{{ e.id }}</td>
+      <td>{{ e.order_ct.model }}: {{ e.order_id }}</td>
+      <td>{{ e.buyer }}</td>
+      <td>{{ e.seller }}</td>
+      <td>{{ e.amount_pretty }}</td>
+      <td>{{ e.amount_micros|floatformat:-6 }}</td>
+      <td style="max-width:420px">{{ e.dispute_reason|default:"—" }}</td>
+      <td>{{ e.dispute_created_at|date:"d.m.Y H:i" }}</td>
+      <td>{% if e.moderator_approved_refund %}✅{% else %}—{% endif %}</td>
+      <td>
+        <form method="post" action="{% url 'users_admin:dispute_release' e.id %}" style="display:inline">
+          {% csrf_token %}
+          <button type="submit" class="button">Выпустить продавцу</button>
+        </form>
+        <form method="post" action="{% url 'users_admin:dispute_refund' e.id %}" style="display:inline">
+          {% csrf_token %}
+          <button type="submit" class="button button-danger">Вернуть покупателю</button>
+        </form>
+      </td>
+    </tr>
+  {% empty %}
+    <tr><td colspan="9">Споров нет</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+<div class="paginator">
+  {% if page.has_previous %}<a href="?page={{ page.previous_page_number }}">«</a>{% endif %}
+  <span>стр. {{ page.number }} / {{ page.paginator.num_pages }}</span>
+  {% if page.has_next %}<a href="?page={{ page.next_page_number }}">»</a>{% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,136 @@
+
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Пополнение OSP{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/wallets.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="container" style="max-width:1000px;margin:0 auto;">
+  <header class="page-head">
+    <div class="head-left">
+      <h1 class="page-title">Пополнение OSP</h1>
+      <p class="subnote">Моментальное зачисление OSP после подтверждения.</p>
+    </div>
+  </header>
+
+  <section class="donate-wrap">
+    <!-- LEFT: форма -->
+    <article class="card donate-card">
+      <form action="{% url 'donate_osp' %}" method="get" id="donate-form">
+        <div class="field">
+          <div class="label">Сумма (OSP)</div>
+          <div class="form-row">
+            <input class="input" type="number" name="amount" id="amount"
+                   value="{{ amount|default:10 }}" step="0.01" min="1"
+                   inputmode="decimal" placeholder="Например, 25.00" aria-describedby="amount-help">
+            <button class="btn primary" type="submit">Продолжить</button>
+          </div>
+          <div id="amount-help" class="help">Допускается два знака после запятой. Минимум 1 OSP.</div>
+        </div>
+
+        <div class="field">
+          <div class="label">Быстрые суммы</div>
+          <div class="preset-row">
+            {% if deposit_presets %}
+              {% for p in deposit_presets %}
+                <button class="btn ghost" data-set-amount="{{ p }}" type="button">+{{ p }} OSP</button>
+              {% endfor %}
+            {% else %}
+              <button class="btn ghost" data-set-amount="5" type="button">+5 OSP</button>
+              <button class="btn ghost" data-set-amount="10" type="button">+10 OSP</button>
+              <button class="btn ghost" data-set-amount="25" type="button">+25 OSP</button>
+              <button class="btn ghost" data-set-amount="50" type="button">+50 OSP</button>
+              <button class="btn ghost" data-set-amount="100" type="button">+100 OSP</button>
+            {% endif %}
+          </div>
+        </div>
+
+        {% if reference %}
+          <div class="divider"></div>
+          <div class="field">
+            <div class="label">Референс заявки</div>
+            <div class="help">Сохраните этот код — он помогает сопоставить перевод.</div>
+            <div class="banner" style="margin-top:6px;font-weight:700">{{ reference }}</div>
+          </div>
+        {% endif %}
+      </form>
+
+      {% if address %}
+        <div class="divider"></div>
+        <div class="field">
+          <div class="label">Адрес для перевода</div>
+          <div class="addr-row">
+            <code id="donate-addr" class="address">{{ address }}</code>
+            <button class="btn copy" data-copy="#donate-addr" type="button">Скопировать</button>
+          </div>
+        </div>
+      {% endif %}
+
+      <div class="timeline">
+        <div class="step"><div class="bullet"></div><div><strong>1.</strong> Укажите сумму и продолжите.</div></div>
+        <div class="step"><div class="bullet"></div><div><strong>2.</strong> Переведите OSP на указанный адрес с корректным референсом (если требуется).</div></div>
+        <div class="step"><div class="bullet"></div><div><strong>3.</strong> Баланс пополнится автоматически после подтверждения сети.</div></div>
+      </div>
+    </article>
+
+    <!-- RIGHT: инфо -->
+    <aside class="card donate-card">
+      <h3 class="card-title">Советы по безопасности</h3>
+      <ul class="list-group" style="margin-bottom:14px">
+        <li class="list-group-item">Проверяйте адрес перед переводом.</li>
+        <li class="list-group-item">Не используйте адреса из сторонних источников.</li>
+        <li class="list-group-item">Комиссии сети оплачиваются отправителем.</li>
+      </ul>
+
+      <div class="banner" style="margin-top:10px">
+        <div class="label">Ваш кошелёк OSP</div>
+        <div class="addr-row" style="margin-top:6px">
+          <code id="user-osp" class="address">{{ user_wallet_osp.address|default:"—" }}</code>
+          <button class="btn copy" data-copy="#user-osp" type="button">Скопировать</button>
+        </div>
+      </div>
+
+      <a class="btn" style="margin-top:14px" href="{% url 'wallets' %}">Вернуться к кошелькам</a>
+    </aside>
+  </section>
+</div>
+
+<script>
+  // Ограничение до двух знаков после запятой и минимум 1
+  const amountEl = document.getElementById('amount');
+  if (amountEl){
+    amountEl.addEventListener('input', () => {
+      const v = amountEl.value;
+      if (!v) return;
+      const parts = v.split('.');
+      if (parts[1] && parts[1].length > 2){
+        parts[1] = parts[1].slice(0,2);
+        amountEl.value = parts.join('.');
+      }
+      if (parseFloat(amountEl.value || 0) < 1){ amountEl.value = '1.00'; }
+    });
+  }
+
+  // Пресеты — выставляют сумму в поле
+  for (const btn of document.querySelectorAll('[data-set-amount]')){
+    btn.addEventListener('click', () => {
+      const val = btn.getAttribute('data-set-amount');
+      if (amountEl){ amountEl.value = val; amountEl.dispatchEvent(new Event('input')); }
+    });
+  }
+
+  // Копирование адресов
+  for (const btn of document.querySelectorAll('[data-copy]')) {
+    btn.addEventListener('click', () => {
+      const el = document.querySelector(btn.dataset.copy);
+      if (!el) return;
+      navigator.clipboard.writeText(el.textContent.trim());
+      btn.classList.add('copied');
+      setTimeout(() => btn.classList.remove('copied'), 1200);
+    });
+  }
+</script>
+{% endblock %}

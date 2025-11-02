@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <title>{{ product.title }} — читать</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    /* берём палитру и типографику из view_text_product.css */
+    :root{ --bg:#0a0a0a; --line:#242424; --text:#f2f2f2; --muted:#a8a8b3; --gold:#d4af37; }
+    html,body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,Segoe UI,Arial}
+    .progress{position:fixed;top:0;left:0;height:3px;background:linear-gradient(90deg,var(--gold),#ffd27a);width:0;z-index:9}
+    .wrap{max-width:980px;margin:0 auto;padding:60px 16px 80px}
+    .toolbar{position:sticky;top:6px;display:flex;gap:8px;align-items:center;justify-content:space-between;margin-bottom:14px;background:rgba(10,10,10,.75);backdrop-filter:saturate(1.2) blur(6px);padding:10px 12px;border:1px solid var(--line);border-radius:12px}
+    .title{font-weight:900;color:var(--gold)}
+    .btn{display:inline-flex;align-items:center;gap:8px;padding:8px 12px;border:1px solid var(--line);border-radius:10px;background:#111;color:#eee;cursor:pointer}
+    .btn:hover{background:#151515}
+    .page{background:linear-gradient(180deg,#121212,#0f0f0f);border:1px solid var(--line);border-radius:16px;box-shadow:0 10px 30px rgba(0,0,0,.45);
+           padding:28px; font-size:1.05rem; line-height:1.85; letter-spacing:.1px}
+    .muted{color:var(--muted)}
+  </style>
+</head>
+<body>
+<div class="progress" id="prog"></div>
+
+<div class="wrap">
+  <div class="toolbar">
+    <div class="title">{{ product.title }}</div>
+    <div style="display:flex;gap:8px;align-items:center">
+      <button class="btn" id="prev">← Пред</button>
+      <div class="muted"><span id="cur">{{ start_page }}</span> / <span id="total">{{ pages|length }}</span></div>
+      <button class="btn" id="next">След →</button>
+      <button class="btn" id="toc">Оглавление</button>
+      <button class="btn" id="close" onclick="history.back()">Закрыть</button>
+    </div>
+  </div>
+
+  <div class="page" id="page"></div>
+
+  <div style="margin-top:16px" class="muted">Совет: стрелки клавиатуры листают страницы; мы запоминаем вашу позицию чтения.</div>
+</div>
+
+<script>
+  const pages = {{ pages|safe }};
+  const total = pages.length;
+  const totalEl = document.getElementById('total');
+  const curEl = document.getElementById('cur');
+  const pageEl = document.getElementById('page');
+  const prog = document.getElementById('prog');
+
+  totalEl.textContent = total;
+  const key = 'reader_'+{{ product.id }};
+  let idx = parseInt(sessionStorage.getItem(key) || '{{ start_page }}', 10);
+  if(isNaN(idx) || idx<1 || idx>total) idx = 1;
+
+  function render(){
+    curEl.textContent = idx;
+    pageEl.textContent = ''; // очистка
+    // безопасный вывод как текст; при желании можно добавить простую разметку
+    pageEl.appendChild(document.createTextNode(pages[idx-1] || ''));
+    const p = Math.round((idx/Math.max(1,total))*100);
+    prog.style.width = p+'%';
+    sessionStorage.setItem(key, String(idx));
+    // прокрутка к началу страницы
+    window.scrollTo({top:0, behavior:'instant'});
+  }
+
+  function next(){ if(idx<total){ idx++; render(); } }
+  function prev(){ if(idx>1){ idx--; render(); } }
+
+  document.getElementById('next').onclick = next;
+  document.getElementById('prev').onclick = prev;
+  window.addEventListener('keydown', (e)=> {
+    if(e.key==='ArrowRight') next();
+    if(e.key==='ArrowLeft')  prev();
+  });
+  document.getElementById('toc').onclick = () => {
+    const items = pages.map((_,i)=> `${i+1}`).join(', ');
+    alert('Страницы: '+items+'\nПерейдите стрелками или кнопками.');
+  };
+
+  render();
+</script>
+</body>
+</html>

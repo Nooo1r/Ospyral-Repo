@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="rf-wrap">
+  <div class="rf-head">
+    <h1 class="rf-title">Заявка отправлена</h1>
+    <p class="rf-sub">Мы получили ваш запрос на возврат. Модератор рассмотрит его в ближайшее время.</p>
+  </div>
+
+  <div class="rf-card" style="padding:12px">
+    <div class="meta">
+      <div class="id">ID диспута: #{{ dispute.id }}</div>
+      <div class="muted">ID заказа: #{{ order_id }} · Статус: {{ dispute.get_status_display|default:dispute.status }}</div>
+    </div>
+  </div>
+
+  <div style="margin-top:16px">
+    <a class="btn btn-primary" href="{% url 'dashboard' %}">На главную</a>
+  </div>
+</div>
+{% endblock %}

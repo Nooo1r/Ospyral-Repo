@@ -2,21 +2,60 @@
 {% load static %}
 
 {% block content %}
-  <h1>Модерация: Текстовые продукты</h1>
-  {% if products %}
-    <ul>
-      {% for p in products %}
-        <li>
-          <strong>{{ p.title }}</strong> ({{ p.owner.username }})
-          [<a href="{% url 'users_admin:text_product_detail' p.id %}">Смотреть</a>]
-          &nbsp;|&nbsp;
-          <a href="{% url 'users_admin:approve_text_product' p.id %}">Одобрить</a>
-          &nbsp;|&nbsp;
-          <a href="{% url 'users_admin:reject_text_product' p.id %}">Отклонить</a>
-        </li>
-      {% endfor %}
-    </ul>
-  {% else %}
-    <p>Нет текстовых продуктов на рассмотрении.</p>
-  {% endif %}
+<h2>Модерация — Текстовые продукты</h2>
+
+{% include "admin/_config_banner.html" %}
+{% include "admin/_filters_form.html" %}
+
+<div class="list">
+  {% for p in page_obj.object_list %}
+    <div class="card p-3" style="display:grid;grid-template-columns:1fr auto;gap:8px">
+      <div>
+        <div class="text-sm text-muted">ID: {{ p.id }} • Автор: {{ p.owner.username }} ({{ p.owner.email }})</div>
+        <div class="fw-bold">{{ p.title }}</div>
+        <div class="text-muted ellipsis-2">{{ p.description }}</div>
+        <div class="mt-1">
+        {% with st=p.status|default:"pending" %}
+          <span class="badge bg-{% if st|lower == 'approved' %}success{% elif st|lower == 'rejected' %}danger{% else %}warning{% endif %}">
+            {{ st|title }}
+          </span>
+        {% endwith %}
+          {% include "admin/_escrow_badge.html" with product=p %}
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;align-items:start">
+        <a class="btn btn-sm btn-outline-primary" href="{% url 'users_admin:text_product_detail' p.id %}">Детали</a>
+
+        <form action="{% url 'users_admin:approve_text_product' p.id %}" method="post" style="display:inline">
+          {% csrf_token %}
+          {# если хочешь одобрять прямо со списка, можно проставить дефолтные метрики #}
+          <input type="hidden" name="quality" value="{{ p.quality|default_if_none:'80' }}">
+          <input type="hidden" name="uniqueness" value="{{ p.uniqueness|default_if_none:'80' }}">
+          <input type="hidden" name="spelling" value="{{ p.spelling|default_if_none:'80' }}">
+          <input type="hidden" name="q" value="{{ q }}">
+          <input type="hidden" name="owner" value="{{ owner }}">
+          <input type="hidden" name="status" value="{{ status|default:'pending' }}">
+          <input type="hidden" name="currency" value="{{ currency }}">
+          <button type="submit" class="btn btn-sm btn-success">Одобрить</button>
+        </form>
+
+        <a class="btn btn-sm btn-danger" href="{% url 'users_admin:reject_text_product' p.id %}">Отклонить</a>
+      </div>
+    </div>
+  {% empty %}
+    <div class="alert alert-info">Ничего не найдено.</div>
+  {% endfor %}
+</div>
+
+<nav class="mt-3">
+  <ul class="pagination">
+    {% if page_obj.has_previous %}
+      <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}&q={{ q }}&owner={{ owner }}&status={{ status }}&currency={{ currency }}">Назад</a></li>
+    {% endif %}
+    <li class="page-item disabled"><span class="page-link">Стр. {{ page_obj.number }} из {{ page_obj.paginator.num_pages }}</span></li>
+    {% if page_obj.has_next %}
+      <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}&q={{ q }}&owner={{ owner }}&status={{ status }}&currency={{ currency }}">Вперёд</a></li>
+    {% endif %}
+  </ul>
+</nav>
 {% endblock %}

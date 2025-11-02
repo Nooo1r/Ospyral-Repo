@@ -1,499 +1,512 @@
+{% extends "base.html" %}
 {% load static %}
 
-<link rel="stylesheet" href="{% static 'css/artwork_pages.css' %}">
-
-{% if artwork.nsfw %}
-  <div style="background: #b91c1c; color: #fff; padding: 6px 12px; font-size: 0.9rem; margin-bottom: 16px; border-radius: 4px;">
-    Этот артворк помечен как NSFW. Необходимо добавить цензуру.
-  </div>
-{% endif %}
-
-
-{% block extra_css %}
-  <!-- Dropzone CSS (можно взять локально или CDN) -->
-  <link
-    rel="stylesheet"
-    href="https://unpkg.com/dropzone@5/dist/min/dropzone.min.css"
-  />
-
+{% block title %}Страницы — {{ artwork.title }}{% endblock %}
+{% block extra_head %}
+  <link rel="stylesheet" href="{% static 'css/artwork_pages.css' %}">
+  <link rel="stylesheet" href="https://unpkg.com/dropzone@5/dist/min/dropzone.min.css">
 {% endblock %}
+{% block body_class %}store-body{% endblock %}
 
 {% block content %}
-  <div class="container">
-    <h1>Загрузить страницы для «{{ artwork.title }}»</h1>
-    <p>
-      <a href="{% url 'artwork_detail' artwork.pk %}" class="btn btn-secondary">
-        Вернуться к деталям
-      </a>
-    </p>
+<div class="container app-content">
+  {% if artwork.nsfw %}
+    <div class="nsfw-banner">NSFW контент — обязательно нанесите цензуру.</div>
+  {% endif %}
 
-    <!-- ===== Dropzone-форма для загрузки страниц ===== -->
-    <form
-      id="dropzone-form"
-      class="dropzone"
-      action="{% url 'create_artwork_page' artwork.pk %}"
-      method="post"
-      enctype="multipart/form-data"
-    >
-      {% csrf_token %}
-      <div class="dz-message">
-        Перетащите сюда файлы или кликните для выбора<br>
-        <span class="note">(JPEG, PNG; макс. 5 МБ)</span>
-      </div>
-    </form>
+  <h1>Загрузить страницы для «{{ artwork.title }}»</h1>
+  <p>
+    <a href="{% url 'artwork_detail' artwork.pk %}" class="btn btn-secondary">Вернуться к деталям</a>
+  </p>
+  <div class="actions" style="margin-top:2px;margin-left:0px;display:flex;gap:12px;align-items:center;">
+    <button id="continue-btn" class="btn btn-primary" {% if existing_pages %}{% else %}disabled{% endif %}>Продолжить</button>
+    <span id="continue-hint" class="muted">
+      {% if existing_pages %}{% else %}Добавьте хотя бы одну страницу, чтобы продолжить{% endif %}
+    </span>
+  </div>
 
-    <div id="image-limit-warning" class="text-danger mt-2" style="display: none;">
-      ⚠️ Вы не можете загрузить более 10 страниц. Удалите лишние для продолжения.
+  <!-- Dropzone -->
+  <form id="dropzone-form"
+        class="dropzone"
+        action="{% url 'create_artwork_page' artwork.pk %}"
+        method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    <div class="dz-message">
+      Перетащите сюда файлы или кликните для выбора<br><span class="note">(JPEG/PNG; до 5 МБ; максимум 10 страниц)</span>
     </div>
+  </form>
+  <div id="upload-progress" class="upload-progress" hidden>
+    <div class="bar"></div>
+    <span class="label">0%</span>
+  </div>
+  <div id="image-limit-warning" class="limit-warn" hidden>
+    ⚠️ Нельзя загрузить более 10 страниц. Удалите лишние.
+  </div>
 
-    <!-- ===== Контейнер для миниатюр уже загруженных страниц ===== -->
-    <div id="thumbnails">
-      {% for page in existing_pages %}
-        <div class="thumb" data-page-id="{{ page.id }}">
-          {# Показываем либо цензурную версию, если есть, либо оригинал #}
-          <img
-            src="{% if page.censored_image %}{{ page.censored_image.url }}{% else %}{{ page.image.url }}{% endif %}"
-            alt="Страница {{ page.order }}"
-            class="thumb-img"
-          />
-          <div class="thumb-controls">
-            <button class="btn-censor">Цензура</button>
-            <button class="btn-delete">Удалить</button>
-          </div>
+  <!-- Миниатюры -->
+  <div id="thumbnails">
+    {% for page in existing_pages %}
+      <div class="thumb" data-page-id="{{ page.id }}">
+        <img class="thumb-img"
+             src="{% if page.censored_image %}{{ page.censored_image.url }}{% else %}{{ page.image.url }}{% endif %}"
+             alt="Страница {{ page.order }}">
+        <div class="thumb-controls">
+          <button class="btn-censor" type="button">Цензура</button>
+          <button class="btn-delete" type="button">Удалить</button>
         </div>
-      {% endfor %}
+        {% if page.censored_image %}<span class="mark mark-cens">CENSORED</span>{% endif %}
+      </div>
+    {% endfor %}
+  </div>
+</div>
+
+
+<!-- Модалка цензуры -->
+<div id="censor-modal" class="osp-modal" hidden>
+  <div class="osp-modal-content">
+    <h2>Цензурировать страницу</h2>
+
+    <label for="brush-type">Тип кисти:</label>
+    <select id="brush-type">
+      <option value="pixel">Размытие</option>
+      <option value="blur">Затмение</option>
+    </select>
+
+    <div id="canvas-container">
+      <canvas id="censor-canvas"></canvas>
+      <canvas id="overlay-canvas"></canvas>
+    </div>
+
+    <div class="modal-actions">
+      <button id="undo-censor" class="btn btn-warning" type="button">Отмена действия</button>
+      <button id="save-censor" class="btn btn-success" type="button">Сохранить</button>
+      <button id="cancel-censor" class="btn btn-secondary" type="button">Закрыть</button>
     </div>
   </div>
+</div>
 
-  <!-- ======= Модальное окно цензуры ======= -->
-  <div id="censor-modal" class="modal" hidden>
-    <div class="modal-content">
-      <h2>Цензурировать страницу</h2>
-      <label for="brush-type">Тип кисти:</label>
-      <select id="brush-type">
-        <option value="pixel">Размытие</option>
-        <option value="blur">Затменение</option>
-      </select>
-      <div id="canvas-container" style="position: relative; display: inline-block;">
-        <!-- Основной канвас для отображения изображения и нанесения цензуры -->
-        <canvas id="censor-canvas"></canvas>
-        <!-- Overlay-канвас для рисования рамки выделения -->
-        <canvas id="overlay-canvas"
-                style="position: absolute; top: 0; left: 0; pointer-events: none;">
-        </canvas>
-      </div>
-
-
-      <div class="modal-controls" style="margin-top: 10px;">
-        <button id="undo-censor" class="btn btn-warning">Отмена действия</button>
-        <button id="save-censor" class="btn btn-success">Сохранить</button>
-        <button id="cancel-censor" class="btn btn-secondary">Отмена</button>
-      </div>
-    </div>
-  </div>
-{% endblock %}
-
-{% block extra_js %}
 <script src="https://unpkg.com/dropzone@5/dist/min/dropzone.min.js"></script>
 <script>
 Dropzone.autoDiscover = false;
 
 document.addEventListener('DOMContentLoaded', () => {
-  // ---------- Переменные и элементы страницы ----------
   const dropzoneForm  = document.getElementById('dropzone-form');
   const thumbnailsDiv = document.getElementById('thumbnails');
   const csrfToken     = document.querySelector('input[name="csrfmiddlewaretoken"]').value;
   const artworkId     = "{{ artwork.pk }}";
 
-  // ----- Элементы модальной цензуры -----
-  const modal       = document.getElementById('censor-modal');
-  const cancelBtn   = document.getElementById('cancel-censor');
-  const saveBtn     = document.getElementById('save-censor');
-  const undoBtn     = document.getElementById('undo-censor');
-  const brushType   = document.getElementById('brush-type');
+  // --- Прогресс-бар (должны быть элементы #upload-progress .bar .label)
+  const barWrap = document.getElementById('upload-progress');
+  const bar     = barWrap ? barWrap.querySelector('.bar')   : null;
+  const label   = barWrap ? barWrap.querySelector('.label') : null;
+  const showProgress = (p) => {
+    if (!barWrap) return;
+    barWrap.hidden = false;
+    if (bar)   bar.style.width = `${p}%`;
+    if (label) label.textContent = `${Math.round(p)}%`;
+    if (p >= 100) setTimeout(()=>{ barWrap.hidden = true; if(bar){bar.style.width='0%';} if(label){label.textContent='0%';} }, 500);
+  };
 
-  // Здесь — оба канваса внутри #canvas-container
-  const canvas      = document.getElementById('censor-canvas');
-  const overlay     = document.getElementById('overlay-canvas');
+  const continueBtn  = document.getElementById('continue-btn');
+  const continueHint = document.getElementById('continue-hint');
 
-  // Контекст для рисования цензуры
-  let ctx;  
-  // Контекст для overlay (рамки выделения)
-  let overlayCtx;
+  function countThumbs() {
+    return document.querySelectorAll('#thumbnails .thumb').length;
+  }
+  function setContinueState({busy}) {
+    const hasPages = countThumbs() > 0;
+    const disabled = !hasPages || !!busy;
+    if (continueBtn) continueBtn.disabled = disabled;
+    if (continueHint) {
+      continueHint.textContent = !hasPages
+        ? 'Добавьте хотя бы одну страницу, чтобы продолжить'
+        : (busy ? 'Дождитесь окончания загрузки…' : '');
+    }
+  }
+  if (continueBtn) {
+    continueBtn.addEventListener('click', () => {
+      // на всякий случай дублирующая проверка на клиенте
+      if (continueBtn.disabled) return;
+      window.location.href = "{% url 'artwork_detail' artwork.pk %}";
+    });
+  }
 
-  // Для хранения «чистого» оригинала (offscreen-канвас)
-  let offCanvas, offCtx;
+  // --- Модалка цензуры и инструменты
+  const modal     = document.getElementById('censor-modal');
+  const cancelBtn = document.getElementById('cancel-censor');
+  const saveBtn   = document.getElementById('save-censor');
+  const undoBtn   = document.getElementById('undo-censor');
+  const brushType = document.getElementById('brush-type');
+  const brushSizeEl = document.getElementById('brush-size'); // <input type="range"> (необяз., но поддержан)
+  let brushSize = brushSizeEl ? (Number(brushSizeEl.value)||28) : 28;
 
-  // Флаги и координаты выделения
-  let isSelecting = false;
-  let startX = 0, startY = 0;
-  let currentBrush = 'pixel'; // 'pixel' = размытие, 'blur' = затемнение
-  let undoStack = [];
+  const canvas  = document.getElementById('censor-canvas');
+  const overlay = document.getElementById('overlay-canvas');
+
+  function dpr(){ 
+    const cssW = parseFloat(canvas.style.width || canvas.width);
+    return cssW ? (canvas.width / cssW) : (window.devicePixelRatio || 1);
+  }
+  // логический (CSS) размер канваса
+  function logicalSize(){
+    return {
+      w: parseFloat(canvas.style.width)  || canvas.width  / dpr(),
+      h: parseFloat(canvas.style.height) || canvas.height / dpr()
+    };
+  }
+
+
+  canvas.addEventListener('contextmenu', e => e.preventDefault());
+  overlay.addEventListener('contextmenu', e => e.preventDefault());
+
+  // Координаты считаем от overlay (на нём рисуем пунктир)
+  function getPos(e){
+    const r = overlay.getBoundingClientRect();
+    return { x: e.clientX - r.left, y: e.clientY - r.top };
+  }
+
+  // Чистка overlay с учётом HiDPI (сбросим трансформацию)
+  function clearOverlay(){
+    if (!overlayCtx) return;
+    overlayCtx.save();
+    overlayCtx.setTransform(1,0,0,1,0,0);
+    overlayCtx.clearRect(0, 0, overlay.width, overlay.height);
+    overlayCtx.restore();
+  }
+
+  function isLeftButton(e){ return (e.buttons ? (e.buttons & 1) === 1 : e.button === 0); }
+
+
+  let ctx, overlayCtx, offCanvas, offCtx;
+  let isSelecting = false, startX = 0, startY = 0, undoStack = [];
+  let currentBrush = 'pixel';
   let activePageId = null;
-  let uploadedCount = parseInt(dropzoneForm.dataset.existing || "0");
 
+  function lockBody(lock){ document.documentElement.style.overflow = lock ? 'hidden' : ''; }
 
-  // ---------- Функция закрытия модалки ----------
-  function closeModal() {
-    modal.hidden = true;
-    // Снимаем слушатели, связанные с выбором прямоугольника
-    canvas.removeEventListener('mousedown', startSelect);
-    canvas.removeEventListener('mousemove', updateSelection);
-    canvas.removeEventListener('mouseup', finishSelect);
-    // Сбрасываем контексты
-    ctx = null;
-    offCtx = null;
-    overlayCtx = null;
+  function setupHiDPI(c, w, h){
+    const ratio = Math.max(window.devicePixelRatio || 1, 1);
+    c.width  = Math.floor(w * ratio);
+    c.height = Math.floor(h * ratio);
+    c.style.width  = w + 'px';
+    c.style.height = h + 'px';
+    const cctx = c.getContext('2d');
+    cctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+    return cctx;
   }
 
-  // ---------- Инициализация Dropzone с кнопками удаления ----------
-const myDropzone = new Dropzone(dropzoneForm, {
-  url: `/artwork/${artworkId}/pages/create/`,
-  paramName: 'image',
-  maxFilesize: 5,
-  acceptedFiles: '.jpg,.jpeg,.png',
-  headers: { 'X-CSRFToken': csrfToken },
-  dictDefaultMessage: 'Перетащите изображение сюда или кликните для выбора',
-  addRemoveLinks: true,
-  dictRemoveFile: 'Удалить',
-  init: function() {
-    const dz = this;
-    const warning = document.getElementById("image-limit-warning");
-    let uploadedCount = document.querySelectorAll('.thumb').length;
+  const myDropzone = new Dropzone(dropzoneForm, {
+    url: `/artwork/${artworkId}/pages/create/`,
+    paramName: 'image',
+    maxFilesize: 5,
+    acceptedFiles: '.jpg,.jpeg,.png',
+    headers: { 'X-CSRFToken': csrfToken },
+    dictDefaultMessage: 'Перетащите изображение сюда или кликните для выбора',
+    addRemoveLinks: true,
+    dictRemoveFile: 'Удалить',
+    parallelUploads: 2,
+    uploadMultiple: false,
+    maxFiles: 10,
+    init: function () {
+      const dz = this;
+      const warn = document.getElementById('image-limit-warning');
+      let uploadedCount = document.querySelectorAll('.thumb').length;
 
-    dz.on('addedfile', (file) => {
-      if (uploadedCount >= 10) {
-        dz.removeFile(file);
-        if (warning) warning.style.display = "block";
-        return;
-      }
-      if (warning) warning.style.display = "none";
-    });
+      dz.on('addedfile', (file) => {
+        if (uploadedCount >= 10) { dz.removeFile(file); if(warn) warn.hidden = false; return; }
+        if(warn) warn.hidden = true;
+      });
 
-    dz.on('success', (file, response) => {
-      if (response.success) {
-        file.pageId = response.page_id;
-        uploadedCount++;
-        addThumbnail(response.page_id, response.url);
-        if (uploadedCount >= 10 && warning) warning.style.display = "block";
-      } else {
-        console.error('Ошибка при загрузке страницы:', response);
-        dz.removeFile(file);
-      }
-    });
+      dz.on('uploadprogress', (_file, progress) => showProgress(progress));
 
-    dz.on('error', (file, errMsg) => {
-      console.error('Dropzone error:', errMsg);
-    });
+      dz.on('success', (file, response) => {
+        if (response?.success) {
+          file.pageId = response.page_id;
+          uploadedCount++;
+          addThumbnail(response.page_id, response.url);
+          if(warn) warn.hidden = uploadedCount < 10;
+        } else {
+          dz.removeFile(file);
+        }
+      });
 
-    dz.on('removedfile', (file) => {
-      if (file.pageId) {
+      dz.on('removedfile', (file) => {
+        if (!file.pageId) return;
+        if (!confirm('Удалить эту страницу?')) return;
         fetch(`/artwork/pages/${file.pageId}/delete/`, {
-          method: 'POST',
-          headers: { 'X-CSRFToken': csrfToken }
-        })
-        .then(res => res.json())
-        .then(data => {
+          method: 'POST', headers: { 'X-CSRFToken': csrfToken }
+        }).then(r => r.json()).then(data => {
           if (data.success) {
-            const thumbDiv = document.querySelector(`.thumb[data-page-id="${file.pageId}"]`);
-            if (thumbDiv) thumbDiv.remove();
-            uploadedCount--;
-            if (uploadedCount < 10 && warning) warning.style.display = "none";
-          } else {
-            console.error('Ошибка при удалении страницы на сервере');
+            const t = document.querySelector(`.thumb[data-page-id="${file.pageId}"]`);
+            if (t) t.remove();
+            uploadedCount = Math.max(0, uploadedCount - 1);
+            if(warn) warn.hidden = uploadedCount < 10;
           }
-        })
-        .catch(err => console.error(err));
-      }
-    });
-  }
-});
-
-  // ---------- Функция добавления миниатюры ----------
-  function addThumbnail(pageId, imageUrl) {
-    const div = document.createElement('div');
-    div.classList.add('thumb');
-    div.dataset.pageId = pageId;
-    div.innerHTML = `
-      <img src="${imageUrl}" alt="Страница" class="thumb-img" />
-      <div class="thumb-controls">
-        <button class="btn-censor">Цензура</button>
-        <button class="btn-delete">Удалить</button>
-      </div>
-    `;
-    thumbnailsDiv.prepend(div);
-
-    const censorBtn = div.querySelector('.btn-censor');
-    const deleteBtn = div.querySelector('.btn-delete');
-
-    censorBtn.addEventListener('click', () => {
-      activePageId = pageId;
-      const imgEl = div.querySelector('img.thumb-img');
-      openModal(imgEl.src);
-    });
-
-    deleteBtn.addEventListener('click', () => {
-      fetch(`/artwork/pages/${pageId}/delete/`, {
-        method: 'POST',
-        headers: { 'X-CSRFToken': csrfToken }
-      })
-      .then(res => res.json())
-      .then(data => {
-        if (data.success) {
-          div.remove();
-          myDropzone.files.forEach(file => {
-            if (file.pageId === pageId) {
-              myDropzone.removeFile(file);
-            }
-          });
-        } else {
-          alert('Ошибка при удалении страницы');
-        }
-      })
-      .catch(err => {
-        console.error(err);
-        alert('Сетевая ошибка при удалении');
+        });
       });
-    });
-  }
 
-  // ---------- Инициализация существующих миниатюр ----------
-  document.querySelectorAll('#thumbnails .thumb').forEach(div => {
-    const pageId = div.dataset.pageId;
-    const imgEl = div.querySelector('img.thumb-img');
-    const censorBtn = div.querySelector('.btn-censor');
-    const deleteBtn = div.querySelector('.btn-delete');
-
-    censorBtn.addEventListener('click', () => {
-      activePageId = pageId;
-      openModal(imgEl.src);
-    });
-
-    deleteBtn.addEventListener('click', () => {
-      fetch(`/artwork/pages/${pageId}/delete/`, {
-        method: 'POST',
-        headers: { 'X-CSRFToken': csrfToken }
-      })
-      .then(res => res.json())
-      .then(data => {
-        if (data.success) {
-          div.remove();
-          myDropzone.files.forEach(file => {
-            if (file.pageId === pageId) {
-              myDropzone.removeFile(file);
-            }
-          });
-        } else {
-          alert('Ошибка при удалении страницы');
-        }
-      })
-      .catch(err => {
-        console.error(err);
-        alert('Сетевая ошибка при удалении');
-      });
-    });
+      dz.on('error', (_file, msg) => alert(typeof msg === 'string' ? msg : 'Ошибка загрузки.'));
+    }
   });
 
-  // ---------- Открытие модального окна цензуры ----------
-  function openModal(imageUrl) {
-    modal.hidden = false;
+  setContinueState({busy:false});
 
-    const img = new Image();
-    img.crossOrigin = "anonymous";
-    img.src = imageUrl;
-    img.onload = () => {
+  myDropzone.on('addedfile', () => setContinueState({busy:true}));
+  myDropzone.on('sending',    () => setContinueState({busy:true}));
+  myDropzone.on('queuecomplete', () => setContinueState({busy:false}));
+  myDropzone.on('success',    () => setContinueState({busy: myDropzone.getQueuedFiles().length || myDropzone.getUploadingFiles().length}));
+  myDropzone.on('removedfile',() => setContinueState({busy: myDropzone.getQueuedFiles().length || myDropzone.getUploadingFiles().length}));
 
-      const maxWidth = Math.min(window.innerWidth * 0.98, 1400);
-      const maxHeight = Math.min(window.innerHeight * 0.88, 900);
+  // предупреждение при попытке уйти со страницы во время загрузки
+  window.addEventListener('beforeunload', (e) => {
+    const busy = myDropzone.getQueuedFiles().length || myDropzone.getUploadingFiles().length;
+    if (busy) {
+      e.preventDefault();
+      e.returnValue = '';
+    }
+  });
 
-      let scale = Math.min(maxWidth / img.width, maxHeight / img.height, 1);
-      let w = img.width * scale;
-      let h = img.height * scale;
+  function addThumbnail(pageId, imageUrl){
+    const div = document.createElement('div');
+    div.className = 'thumb';
+    div.dataset.pageId = pageId;
+    div.innerHTML = `
+      <img src="${imageUrl}" class="thumb-img" alt="Страница">
+      <div class="thumb-controls">
+        <button class="btn-censor" type="button">Цензура</button>
+        <button class="btn-delete" type="button">Удалить</button>
+      </div>`;
+    thumbnailsDiv.prepend(div);
+    bindThumb(div);
+  }
 
+  // существующие миниатюры
+  document.querySelectorAll('#thumbnails .thumb').forEach(bindThumb);
 
-      // Устанавливаем размер канваса под размер изображения
-      canvas.width = w;
-      canvas.height = h;
-      overlay.width = w;
-      overlay.height = h;
-      canvas.style.width = w + "px";
-      canvas.style.height = h + "px";
-      overlay.style.width = w + "px";
-      overlay.style.height = h + "px";
+  function bindThumb(div){
+    const pageId = div.dataset.pageId;
+    const imgEl  = div.querySelector('img.thumb-img');
 
-      // Создаём offscreen-канвас (чтобы сохранить оригинал)
-      offCanvas = document.createElement('canvas');
-      offCanvas.width = w;
-      offCanvas.height = h;
-      offCtx = offCanvas.getContext('2d');
-      offCtx.drawImage(img, 0, 0, w, h);
+    div.querySelector('.btn-censor').addEventListener('click', () => {
+      activePageId = pageId; openModal(imgEl.src);
+    });
 
-      // Основной ctx — для итогового изображения с цензурой
-      ctx = canvas.getContext('2d');
-      ctx.clearRect(0, 0, w, h);
-      ctx.drawImage(img, 0, 0, w, h);
-
-      // Контекст overlay’а — для рисования рамки выделения
-      overlayCtx = overlay.getContext('2d');
-      overlayCtx.clearRect(0, 0, w, h);
-
-      // Сохраняем первый кадр (исходник) в undoStack
-      undoStack = [canvas.toDataURL()];
-
-      // Навешиваем слушатели
-      canvas.addEventListener('mousedown', startSelect);
-      canvas.addEventListener('mousemove', updateSelection);
-      canvas.addEventListener('mouseup', finishSelect);
-    };
-
-    brushType.addEventListener('change', () => {
-      currentBrush = brushType.value;
+    div.querySelector('.btn-delete').addEventListener('click', () => {
+      if (!confirm('Удалить эту страницу?')) return;
+      fetch(`/artwork/pages/${pageId}/delete/`, {
+        method:'POST', headers: { 'X-CSRFToken': csrfToken }
+      }).then(r=>r.json()).then(data=>{
+        if (data.success) div.remove();
+      });
     });
   }
 
-  // ---------- Начало выделения (mousedown) ----------
-  function startSelect(e) {
+  function openModal(imageUrl){
+    if (!modal) return;
+    modal.hidden = false; lockBody(true);
+
+    const img = new Image(); img.crossOrigin = "anonymous"; img.src = imageUrl;
+    img.onload = () => {
+      const maxW = Math.min(window.innerWidth * .98, 1400);
+      const maxH = Math.min(window.innerHeight * .88, 900);
+      const scale = Math.min(maxW / img.width, maxH / img.height, 1);
+
+
+      const w = Math.floor(img.width * scale), h = Math.floor(img.height * scale);
+
+      const container = document.getElementById('canvas-container');
+      if (container){
+        container.style.width  = w + 'px';
+        container.style.height = h + 'px';
+      }
+
+      ctx        = setupHiDPI(canvas,  w, h);
+      overlayCtx = setupHiDPI(overlay, w, h);
+
+      offCanvas = document.createElement('canvas'); offCanvas.width=w; offCanvas.height=h;
+      offCtx = offCanvas.getContext('2d'); offCtx.drawImage(img,0,0,w,h);
+
+      ctx.clearRect(0,0,w,h); ctx.drawImage(img,0,0,w,h);
+      overlayCtx.clearRect(0,0,w,h);
+
+      undoStack = [canvas.toDataURL()];
+      canvas.addEventListener('mousedown', startSelect);
+      canvas.addEventListener('mousemove', updateSelection);
+      canvas.addEventListener('mouseup',   finishSelect);
+    };
+
+    // Текущий инструмент
+    currentBrush = brushType ? brushType.value : 'pixel';
+    if (brushType) brushType.addEventListener('change', ()=> currentBrush = brushType.value);
+    if (brushSizeEl) brushSizeEl.addEventListener('input', ()=> { brushSize = Number(brushSizeEl.value)||28; });
+
+    // Esc закрывает модалку
+    document.addEventListener('keydown', escHandler);
+  }
+
+  function escHandler(e){ if (e.key === 'Escape' && !modal.hidden) closeModal(); }
+
+  function closeModal(){
+    if (!modal) return;
+    modal.hidden = true; lockBody(false);
+    canvas.removeEventListener('mousedown', startSelect);
+    canvas.removeEventListener('mousemove', updateSelection);
+    canvas.removeEventListener('mouseup',   finishSelect);
+    document.removeEventListener('keydown', escHandler);
+    ctx=overlayCtx=offCtx=null;
+  }
+
+  function startSelect(e){
+    if (!isLeftButton(e)) return;
+    e.preventDefault();
     isSelecting = true;
-    const rect = canvas.getBoundingClientRect();
-    startX = Math.floor(e.clientX - rect.left);
-    startY = Math.floor(e.clientY - rect.top);
+    const p = getPos(e);
+    startX = p.x; startY = p.y;
   }
 
-  // ---------- Обновление рамки выделения (mousemove) ----------
-  function updateSelection(e) {
-    if (!isSelecting) return;
+  function updateSelection(e){
+    if(!isSelecting) return;
+    const p  = getPos(e);
+    const x  = Math.min(startX, p.x), y = Math.min(startY, p.y);
+    const w  = Math.abs(p.x - startX), h = Math.abs(p.y - startY);
 
-    const rect = canvas.getBoundingClientRect();
-    const curX = Math.floor(e.clientX - rect.left);
-    const curY = Math.floor(e.clientY - rect.top);
-
-    // Вычисляем левый верхний угол и ширину/высоту прямоугольника
-    const x = Math.min(startX, curX);
-    const y = Math.min(startY, curY);
-    const width = Math.abs(curX - startX);
-    const height = Math.abs(curY - startY);
-
-    // Рисуем рамку на overlay
-    overlayCtx.clearRect(0, 0, overlay.width, overlay.height);
-    overlayCtx.strokeStyle = 'rgba(255, 255, 0, 0.8)'; // яркая жёлтая рамка
+    clearOverlay();
+    overlayCtx.setLineDash([6,4]);
     overlayCtx.lineWidth = 2;
-    overlayCtx.setLineDash([6, 4]); // штриховая линия (6px линия, 4px пробел)
-    overlayCtx.strokeRect(x + 0.5, y + 0.5, width, height);
-
-    // (опционально) Вы можете также заполнить область полупрозрачным цветом:
-    // overlayCtx.fillStyle = 'rgba(0, 0, 0, 0.2)';
-    // overlayCtx.fillRect(x, y, width, height);
+    overlayCtx.strokeStyle = 'rgba(255,255,0,.9)';
+    overlayCtx.strokeRect(x + .5, y + .5, w, h);
   }
 
-  // ---------- Окончание выделения (mouseup) и применение цензуры ----------
-  function finishSelect(e) {
-    if (!isSelecting) return;
+  function finishSelect(e){
+    if(!isSelecting) return; 
     isSelecting = false;
 
-    const rect = canvas.getBoundingClientRect();
-    const endX = Math.floor(e.clientX - rect.left);
-    const endY = Math.floor(e.clientY - rect.top);
+    const p2 = getPos(e);
+    let x = Math.min(startX, p2.x), y = Math.min(startY, p2.y);
+    let w = Math.abs(p2.x - startX), h = Math.abs(p2.y - startY);
+    if (w < 2 || h < 2) { clearOverlay(); return; }
 
-    // Вычисляем прямоугольник: верхний левый угол + ширину/высоту
-    let x = Math.min(startX, endX);
-    let y = Math.min(startY, endY);
-    let width  = Math.abs(endX - startX);
-    let height = Math.abs(endY - startY);
+    // Границы считаем в ЛОГИЧЕСКИХ (CSS) пикселях
+    const { w: W, h: H } = logicalSize();
+    x = Math.max(0, x); y = Math.max(0, y);
+    if (x + w > W) w = W - x;
+    if (y + h > H) h = H - y;
 
-    // Если область слишком мала, просто очищаем overlay и выходим
-    if (width < 2 || height < 2) {
-      overlayCtx.clearRect(0, 0, overlay.width, overlay.height);
-      return;
-    }
+    if(currentBrush === 'pixel'){ // размытие
+      // Берём с источника (canvas) в DEVICE-пикселях, поэтому домножаем на DPR
+      const scale = dpr();
+      const sx = Math.round(x * scale);
+      const sy = Math.round(y * scale);
+      const sw = Math.round(w * scale);
+      const sh = Math.round(h * scale);
 
-    // Защита от выхода за границы канваса
-    x = Math.max(0, x);
-    y = Math.max(0, y);
-    if (x + width > canvas.width)  width = canvas.width - x;
-    if (y + height > canvas.height) height = canvas.height - y;
-
-    // Применяем цензуру в области (x, y, width, height)
-    if (currentBrush === 'pixel') {
-      // ==== Размытие ====
-      // Создаём временный канвас размером width×height
-      const temp = document.createElement('canvas');
-      temp.width = width;
-      temp.height = height;
+      // temp такого же размера (device px), blur применяем к device-данным
+      const temp = document.createElement('canvas'); 
+      temp.width = sw; temp.height = sh;
       const tctx = temp.getContext('2d');
+      tctx.drawImage(canvas, sx, sy, sw, sh, 0, 0, sw, sh);
 
-      // Копируем из текущего изображения (canvas) нужную область
-      tctx.drawImage(canvas, x, y, width, height, 0, 0, width, height);
-
-      // Применяем blur-фильтр; радиус можно настроить (здесь = min(width, height)/10)
-      const blurRadius = Math.max(1, Math.floor(Math.min(width, height) / 10));
-      tctx.filter = `blur(${blurRadius}px)`;
+      const blur = Math.max(1, Math.floor(Math.min(sw, sh) / Math.max(6, Math.min(brushSize || 28, 120))));
+      tctx.filter = `blur(${blur}px)`;
       tctx.drawImage(temp, 0, 0);
 
-      // Рисуем обратно на основной canvas
-      ctx.drawImage(temp, 0, 0, width, height, x, y, width, height);
-    } else {
-      // ==== Затемнение ====
-      ctx.fillStyle = 'black';
-      ctx.fillRect(x, y, width, height);
+      // возвращаем на целевой контекст в ЛОГИЧЕСКИХ координатах (ctx уже масштабирован setTransform)
+      ctx.drawImage(temp, 0, 0, sw, sh, x, y, w, h);
+    } else { // затемнение (работает в логических координатах)
+      ctx.fillStyle = '#000';
+      ctx.fillRect(x, y, w, h);
     }
 
-    // Очищаем overlay (рамку выделения)
-    overlayCtx.clearRect(0, 0, overlay.width, overlay.height);
-
-    // Сохраняем текущее состояние (для Undo)
+    clearOverlay();
     undoStack.push(canvas.toDataURL());
   }
 
-  // ---------- Undo (Отмена последнего применения цензуры) ----------
-  undoBtn.addEventListener('click', () => {
-    if (undoStack.length <= 1) return;
-    undoStack.pop();
-    const prevData = undoStack[undoStack.length - 1];
-    const img = new Image();
-    img.src = prevData;
-    img.onload = () => {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      ctx.drawImage(img, 0, 0);
-    };
-  });
+  // --- D&D сортировка миниатюр ---
+  (function enableReorder(){
+    const grid = document.getElementById('thumbnails');
+    if (!grid) return;
 
-  // ---------- Кнопка «Отмена» (закрывает модалку без сохранения) ----------
-  cancelBtn.addEventListener('click', () => {
-    closeModal();
-  });
-
-  // ---------- Кнопка «Сохранить» (отправляет editedImage на сервер) ----------
-  saveBtn.addEventListener('click', () => {
-    const dataURL = canvas.toDataURL();
-    fetch(`/artwork/pages/${activePageId}/censor/`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-        'X-CSRFToken': csrfToken
-      },
-      body: `editedImage=${encodeURIComponent(dataURL)}`
-    })
-    .then(res => res.json())
-    .then(data => {
-      if (data.success) {
-        const thumbDiv = document.querySelector(`.thumb[data-page-id="${activePageId}"]`);
-        if (thumbDiv) {
-          const imgEl = thumbDiv.querySelector('img.thumb-img');
-          imgEl.src = data.url;
-        }
-      } else {
-        console.error('Ошибка при сохранении цензуры:', data.errors);
-      }
-      closeModal();
-    })
-    .catch(err => {
-      console.error(err);
-      closeModal();
+    let dragEl = null;
+    grid.addEventListener('dragstart', (e) => {
+      const t = e.target.closest('.thumb');
+      if (!t) return;
+      dragEl = t;
+      t.classList.add('dragging');
+      e.dataTransfer.effectAllowed = 'move';
     });
-  });
+
+    grid.addEventListener('dragend', (e) => {
+      const t = e.target.closest('.thumb');
+      if (t) t.classList.remove('dragging');
+      grid.querySelectorAll('.thumb').forEach(el => el.classList.remove('drop-target'));
+      dragEl = null;
+      saveOrder();
+    });
+
+    grid.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      const over = e.target.closest('.thumb');
+      if (!dragEl || !over || over === dragEl) return;
+      over.classList.add('drop-target');
+      const rect = over.getBoundingClientRect();
+      const before = (e.clientX - rect.left) / rect.width < 0.5;
+      grid.insertBefore(dragEl, before ? over : over.nextSibling);
+    });
+
+    grid.addEventListener('dragleave', (e) => {
+      const over = e.target.closest('.thumb');
+      if (over) over.classList.remove('drop-target');
+    });
+
+    function makeDraggable(el){ el.setAttribute('draggable','true'); }
+    document.querySelectorAll('#thumbnails .thumb').forEach(makeDraggable);
+
+    const origAddThumb = addThumbnail;
+    addThumbnail = function(pageId, imageUrl){
+      origAddThumb(pageId, imageUrl);
+      const el = document.querySelector(`#thumbnails .thumb[data-page-id="${pageId}"]`);
+      if (el) makeDraggable(el);
+    };
+
+    function saveOrder(){
+      const ids = [...grid.querySelectorAll('.thumb')].map(el => el.dataset.pageId);
+      fetch(`/artwork/${artworkId}/pages/reorder/`, {
+        method: 'POST',
+        headers: { 'Content-Type':'application/json', 'X-CSRFToken': csrfToken },
+        body: JSON.stringify({ order: ids })
+      }).catch(()=>{});
+    }
+  })();
+
+  // --- Undo, Cancel, Save для модалки ---
+  if (undoBtn) {
+    undoBtn.addEventListener('click', ()=>{
+      if(undoStack.length<=1) return;
+      undoStack.pop();
+      const img=new Image(); img.src=undoStack.at(-1);
+      img.onload=()=>{ ctx.clearRect(0,0,canvas.width,canvas.height); ctx.drawImage(img,0,0); };
+    });
+  }
+
+  if (cancelBtn) cancelBtn.addEventListener('click', closeModal);
+
+  if (saveBtn) {
+    saveBtn.addEventListener('click', ()=>{
+      const dataURL = canvas.toDataURL();
+      fetch(`/artwork/pages/${activePageId}/censor/`, {
+        method:'POST',
+        headers:{'Content-Type':'application/x-www-form-urlencoded','X-CSRFToken':csrfToken},
+        body: `editedImage=${encodeURIComponent(dataURL)}`
+      }).then(r=>r.json()).then(data=>{
+        if (data.success){
+          const t = document.querySelector(`.thumb[data-page-id="${activePageId}"] img.thumb-img`);
+          if(t) t.src = data.url;
+        }
+        closeModal();
+      }).catch(()=>closeModal());
+    });
+  }
 });
 </script>
+
 {% endblock %}
-
-
-

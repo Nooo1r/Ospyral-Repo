@@ -51,6 +51,21 @@ class CustomUserCreationForm(UserCreationForm):
         widget=forms.HiddenInput(),
         required=True
     )
+    
+    def clean_email(self):
+        email = self.cleaned_data.get("email", "") or ""
+        email = email.strip().lower()
+        if CustomUser.objects.filter(email=email).exists():
+            raise forms.ValidationError("Пользователь с таким email уже существует.")
+        return email
+
+    def save(self, commit=True):
+        user = super().save(commit=False)
+        user.email = self.cleaned_data["email"].strip().lower()
+        if commit:
+            user.save()
+        return user
+
 
 class EmailBackend(ModelBackend):
     def authenticate(self, request, username=None, password=None, **kwargs):
@@ -115,7 +130,7 @@ class ProfileEditForm(forms.ModelForm):
 
     class Meta:
         model = CustomUser
-        fields = ['username', 'email', 'profile_image']
+        fields = ['username', 'profile_image']
 
     def __init__(self, *args, **kwargs):
         super(ProfileEditForm, self).__init__(*args, **kwargs)
@@ -126,23 +141,39 @@ class ProfileEditForm(forms.ModelForm):
             self.fields['background_color'].initial = '#3498db'
 
     def save(self, commit=True):
-        # Сначала сохраняем объект пользователя
+        import re
         user = super(ProfileEditForm, self).save(commit=False)
-        # Получаем значение цвета из данных формы
-        background_color = self.cleaned_data.get('background_color', '#3498db')
+        background_color = (self.cleaned_data.get('background_color') or '').strip() or '#3498db'
 
         if commit:
             user.save()
-        
-        # Получаем или создаем профиль, связанный с пользователем
+
         profile, _ = Profile.objects.get_or_create(user=user)
+
         profile.background_color = background_color
+
         if commit:
             profile.save()
-        
+
         return user
 
 
+FIXED_COLORS = [
+    "#4086f7", "#f05522", "#f0224b", "#752938",
+    "#29752e", "#62bd68", "#8abfbb", "#bfb48a",
+    "#cc0e11", "#1d172b", "#806a76", "#cadbc8",
+]
+
+class ProfileThemeForm(forms.ModelForm):
+    bg_color = forms.ChoiceField(
+        choices=[(c, c) for c in FIXED_COLORS],
+        required=False,
+        widget=forms.RadioSelect
+    )
+
+    class Meta:
+        model = Profile
+        fields = ['bg_color']
 
 
 class TextProductForm(forms.ModelForm):
@@ -330,11 +361,22 @@ class ArtworkForm(forms.ModelForm):
         label="Теги",
         help_text="Введите до 10 тегов через #"
     )
+    
     price = forms.DecimalField(
-        max_digits=10, decimal_places=2,
-        validators=[MinValueValidator(0), MaxValueValidator(Decimal('10000000.00'))],
-        widget=forms.NumberInput(attrs={'min': '0', 'max': '10000000', 'step': '0.01'}),
-        label="Цена"
+        max_digits=10,
+        decimal_places=2,
+        widget=forms.NumberInput(attrs={
+            'class': 'input price-input',       # твой класс
+            'inputmode': 'decimal',
+            'step': '0.01',
+            'pattern': r'^\d{1,8}(\.\d{0,2})?$',
+            'maxlength': '11',
+            'placeholder': '0.00',
+            'min': '0',
+            'max': '10000000',
+        }),
+        label='Цена',
+        help_text='Только две цифры после точки (напр., 12.34)',
     )
 
     currency = forms.ChoiceField(
@@ -354,7 +396,21 @@ class ArtworkForm(forms.ModelForm):
 
     class Meta:
         model = Artwork
-        fields = ['title', 'available_copies', 'description', 'keywords', 'category', 'currency', 'price', 'original_image', 'nsfw']
+        fields = ['title', 'available_copies', 'description', 'keywords',
+                  'category', 'currency', 'price', 'original_image', 'nsfw']
+
+    def clean_original_image(self):
+        img = self.cleaned_data.get('original_image')
+        if not img:
+            return img
+        # лимит 10 МБ; при желании скорректируй
+        max_size = 10 * 1024 * 1024
+        if img.size > max_size:
+            raise ValidationError('Максимальный размер оригинала — 10 МБ.')
+        valid_mime = ('image/jpeg', 'image/png')
+        if getattr(img, 'content_type', None) not in valid_mime:
+            raise ValidationError('Оригинал должен быть JPEG или PNG.')
+        return img
 
     def clean_keywords(self):
         tags_str = self.cleaned_data.get('keywords', '')
@@ -465,3 +521,19 @@ class LessonForm(forms.ModelForm):
     class Meta:
         model = Lesson
         fields = ['title', 'description', 'price', 'start_date']
+
+class DisputeOpenForm(forms.Form):
+    order_type = forms.ChoiceField(choices=[('text', 'text'), ('art', 'art')])
+    order_id   = forms.IntegerField(min_value=1)
+    reason     = forms.CharField(
+        min_length=10,
+        max_length=399,
+        widget=forms.Textarea(attrs={'rows': 3, 'placeholder': 'Опишите проблему'})
+    )
+
+class ConfirmPurchaseForm(forms.Form):
+    agree = forms.BooleanField(
+        required=True,
+        label="Я подтверждаю покупку и согласен с Правилами и Политикой сайта"
+    )
+

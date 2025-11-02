@@ -12,47 +12,17 @@ import io
 from decimal import Decimal
 from django.core.exceptions import ValidationError
 from django.core.validators import MinValueValidator, MaxValueValidator
-from django.urls import reverse
-from django.shortcuts import redirect
+from django.db.models import Q, CheckConstraint
+
 import uuid
-import logging
 from django.db.models.signals import post_save
+
 from django.dispatch import receiver
 from django.core.validators import RegexValidator
-
-logger = logging.getLogger(__name__)
-
-from django.urls import reverse
-from django.shortcuts import redirect
-
+from datetime import timedelta
 
 HEX_66 = RegexValidator(r'^0x[a-fA-F0-9]{64}$', 'Ожидается 0x + 64 hex-символа.')
 
-class LoginRequiredMiddleware:
-    def __init__(self, get_response):
-        self.get_response = get_response
-
-    def __call__(self, request):
-        # Получаем URL-ы по их именам из urls.py
-        home_url = reverse('home')
-
-        # Логируем для отладки (по желанию)
-        logger.debug(f"REQUEST PATH: {request.path}")
-        logger.debug(f"HOME_URL: {home_url}")
-
-        # Если пользователь не авторизован...
-        if not request.user.is_authenticated:
-            # И при этом он зашёл не на главную страницу и не на статические или медиа файлы...
-            if (
-                request.path != home_url and not request.path.startswith('/static/') and not request.path.startswith('/media/')
-            ):
-                # Перенаправляем на страницу home, где будет модальное окно для входа
-                logger.debug("Redirecting non-authenticated user to home (login modal)...")
-                return redirect('home')
-
-        # Если пользователь авторизован ИЛИ URL в списке исключений — пропускаем запрос дальше
-        response = self.get_response(request)
-        return response
 
 class EmailVerification(models.Model):
     user = models.ForeignKey(
@@ -69,6 +39,7 @@ class EmailVerification(models.Model):
 
     def __str__(self):
         return f"{self.user.email} → {self.code}"
+
 
 class CustomUserManager(BaseUserManager):
     def create_user(self, email, username, password=None, **extra_fields):
@@ -109,15 +80,28 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
             return self.profile_image.url
         return static('images/spyral.svg')
     
-    def full_name(self):
-        full = f"{self.first_name} {self.last_name}".strip()
-        return full or self.username
+    def full_name(self) -> str:
+        try:
+            prof = getattr(self, "profile", None)
+            if prof and getattr(prof, "display_name", ""):
+                return prof.display_name.strip()
+        except Exception:
+            pass
+        return self.username
 
-    def get_full_name(self):
-        return self.full_name
+    def get_full_name(self) -> str:
+        return self.full_name()
 
-    def get_short_name(self):
-        return self.first_name or self.username
+    def get_display_name(self) -> str:
+        profile_name = ""
+        try:
+            profile_name = getattr(self, "profile", None) and (self.profile.display_name or "")
+        except Exception:
+            profile_name = ""
+        return self.full_name()
+
+    def get_short_name(self) -> str:
+        return self.full_name()
     def __str__(self):
         return self.email
     
@@ -148,16 +132,55 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
         return self.is_active
 
 
+class BannedFingerprint(models.Model):
+    """
+    Храним хеш IP, хеш User-Agent и/или произвольный device_id.
+    Если любой из параметров совпадает – режем доступ.
+    """
+    ip_hash = models.CharField(max_length=64, blank=True, db_index=True)        # sha256(ip)
+    ua_hash = models.CharField(max_length=64, blank=True, db_index=True)        # sha256(ua)
+    device_id = models.CharField(max_length=128, blank=True, db_index=True)     # например, cookie/LocalStorage
+    reason = models.CharField(max_length=200, blank=True)
+    expires_at = models.DateTimeField(null=True, blank=True)                    # None = навсегда
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def active(self):
+        return not self.expires_at or self.expires_at > timezone.now()
+
+class BanRecord(models.Model):
+    """
+    Аудит банов/разбанов.
+    """
+    user       = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="ban_records")
+    action     = models.CharField(max_length=16, choices=(("BAN","BAN"),("UNBAN","UNBAN")))
+    reason     = models.CharField(max_length=255, blank=True)
+    until      = models.DateTimeField(null=True, blank=True)
+    moderator  = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True,
+                                   on_delete=models.SET_NULL, related_name="moderated_bans")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+HEX_COLOR_VALIDATOR = RegexValidator(
+    regex=r'^#[0-9A-Fa-f]{6}$',
+    message='Цвет должен быть в формате #RRGGBB'
+)
 
 class Profile(models.Model):
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     bio = models.CharField(max_length=150, blank=True, null=True, verbose_name="Описание профиля")
     background_color = models.CharField(max_length=20, default='#3498db')
+    
     popularity = models.IntegerField(default=0)
+
+    bg_color = models.CharField( 
+        max_length=7,
+        validators=[HEX_COLOR_VALIDATOR],
+        blank=True,
+        null=True,
+        help_text='Цвет фона профиля/ленты (#RRGGBB)'
+    )
 
     def __str__(self):
         return self.user.username
-
 
 
 class Currency(models.TextChoices):
@@ -183,9 +206,14 @@ class CryptoWallet(models.Model):
     currency  = models.CharField(max_length=4, choices=Currency.choices)
     address   = models.CharField(max_length=128, unique=True)   # ваш адрес (пример: ERC-20 или TRC-20)
     balance   = models.DecimalField(max_digits=30, decimal_places=18, default=0)  # высокая точность для токенов
+    balance_micros = models.BigIntegerField(default=0)
     last_scanned_block = models.BigIntegerField(default=0)
     created_at = models.DateTimeField(auto_now_add=True)
-
+    chain_id = models.IntegerField(default=getattr(settings, "CHAIN_ID", 56))  
+    is_external = models.BooleanField(default=False)   
+    is_primary  = models.BooleanField(default=False)     
+    verified_at = models.DateTimeField(null=True, blank=True)
+    verify_nonce = models.CharField(max_length=40, blank=True, default="")
 
     class Meta:
         unique_together = ('user', 'currency')
@@ -195,12 +223,60 @@ class CryptoTransaction(models.Model):
     tx_type     = models.CharField(max_length=20, choices=[('deposit','Deposit'),('escrow','Escrow'),
                                                             ('release','Release'),('purchase','Purchase')])
     amount      = models.DecimalField(max_digits=30, decimal_places=18)
+    amount_micros = models.BigIntegerField(default=0)
     tx_hash     = models.CharField(max_length=66, blank=True)  # hash on-chain
     reference   = models.CharField(max_length=100, blank=True) # внешние ID
     created_at  = models.DateTimeField(auto_now_add=True)
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["wallet", "tx_type", "reference"],
+                name="uniq_crypto_tx_wallet_type_ref"
+            ),
+        ]
+        indexes = [
+            models.Index(fields=["reference"], name="idx_crypto_tx_reference"),
+        ]
 
 
 
+class UserProductCooldown(models.Model):
+    user          = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='creation_cooldowns')
+    until         = models.DateTimeField(db_index=True)
+    reason        = models.CharField(max_length=64, blank=True, default='')
+    last_triggered_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        indexes = [models.Index(fields=['user', 'until'])]
+
+    @classmethod
+    def trigger(cls, user, reason: str = ''):
+        now = timezone.now()
+        until = now + timedelta(days=3)
+        return cls.objects.create(user=user, until=until, reason=reason)
+
+    @classmethod
+    def get_state(cls, user):
+        rec = cls.objects.filter(user=user).order_by('-until').first()
+        if rec and rec.until > timezone.now():
+            return True, rec.until
+        return False, None
+
+class News(models.Model):
+    title = models.CharField(max_length=200)
+    content = models.TextField()
+    published_at = models.DateTimeField(default=timezone.now)
+    is_published = models.BooleanField(default=True)
+    author = models.ForeignKey(
+        settings.AUTH_USER_MODEL, null=True, blank=True,
+        on_delete=models.SET_NULL, related_name='news_authored'
+    )
+
+    class Meta:
+        ordering = ['-published_at']
+
+    def __str__(self):
+        return f"{self.published_at:%Y-%m-%d} — {self.title}"
 
 class Visit(models.Model):
     visited = models.ForeignKey(
@@ -218,6 +294,92 @@ class Visit(models.Model):
     ip_address = models.CharField(max_length=64, blank=True, null=True)
     visited_at = models.DateTimeField(auto_now_add=True)
 
+class Escrow(models.Model):
+    class Status(models.TextChoices):
+        HELD      = "HELD", "Held"           # средства зарезервированы (депозит сделан, контент ещё не релизнут)
+        RELEASED  = "RELEASED", "Released"   # выплата продавцу
+        REFUNDED  = "REFUNDED", "Refunded"   # возврат покупателю
+        DISPUTED  = "DISPUTED", "Disputed"   # спор/заморозка
+
+    # Привязка к любому типу заказа (ArtworkOrder / TextProductOrder)
+    order_ct   = models.ForeignKey(ContentType, on_delete=models.CASCADE, db_index=True)
+    order_id   = models.PositiveIntegerField(db_index=True)
+    order_obj  = GenericForeignKey('order_ct', 'order_id')
+
+    # Деньги только в микроединицах для точности и атомарности
+    amount_micros = models.BigIntegerField()  # >= 0
+
+    buyer   = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='escrows_as_buyer')
+    seller  = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='escrows_as_seller')
+
+    buyer_address  = models.CharField(max_length=64, blank=True, null=True, db_index=True)
+    seller_address = models.CharField(max_length=64, blank=True, null=True, db_index=True)
+
+    status  = models.CharField(max_length=16, choices=Status.choices, default=Status.HELD, db_index=True)
+    held_at = models.DateTimeField(auto_now_add=True)
+    auto_release_at = models.DateTimeField(db_index=True)
+    released_at = models.DateTimeField(null=True, blank=True)
+
+    dispute_reason = models.TextField(blank=True, default="")
+    dispute_created_at = models.DateTimeField(null=True, blank=True)
+    moderator_approved_refund = models.BooleanField(default=False)
+
+    disputed = models.BooleanField(default=False, db_index=True)
+    moderator_locked = models.BooleanField(default=False, db_index=True)
+
+
+    # Идемпотентный ключ для операций (например, при обработке событий/ретраях Celery)
+    idempotency_key = models.CharField(max_length=64, unique=True)
+
+    # Ончейн-маркеры (если нужен кросс-линк с контрактом)
+    external_order_id = models.CharField(max_length=66, blank=True, null=True, db_index=True)
+    deposit_tx  = models.CharField(max_length=66, blank=True, null=True, db_index=True)
+    release_tx  = models.CharField(max_length=66, blank=True, null=True, db_index=True)
+    refund_tx   = models.CharField(max_length=66, blank=True, null=True, db_index=True)
+    refunded_at = models.DateTimeField(null=True, blank=True)
+
+    last_chain_tx_hash = models.CharField(max_length=66, blank=True, null=True, db_index=True)
+
+    class Meta:
+        unique_together = [('order_ct', 'order_id')]
+        indexes = [
+            models.Index(fields=['order_ct', 'order_id', 'status']),
+            models.Index(fields=['auto_release_at']),
+            models.Index(fields=['external_order_id']),
+            models.Index(fields=['status', 'disputed', 'moderator_locked', 'auto_release_at']),
+        ]
+
+    def mark_disputed(self, reason: str = ""):
+        # не меняем status -> остаётся HELD; включаем флаги блокировки
+        self.disputed = True
+        self.moderator_locked = True
+        if reason:
+            self.dispute_reason = reason[:2000]
+        self.dispute_created_at = timezone.now()
+        self.save(update_fields=["disputed", "moderator_locked", "dispute_reason", "dispute_created_at"])
+
+    def mark_released(self, tx_hash=None, when=None):
+        if tx_hash: 
+            self.release_tx = tx_hash
+        self.status = self.Status.RELEASED
+        if when: 
+            self.released_at = when
+        self.save(update_fields=['release_tx', 'status', 'released_at'])
+
+    def mark_refunded(self, tx_hash=None, when=None):
+        if tx_hash:
+            self.refund_tx = tx_hash
+        self.status = self.Status.REFUNDED
+        if when:
+            self.refunded_at = when
+        self.save(update_fields=['refund_tx', 'status', 'refunded_at'])
+
+    @property
+    def seconds_to_autorelease(self) -> int | None:
+        if not self.auto_release_at:
+            return None
+        delta = (self.auto_release_at - timezone.now()).total_seconds()
+        return max(int(delta), 0)
 
 
 class TextProduct(models.Model):
@@ -418,7 +580,8 @@ class TextProduct(models.Model):
         self.rejection_reason = reason
         self.is_active = False
         self.save(update_fields=['status','rejection_reason','is_active'])
-
+        CreationQuotaLog.objects.create(user=self.owner, reason=CreationQuotaLog.Reason.REJECTED)
+    
     def __str__(self):
         if self.status == self.Status.APPROVED:
             return f"{self.title} (одобрен)"
@@ -558,7 +721,7 @@ class Artwork(models.Model):
                             help_text="Не продавать до указанной даты")
     block_reason     = models.CharField(max_length=80, blank=True, null=True)
 
-
+    is_deleted = models.BooleanField(default=False, db_index=True)
     is_approved    = models.BooleanField(default=False)
     created_at     = models.DateTimeField(auto_now_add=True)
     approved_at    = models.DateTimeField(blank=True, null=True)
@@ -573,12 +736,17 @@ class Artwork(models.Model):
     def __str__(self):
         return self.title
 
+    def can_edit(self, user) -> bool:
+        # модераторам можно всегда
+        if getattr(user, "is_staff", False):
+            return True
+        return self.status != self.Status.APPROVED
+
     def save(self, *args, **kwargs):
-        """
-        Переопределяем save, чтобы после загрузки original_image:
-        1) Сгенерировать preview_image с размытием/блоками и водяным знаком.
-        2) Сгенерировать thumbnail из оригинала.
-        """
+
+        if getattr(self, "currency", None) == "USD":
+            self.currency = Currency.USDT
+
         self.full_clean()
 
         # Проверяем, изменилось ли изображение, только если объект уже существует
@@ -652,23 +820,138 @@ class Artwork(models.Model):
         name = f'thumb_{self.pk}.jpg'
         self.thumbnail.save(name, ContentFile(buf.getvalue()), save=False)
 
-    def get_cover_image_url(self):
+    @property
+    def is_listed(self) -> bool:
+        # 1) только одобренные
+        if self.status != self.Status.APPROVED:
+            return False
+        # 2) админ/автор не снимал с продажи
+        if not self.is_active:
+            return False
+        # 3) есть тираж
+        if (self.available_copies or 0) <= 0:
+            return False
+        # 4) нет активной блокировки по времени
+        if self.blocked_until and self.blocked_until > timezone.now():
+            return False
+        return True
 
-        if self.thumbnail:
-            return self.thumbnail.url
-        first_page = self.pages.order_by('order').first()
+    def get_cover_url(self):
+        """
+        Приоритет: явная цензурная обложка → явная оригинальная →
+        первая страница (цензурная) → первая страница (оригинал) → placeholder.
+        """
+        # 1) явная цензурная обложка
+        cover_c = getattr(self, 'cover_censored_image', None)
+        if cover_c:
+            try:
+                return cover_c.url
+            except Exception:
+                pass
+
+        # 2) явная оригинальная обложка (thumbnail / cover_image)
+        # подстрой под твои поля: thumbnail или cover_image
+        for field in ('thumbnail', 'cover_image'):
+            f = getattr(self, field, None)
+            if f:
+                try:
+                    return f.url
+                except Exception:
+                    pass
+
+        # 3) первая страница: цензурная, затем оригинал
+        rel = getattr(self, 'pages', None) or getattr(self, 'artworkpage_set', None)
+        first_page = rel.order_by('order', 'id').first() if rel else None
         if first_page:
-            return first_page.image.url
-        from django.templatetags.static import static
+            ci = getattr(first_page, 'censored_image', None)
+            if ci:
+                try:
+                    return ci.url
+                except Exception:
+                    pass
+            oi = getattr(first_page, 'image', None)
+            if oi:
+                try:
+                    return oi.url
+                except Exception:
+                    pass
+
+        # 4) заглушка
         return static('images/placeholder.png')
+
+
+    def get_cover_image_url(self):
+        return self.get_cover_url()
+
+    def submit_for_review(self):
+        # перед отправкой убедимся, что NSFW имеет зоны цензуры (валидация формы уже есть,
+        # но дублируем бизнес-правило на уровне модели)
+        if self.nsfw and not self.censored_areas:
+            from django.core.exceptions import ValidationError
+            raise ValidationError("Для NSFW-артворков необходимо добавить области цензуры.")
+        self.is_active = False
+        self.status = self.Status.PENDING
+        self.rejection_reason = ""
+        self.save(update_fields=["status", "is_active", "rejection_reason"])
+
+    def mark_approved(self):
+        from django.utils import timezone
+        self.status = self.Status.APPROVED
+        self.is_active = True
+        self.approved_at = timezone.now()
+        # поле is_approved у тебя уже есть — оно дублирует статус; поддержим совместимость
+        self.is_approved = True
+        self.save(update_fields=["status", "is_active", "approved_at", "is_approved"])
+
+    def mark_rejected(self, reason: str):
+        self.status = self.Status.REJECTED
+        self.rejection_reason = (reason or "")[:2000]
+        self.is_active = False
+        self.is_approved = False
+        self.save(update_fields=["status", "rejection_reason", "is_active", "is_approved"])
+        CreationQuotaLog.objects.create(user=self.owner, reason=CreationQuotaLog.Reason.REJECTED)
 
     def clean(self):
         super().clean()
+
+        if self.currency == 'USD':
+            self.currency = Currency.USDT
+
         if self.currency == Currency.USDT and self.price < Decimal('5.00'):
-            raise ValidationError({
-                'price': 'Минимальная цена для USDT — 5 USDT.'
-            })
-        
+            raise ValidationError({'price': 'Минимальная цена для USDT — 5 USDT.'})
+
+        if not self.pk:
+            return
+        original = type(self).objects.filter(pk=self.pk).only(
+            "status", "is_active", "blocked_until", "available_copies"
+        ).first()
+        if not original:
+            return
+
+        if original.status == self.Status.APPROVED:
+            allowed_ok = (
+                self.is_active != original.is_active or
+                self.blocked_until != original.blocked_until or
+                self.available_copies != original.available_copies
+            )
+            if not allowed_ok:
+                raise ValidationError("Редактирование одобренного артворка запрещено.")
+
+    class Meta:
+        indexes = [
+            models.Index(fields=["status", "is_active", "available_copies"]),
+            models.Index(fields=["blocked_until"]),
+            models.Index(fields=["currency", "price"]),
+            models.Index(fields=["approved_at", "id"]),
+            models.Index(fields=["category", "nsfw"]),
+        ]
+        constraints = [
+            CheckConstraint(
+                check=Q(available_copies__gte=0),
+                name="artwork_available_copies_nonnegative",
+            ),
+        ]
+
 
     status    = models.CharField(
         max_length=10,
@@ -677,6 +960,16 @@ class Artwork(models.Model):
     )
     created   = models.DateTimeField(auto_now_add=True)
     updated   = models.DateTimeField(auto_now=True)
+
+class ArtworkRating(models.Model):
+    artwork = models.ForeignKey(Artwork, on_delete=models.CASCADE, related_name='ratings')
+    user    = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    rating  = models.PositiveSmallIntegerField(help_text="Оценка от 1 до 5")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('artwork', 'user')
+
 
 class Purchase(models.Model):
     user         = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='purchases')
@@ -923,3 +1216,179 @@ class ChainCursor(models.Model):
         return f"{self.network}:{self.contract} @ {self.last_block}"
 
 
+class Dispute(models.Model):
+    class Status(models.TextChoices):
+        OPENED   = "OPENED", "Открыт"
+        RESOLVED = "RESOLVED", "Закрыт"
+
+    escrow = models.OneToOneField('Escrow', on_delete=models.CASCADE, related_name='dispute')
+    opened_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name='opened_disputes')
+    status = models.CharField(max_length=16, choices=Status.choices, default=Status.OPENED)
+
+    reason = models.TextField(blank=True)
+    evidence_url = models.URLField(blank=True)
+
+    moderator = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name='moderated_disputes')
+    moderator_decision = models.CharField(max_length=32, blank=True)  # "RELEASE" | "REFUND"
+    decision_tx = models.CharField(max_length=80, blank=True)         # txHash (для ончейн)
+    decided_at = models.DateTimeField(null=True, blank=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def is_open(self):
+        return self.status == self.Status.OPENED
+
+    def __str__(self):
+        return f"Dispute #{self.pk} for escrow {self.escrow_id}"
+
+class OspTopUpOrder(models.Model):
+    class Status(models.TextChoices):
+        PENDING = "PENDING"
+        CONFIRMED = "CONFIRMED"
+        CANCELED = "CANCELED"
+
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="osp_topups")
+    amount_usd_micros = models.BigIntegerField()  # сколько пользователь хочет внести
+    reference = models.CharField(max_length=64, db_index=True)  # тот же reference, что ты уже создаёшь
+    status = models.CharField(max_length=16, choices=Status.choices, default=Status.PENDING)
+    created_at = models.DateTimeField(auto_now_add=True)
+    confirmed_at = models.DateTimeField(null=True, blank=True)
+
+    def mark_confirmed(self):
+        self.status = self.Status.CONFIRMED
+        self.confirmed_at = timezone.now()
+        self.save(update_fields=["status", "confirmed_at"])
+
+
+class VIPPlan(models.Model):
+    class Level(models.TextChoices):
+        GOLD   = "GOLD",   "Gold VIP"
+        STAR   = "STAR",   "Star VIP"
+        GALAXY = "GALAXY", "Galaxy VIP"
+
+    code = models.CharField(max_length=50, unique=True)
+    title = models.CharField(max_length=100)
+    # ЦЕНА теперь в OSP-микросах (1 OSP = 1_000_000 μOSP)
+    price_osp_micros = models.BigIntegerField()
+
+    # Срок действия
+    duration_days = models.PositiveIntegerField(default=30)
+    is_active = models.BooleanField(default=True)
+
+    # Характеристики уровня
+    level = models.CharField(
+        max_length=20,
+        choices=[('GOLD', 'Gold'), ('STAR', 'Star'), ('GALAXY', 'Galaxy')],
+        default='GOLD'
+    )
+
+    popularity_boost = models.IntegerField(default=0)
+    # Квоты создания продуктов
+    daily_quota = models.PositiveIntegerField(default=0)       
+    min_interval_days = models.PositiveIntegerField(default=0) 
+
+    def __str__(self):
+        return f"{self.title} — {self.price_osp_micros/1_000_000:.6f} OSP"
+
+
+
+class VIPSubscription(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="vip_subscriptions")
+    plan = models.ForeignKey(VIPPlan, on_delete=models.PROTECT)
+    start_at = models.DateTimeField()
+    end_at = models.DateTimeField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    @property
+    def active(self):
+        return self.end_at >= timezone.now()
+
+    @staticmethod
+    def grant_or_extend(user, plan):
+        now = timezone.now()
+        last = (
+            VIPSubscription.objects
+            .filter(user=user)
+            .order_by('-end_at')
+            .first()
+        )
+        if last and last.end_at >= now:
+            # продлеваем текущую
+            start = last.end_at
+        else:
+            start = now
+        end = start + timedelta(days=plan.duration_days)
+        return VIPSubscription.objects.create(user=user, plan=plan, start_at=start, end_at=end)
+
+
+class VIPGiftRecord(models.Model):
+    """
+    Аудит «подарочных» VIP-выдач (без списания денег).
+    """
+    user       = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="vip_gifts")
+    plan       = models.ForeignKey('VIPPlan', on_delete=models.PROTECT, related_name="gift_records")
+    reason     = models.CharField(max_length=255, blank=True)
+    starts_at  = models.DateTimeField()
+    ends_at    = models.DateTimeField(null=True, blank=True)  # None = бессрочно (не рекомендуется)
+    moderator  = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="vip_gifts_made")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+
+class CreationQuotaLog(models.Model):
+    class Reason(models.TextChoices):
+        TEXT_CREATED    = "TEXT_CREATED"
+        TEXT_SUBMITTED  = "TEXT_SUBMITTED"
+        ART_CREATED     = "ART_CREATED"
+        ART_SUBMITTED   = "ART_SUBMITTED"
+        REJECTED        = "REJECTED"  # модерация отклонила/на доработку
+
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="creation_logs")
+    reason = models.CharField(max_length=20, choices=Reason.choices)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        indexes = [models.Index(fields=["user", "created_at"])]
+
+
+class LedgerEntry(models.Model):
+    class Side(models.TextChoices):
+        DEBIT  = "DEBIT"
+        CREDIT = "CREDIT"
+
+    class Kind(models.TextChoices):
+        TOPUP_OSP_SOFT   = "TOPUP_OSP_SOFT"    # мгновенный зачёт OSP (мягкий, но у нас считается финальным)
+        PURCHASE_VIP     = "PURCHASE_VIP"
+        PURCHASE_PRODUCT = "PURCHASE_PRODUCT"
+        ESCROW_HOLD      = "ESCROW_HOLD"
+        ESCROW_RELEASE   = "ESCROW_RELEASE"
+        ESCROW_REFUND    = "ESCROW_REFUND"
+        REVERSAL         = "REVERSAL"
+        SALE_FEE         = "SALE_FEE"
+        SALE_INCOME      = "SALE_INCOME"
+
+    user    = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="ledger_entries")
+    wallet  = models.ForeignKey("users.CryptoWallet", on_delete=models.CASCADE, related_name="ledger_entries")
+    side    = models.CharField(max_length=6, choices=Side.choices)
+    kind    = models.CharField(max_length=32, choices=Kind.choices)
+    currency= models.CharField(max_length=4)  # 'OSP' / 'USDT' и т.п.
+    amount_micros = models.BigIntegerField()  # всегда >0
+    balance_after_micros = models.BigIntegerField()  # слепок баланса после записи
+    reference = models.CharField(max_length=128, blank=True, db_index=True)  # 'vip:vip_month' или UUID
+    external_tx_hash = models.CharField(max_length=66, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=["reference"], name="idx_ledger_reference"),
+            models.Index(fields=["user", "wallet", "created_at"]),
+            models.Index(fields=["reference"]),
+            models.Index(fields=["kind", "created_at"]),
+        ]
+
+    def __str__(self):
+        sign = "+" if self.side == self.Side.CREDIT else "-"
+        return f"[{self.created_at:%Y-%m-%d %H:%M}] {self.kind} {sign}{self.amount_micros}μ {self.currency}"

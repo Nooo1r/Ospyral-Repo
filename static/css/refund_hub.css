@@ -1,0 +1,188 @@
+/* =============== Ospyral • Refund Hub Styles ===============
+   Файл: static/css/refund_hub.css
+   Палитра и эстетика: чёрный космос, стекло, золотые акценты
+============================================================= */
+
+:root{
+  --bg: #070709;
+  --panel: rgba(255,255,255,0.05);
+  --glass: rgba(255,255,255,0.08);
+  --gold: #f5d36c;
+  --gold-2: #d9a92f;
+  --text: #ececf0;
+  --muted: #b9b9bf;
+  --danger: #ef4444;
+  --border: rgba(255,255,255,0.12);
+  --border-soft: rgba(255,255,255,0.08);
+  --input-bg: #101014;
+}
+
+.rf-wrap{
+  position: relative;
+  width: min(1100px, 92%);
+  margin: 32px auto 64px;
+  color: var(--text);
+}
+
+
+/* ===== Header ===== */
+.rf-head{
+  background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.02));
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  padding: 22px 22px;
+  box-shadow: 0 20px 60px rgba(0,0,0,.45);
+}
+.rf-title{
+  margin: 0 0 6px 0;
+  font-family: "Playfair Display", ui-serif, Georgia, "Times New Roman", serif;
+  font-weight: 700;
+  font-size: clamp(22px, 3.4vw, 32px);
+  color: var(--gold);
+}
+.rf-sub{
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+/* ===== Формa возврата ===== */
+.rf-form{
+  margin-top: 20px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  padding: 18px;
+  box-shadow: 0 18px 44px rgba(0,0,0,.45);
+}
+.rf-grid{
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+.rf-form label{
+  display: block;
+  color: var(--muted);
+  font-size: 14px;
+  margin: 0 0 6px 2px;
+  letter-spacing: .02em;
+}
+.input,
+.rf-form textarea,
+.rf-form select{
+  width: 100%;
+  background: var(--input-bg);
+  border: 1px solid var(--border-soft);
+  color: #fff;
+  padding: 12px 14px;
+  border-radius: 12px;
+  font-size: 15px;
+  transition: border-color .2s ease, box-shadow .2s ease, transform .08s ease;
+}
+.rf-form textarea{
+  min-height: 120px;
+  resize: vertical;
+}
+.input:focus,
+.rf-form textarea:focus,
+.rf-form select:focus{
+  outline: none;
+  border-color: rgba(245,211,108,.55);
+  box-shadow: 0 0 0 3px rgba(245,211,108,.20);
+}
+
+/* ===== Действия ===== */
+.rf-actions{
+  margin-top: 14px;
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+/* Кнопки в стиле проекта (если в base нет общих стилей — используем локальные) */
+.btn{
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border-radius: 14px;
+  border: 1px solid var(--border-soft);
+  background: var(--panel);
+  color: var(--text);
+  font-weight: 700;
+  transition: transform .12s ease, border-color .2s ease, filter .25s ease, box-shadow .25s ease;
+}
+.btn:hover{ border-color: rgba(255,255,255,.22) }
+.btn:active{ transform: translateY(1px) }
+
+.btn-sm{ padding: 8px 12px; border-radius: 12px; font-weight: 700; font-size: 13.5px }
+.btn-ghost{ background: transparent; border-color: var(--border-soft) }
+.btn-ghost:hover{ border-color: rgba(255,255,255,.22); background: rgba(255,255,255,.04) }
+
+.btn-danger{
+  background: linear-gradient(180deg, #ff7a7a, var(--danger));
+  color: #180606;
+  border: none;
+  box-shadow: 0 10px 30px rgba(239,68,68,.25);
+}
+.btn-danger:hover{ filter: saturate(110%) }
+
+/* ===== Колонки покупок ===== */
+.rf-cols{
+  margin-top: 18px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+.rf-col h3{
+  margin: 0 0 10px 0;
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: .2px;
+}
+.rf-card{
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.02));
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 12px 12px;
+}
+.rf-card .meta{
+  display: grid;
+  gap: 2px;
+}
+.rf-card .id{
+  font-weight: 700;
+}
+.rf-card .muted,
+.muted{
+  color: var(--muted);
+  font-size: 13px;
+}
+
+/* ===== Загрузка файла ===== */
+input[type="file"].input{
+  background: transparent;
+  padding: 10px 0;
+  border: none;
+  color: var(--muted);
+}
+input[type="file"].input:hover{ color: var(--text) }
+
+/* ===== Адаптив ===== */
+@media (max-width: 960px){
+  .rf-grid{ grid-template-columns: 1fr }
+  .rf-cols{ grid-template-columns: 1fr }
+}
+@media (max-width: 540px){
+  .rf-wrap{ width: 94% }
+  .rf-head, .rf-form{ padding: 16px }
+  .rf-card{ flex-wrap: wrap; gap: 10px }
+  .rf-actions{ justify-content: stretch }
+  .btn-danger{ width: 100% }
+}

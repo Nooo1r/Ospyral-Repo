@@ -1,74 +1,344 @@
+{% extends "base.html" %}
 {% load static %}
 {% load widget_tweaks %}
+
+{% block title %}Создать артворк — Ospyral{% endblock %}
+{% block extra_head %}
+  <link rel="stylesheet" href="{% static 'css/artwork_create.css' %}">
+{% endblock %}
+{% block body_class %}store-body{% endblock %}
+
 {% block content %}
-<link rel="stylesheet" href="{% static 'css/artwork_create.css' %}">
+<div class="create-wrap app-content">
+  <header class="create-head">
+    <h1>Создать новый артворк</h1>
+    <p class="sub">Заполни данные, загрузить страницы можно на следующем шаге.</p>
+  </header>
 
-<div class="container" style="max-width: 800px; margin: 40px auto; background: #1a1a1a; padding: 32px; border-radius: 16px; box-shadow: 0 0 10px rgba(0,0,0,0.5);">
-  <h1 style="margin-bottom: 24px; text-align: center; color: #fff;">Создать новый артворк</h1>
-
-  <form method="post" enctype="multipart/form-data">
+  <form method="post" enctype="multipart/form-data" class="create-form" novalidate>
     {% csrf_token %}
-    <div class="form-fields" style="display: flex; flex-direction: column; gap: 16px;">
-      {{ form.non_field_errors }}
-      {% for field in form.visible_fields %}
-        {% if field.name == 'nsfw' %}
-          <div style="display: flex; flex-direction: column;">
-            <div style="display: flex; align-items: center; gap: 10px;">
-              {{ field }}<label for="{{ field.id_for_label }}" style="margin: 0; font-weight: bold; color: #facc15;">NSFW</label>
-            </div>
-            <div id="nsfw-warning" style="display: none; color: #f87171; font-size: 0.9rem; margin-top: 8px; padding-left: 28px;">
-              ❗ Артворк содержит откровенный контент. Не забудьте добавить цензуру при загрузке страниц.
-            </div>
-          </div>
-        {% else %}
-          <div style="display: flex; flex-direction: column;">
-            {% if field.name == 'original_image' %}
-              <label for="{{ field.id_for_label }}">Обложка:</label>
-            {% else %}
-              {{ field.label_tag }}
-            {% endif %}
+    {{ form.non_field_errors }}
 
-            {% if field.name == 'description' %}
-              {{ field|add_class:"no-resize" }}
-            {% else %}
-              {{ field }}
-            {% endif %}
+    <div class="form-grid">
+
+      <!-- Название + счётчик -->
+      <div class="field">
+        {{ form.title.label_tag }}
+        <div class="with-counter">
+          {{ form.title|add_class:"input"|attr:"maxlength:28"|attr:"placeholder:Например: Ospyral Art" }}
+          <span class="counter" data-for="{{ form.title.auto_id }}">0/28</span>
+        </div>
+        {% if form.title.errors %}<div class="err">{{ form.title.errors }}</div>{% endif %}
+      </div>
+
+      <!-- Категория -->
+      <div class="field">
+        {{ form.category.label_tag }}
+        {{ form.category|add_class:"input" }}
+        {% if form.category.errors %}<div class="err">{{ form.category.errors }}</div>{% endif %}
+      </div>
+
+      <!-- Валюта + цена -->
+      <div class="field two">
+        <div class="subfield">
+          <label>Валюта</label>
+          <div class="currency-segment js-currency">
+            {% for radio in form.currency %}
+              <label class="seg {% if radio.data.selected %}active{% endif %}">
+                {{ radio.tag }}
+                <span class="seg-title">
+                  {% if radio.data.value == "USDT" %}Tether USD
+                  {% elif radio.data.value == "OSP" %}Ospyral Coin
+                  {% else %}{{ radio.choice_label }}
+                  {% endif %}
+                </span>
+              </label>
+            {% endfor %}
           </div>
-        {% endif %}
-      {% endfor %}
+          {% if form.currency.errors %}<div class="err">{{ form.currency.errors }}</div>{% endif %}
+        </div>
+
+        <div class="subfield">
+          {{ form.price.label_tag }}
+          {{ form.price }}
+          {% if form.price.errors %}<div class="err">{{ form.price.errors }}</div>{% endif %}
+        </div>
+      </div>
+
+      <!-- Количество копий -->
+      <div class="field">
+        {{ form.available_copies.label_tag }}
+        {{ form.available_copies|add_class:"input"|attr:"min:1"|attr:"max:4000"|attr:"type:number" }}
+        <div class="mini-hint">Сколько копий доступно к продаже</div>
+        {% if form.available_copies.errors %}<div class="err">{{ form.available_copies.errors }}</div>{% endif %}
+      </div>
+
+      <!-- NSFW -->
+      <div class="field">
+        <label class="switch">
+          {{ form.nsfw }}
+          <span>NSFW (Взрослый контент: 18+)</span>
+        </label>
+        <div id="nsfw-warning" class="warn" hidden>
+          ❗ NSFW: Обязательно добавьте цензуру на следующем шаге.
+        </div>
+        {% if form.nsfw.errors %}<div class="err">{{ form.nsfw.errors }}</div>{% endif %}
+      </div>
+
+      <!-- Описание + счётчик -->
+      <div class="field">
+        {{ form.description.label_tag }}
+        <div class="with-counter">
+          {{ form.description|add_class:"input textarea"|attr:"maxlength:300"|attr:"placeholder:Краткое описание (до 300 символов)" }}
+          <span class="counter" data-for="{{ form.description.auto_id }}">0/300</span>
+        </div>
+        {% if form.description.errors %}<div class="err">{{ form.description.errors }}</div>{% endif %}
+      </div>
+
+      <!-- Теги с «пилюлями» -->
+      <div class="field">
+        {{ form.keywords.label_tag }}
+        <div class="tag-input" data-target="{{ form.keywords.auto_id }}">
+          {{ form.keywords|add_class:"input"|attr:"placeholder:#tag1 #tag2 … (до 10)" }}
+          <div class="tag-pills" id="tagPills"></div>
+        </div>
+        {% if form.keywords.errors %}<div class="err">{{ form.keywords.errors }}</div>{% endif %}
+      </div>
+
+      <!-- Обложка -->
+      <div class="field">
+        <label for="{{ form.original_image.id_for_label }}">Обложка</label>
+        <div class="filebox dropbox" id="coverDrop">
+          {{ form.original_image|add_class:"input file" }}
+          <div class="file-help">JPEG/PNG до 10 МБ. Превью на карточке.</div>
+        </div>
+        <div class="cover-preview" id="coverPreview" hidden>
+          <img alt="Превью обложки">
+        </div>
+        {% if form.original_image.errors %}<div class="err">{{ form.original_image.errors }}</div>{% endif %}
+      </div>
     </div>
 
-    <div style="margin-top: 24px; display: flex; justify-content: space-between;">
-      <button type="submit" class="btn btn-primary" style="padding: 10px 24px; background: #10b981; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold;">
-        Сохранить и перейти к загрузке страниц
-      </button>
-      <a href="{% url 'artwork_detail' 0 %}" class="btn btn-secondary" style="padding: 10px 24px; background: #374151; color: white; border-radius: 8px; text-decoration: none;">Отмена</a>
+    <div class="actions">
+      <button type="submit" class="btn btn-primary">Сохранить и перейти к страницам</button>
+      <a href="{% url 'portfolio' %}" class="btn btn-secondary">Отмена</a>
     </div>
   </form>
 </div>
 
 <script>
-  const nsfwCheckbox = document.querySelector('#id_nsfw');
-  const warningBlock = document.querySelector('#nsfw-warning');
+  // Ждём готовности DOM (на всякий)
+  document.addEventListener('DOMContentLoaded', () => {
 
-  if (nsfwCheckbox && warningBlock) {
-    nsfwCheckbox.addEventListener('change', function(e) {
-      warningBlock.style.display = e.target.checked ? 'block' : 'none';
-    });
-    warningBlock.style.display = nsfwCheckbox.checked ? 'block' : 'none';
-  }
+    // ---------- NSFW предупреждение ----------
+    (function(){
+      const nsfw = document.getElementById('id_nsfw');
+      const warn = document.getElementById('nsfw-warning');
+      if (!nsfw || !warn) return;
+      const toggle = () => { warn.hidden = !nsfw.checked; };
+      nsfw.addEventListener('change', toggle, {passive:true});
+      toggle();
+    })();
 
-  const priceInput = document.querySelector('#id_price');
-  if (priceInput) {
-    priceInput.setAttribute('maxlength', '10');
-    priceInput.setAttribute('inputmode', 'decimal');
-  }
+    const wrap = document.querySelector('.js-currency');
+    if (wrap && !wrap.querySelector('.seg.active')) {
+      const checked = wrap.querySelector('input[type="radio"]:checked');
+      const lbl = checked ? checked.closest('label.seg') : null;
+      if (lbl) lbl.classList.add('active');
+    }
+
+    (function(){
+      const el = document.getElementById('{{ form.available_copies.auto_id }}');
+      if(!el) return;
+
+      const MAX_DIGITS = 4;
+      const MIN = 1;
+      const MAX = 4000;
+
+      function sanitize(v){
+        v = (v ?? '').toString().replace(/\D/g, '');     // только цифры
+        if (v.length > MAX_DIGITS) v = v.slice(0, MAX_DIGITS); // максимум 4 символа
+        return v;
+      }
+
+      function clamp(){
+        if (!el.value) return;
+        let n = parseInt(el.value, 10);
+        if (!Number.isFinite(n)) { el.value = ''; return; }
+        if (n < MIN) n = MIN;
+        if (n > MAX) n = MAX;
+        el.value = String(n);
+      }
+
+      // блокируем прокрутку колёсиком (частая случайность на number)
+      el.addEventListener('wheel', e => e.preventDefault(), { passive: false });
+
+      el.addEventListener('input', () => {
+        const before = el.value;
+        const after  = sanitize(before);
+        if (before !== after) el.value = after;
+      });
+
+      el.addEventListener('change', clamp);
+      el.addEventListener('blur', clamp);
+
+      // первичная чистка (на случай автозаполнения)
+      el.value = sanitize(el.value);
+    })();
+
+    // ---------- Счётчики символов ----------
+    (function(){
+      function bindCounter(id, max){
+        const el = document.getElementById(id);
+        if(!el) return;
+        // Ищем счётчик по всему документу (не только у родителя)
+        const counter = document.querySelector('.counter[data-for="'+id+'"]');
+        const upd = ()=>{ if(counter){ counter.textContent = (el.value||'').length + '/' + max; } };
+        el.addEventListener('input', upd);
+        upd();
+      }
+      bindCounter('{{ form.title.auto_id }}', 28);
+      bindCounter('{{ form.description.auto_id }}', 300);
+    })();
+
+    // ---------- Сегменты валют ----------
+    (function(){
+      const wrap = document.querySelector('.js-currency');
+      if(!wrap) return;
+      wrap.addEventListener('click', e=>{
+        const lbl = e.target.closest('label.seg');
+        if(!lbl || !wrap.contains(lbl)) return;
+        const input = lbl.querySelector('input[type="radio"]');
+        if(input){ input.checked = true; input.dispatchEvent(new Event('change', {bubbles:true})); }
+        wrap.querySelectorAll('.seg').forEach(s=>s.classList.remove('active'));
+        lbl.classList.add('active');
+      });
+    })();
+
+    // ---------- Цена: максимум 2 знака после точки ----------
+    (function(){
+      const el = document.getElementById('{{ form.price.auto_id }}');
+      if(!el) return;
+
+      const MAX_INT_DIGITS = 8;   // до 99,999,999
+      const DECIMALS        = 2;
+
+      function sanitize(v){
+        if (v == null) return '';
+        v = (''+v).replace(',', '.').replace(/[^\d.]/g, '');
+
+        // если больше одной точки — оставляем первую
+        const firstDot = v.indexOf('.');
+        if (firstDot !== -1) {
+          v = v.slice(0, firstDot + 1) + v.slice(firstDot + 1).replace(/\./g, '');
+        }
+
+        // разбираем
+        let [intPart = '', decPart = ''] = v.split('.');
+        // убираем лидирующие нули (но оставим единичный ноль если пусто)
+        intPart = intPart.replace(/^0+(?=\d)/, '');
+        // ограничиваем длину целой части
+        if (intPart.length > MAX_INT_DIGITS) intPart = intPart.slice(0, MAX_INT_DIGITS);
+        // ограничиваем дробную часть
+        if (decPart) decPart = decPart.slice(0, DECIMALS);
+
+        return decPart.length ? `${intPart || '0'}.${decPart}` : (intPart || '');
+      }
+
+      function onInput(){
+        const pos = el.selectionStart;
+        const before = el.value;
+        const after  = sanitize(before);
+        if (before !== after){
+          el.value = after;
+          // мягко восстановим каретку (best effort)
+          try { el.setSelectionRange(Math.min(pos, after.length), Math.min(pos, after.length)); } catch(_){}
+        }
+      }
+
+      function onBlur(){
+        if (!el.value) return;
+        // если есть точка — дополним до двух знаков, если нет — добавим .00
+        const n = Number(el.value);
+        if (!Number.isFinite(n)) { el.value = ''; return; }
+        el.value = n.toFixed(DECIMALS); // строго 2 знака
+      }
+
+      // блокируем изменение колесиком мыши (на number inputs бывает)
+      el.addEventListener('wheel', e => e.preventDefault(), {passive:false});
+      el.addEventListener('input', onInput);
+      el.addEventListener('change', onInput);
+      el.addEventListener('paste', e=>{
+        // задержим на тик, чтобы прочитать вставленное значение
+        setTimeout(onInput, 0);
+      });
+      el.addEventListener('blur', onBlur);
+      // первичная нормализация (на случай автозаполнения)
+      onInput();
+    })();
+
+    // ---------- Превью + Drag&Drop обложки ----------
+    (function(){
+      const input = document.getElementById('{{ form.original_image.auto_id }}');
+      const drop  = document.getElementById('coverDrop');
+      const box   = document.getElementById('coverPreview');
+      const imgEl = box ? box.querySelector('img') : null;
+      if(!input || !drop || !imgEl) return;
+
+      const MAX_MB = 10;
+
+      function show(f){
+        if(!f){ box.hidden = true; imgEl.removeAttribute('src'); return; }
+        // валидация типа/размера
+        if(!f.type.startsWith('image/')) { box.hidden = true; return; }
+        if(f.size > MAX_MB*1024*1024){ alert(`Файл больше ${MAX_MB} МБ`); return; }
+        const url = URL.createObjectURL(f);
+        imgEl.src = url; box.hidden = false;
+      }
+
+      input.addEventListener('change', e=> show(e.target.files[0]));
+      ['dragenter','dragover'].forEach(ev=>{
+        drop.addEventListener(ev, e=>{ e.preventDefault(); drop.classList.add('dragover'); });
+      });
+      ['dragleave','drop'].forEach(ev=>{
+        drop.addEventListener(ev, e=>{ e.preventDefault(); drop.classList.remove('dragover'); });
+      });
+      drop.addEventListener('drop', e=>{
+        const f = e.dataTransfer.files && e.dataTransfer.files[0];
+        if(!f) return;
+        const dt = new DataTransfer();
+        dt.items.add(f);
+        input.files = dt.files;
+        show(f);
+      });
+    })();
+
+    // ---------- Пилюли тегов (#tag) ----------
+    (function(){
+      const field = document.getElementById('{{ form.keywords.auto_id }}');
+      const pills = document.getElementById('tagPills');
+      if(!field || !pills) return;
+
+      function uniq(arr){ return [...new Set(arr)]; }
+
+      const draw = ()=>{
+        const tags = (field.value.match(/#([\p{L}\p{N}_-]+)/gu) || [])
+                      .map(t=>t.toLowerCase());
+        const unique = uniq(tags).slice(0, 10);
+        pills.innerHTML = '';
+        unique.forEach(t=>{
+          const d = document.createElement('span');
+          d.className = 'tag-pill';
+          d.textContent = t;
+          pills.appendChild(d);
+        });
+      };
+
+      field.addEventListener('input', draw);
+      draw();
+    })();
+
+  });
 </script>
 
-<style>
-  textarea.no-resize {
-    resize: vertical !important;
-    max-height: 400px;
-  }
-</style>
 {% endblock %}

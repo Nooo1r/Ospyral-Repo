@@ -1,0 +1,134 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}История операций · Ospyral{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/wallets.css' %}">
+<style>
+  .wrap{max-width:1100px;margin:24px auto}
+  .page-head{display:flex;align-items:flex-end;justify-content:space-between;gap:var(--gap);margin:8px 0 16px}
+  .page-title{margin:0;font-size:1.6rem}
+  .filters{display:grid;grid-template-columns:2fr repeat(3,1fr) repeat(2,1fr);gap:8px;margin:8px 0 12px}
+  @media (max-width:900px){.filters{grid-template-columns:1fr 1fr;}}
+  .input,.select{background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:12px;padding:10px 12px;color:var(--fg);width:100%}
+  .input:focus,.select:focus{outline:2px solid var(--accent-1);outline-offset:2px}
+  .row-actions{display:flex;gap:8px}
+  .table-responsive{width:100%;overflow:auto;border-radius:16px;border:1px solid var(--border)}
+  .table{width:100%;border-collapse:collapse;min-width:900px;background:var(--card)}
+  .table th,.table td{padding:10px 12px;border-bottom:1px solid var(--border)}
+  .table thead th{position:sticky;top:0;background:linear-gradient(180deg,rgba(255,255,255,.08),rgba(255,255,255,.03));text-align:left}
+  code{color:var(--muted)}
+  .pager{display:flex;gap:8px;align-items:center;justify-content:center;margin-top:12px}
+  .page-link{border:1px solid var(--border);padding:8px 12px;border-radius:10px;text-decoration:none;color:var(--fg)}
+  .page-link[aria-disabled="true"]{opacity:.5;pointer-events:none}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="wrap">
+  <header class="page-head">
+    <div>
+      <h1 class="page-title">История операций</h1>
+      <p class="subnote">Журнал пополнений, списаний, VIP и покупок.</p>
+    </div>
+    <div class="row-actions">
+      <a href="{% url 'wallets' %}" class="btn ghost">К кошелькам</a>
+      <a class="btn" href="?{% if request.GET %}{{ request.GET.urlencode }}&{% endif %}export=csv">Скачать CSV</a>
+    </div>
+  </header>
+
+  <form method="get" class="filters card" style="padding:12px">
+    <input name="q" value="{{ request.GET.q }}" placeholder="Поиск по reference / tx_hash" class="input">
+    <select name="kind" class="select">
+      <option value="">Тип операции</option>
+      <option value="TOPUP_OSP_SOFT" {% if request.GET.kind == 'TOPUP_OSP_SOFT' %}selected{% endif %}>Пополнение (донат)</option>
+      <option value="PURCHASE_VIP"    {% if request.GET.kind == 'PURCHASE_VIP' %}selected{% endif %}>VIP</option>
+      <option value="PURCHASE_TEXT"   {% if request.GET.kind == 'PURCHASE_TEXT' %}selected{% endif %}>Покупка текста</option>
+      <option value="PURCHASE_ART"    {% if request.GET.kind == 'PURCHASE_ART' %}selected{% endif %}>Покупка арта</option>
+    </select>
+    <select name="side" class="select">
+      <option value="">Сторона</option>
+      <option value="CREDIT" {% if request.GET.side == 'CREDIT' %}selected{% endif %}>Зачисление</option>
+      <option value="DEBIT"  {% if request.GET.side == 'DEBIT' %}selected{% endif %}>Списание</option>
+    </select>
+    <select name="currency" class="select">
+      <option value="">Валюта</option>
+      <option value="OSP"  {% if request.GET.currency == 'OSP' %}selected{% endif %}>OSP</option>
+      <option value="USDT" {% if request.GET.currency == 'USDT' %}selected{% endif %}>USDT</option>
+    </select>
+    <input type="date" name="from" value="{{ request.GET.from }}" class="input">
+    <input type="date" name="to"   value="{{ request.GET.to }}"   class="input">
+    <div style="grid-column:1/-1;display:flex;gap:8px">
+      <button class="btn primary" type="submit">Применить</button>
+      <a class="btn" href="{% url 'ledger_history' %}">Сбросить</a>
+    </div>
+  </form>
+
+  <div class="table-responsive">
+    <table class="table">
+      <thead>
+        <tr><th>Дата</th><th>Тип</th><th>Сторона</th><th>Валюта</th><th>Сумма</th><th>Reference</th><th>Tx Hash</th></tr>
+      </thead>
+      <tbody>
+        {% for rec in page_obj.object_list %}
+          <tr>
+            <td>{{ rec.created_at|date:"Y-m-d H:i" }}</td>
+            <td>{{ rec.kind }}</td>
+            <td>{{ rec.side }}</td>
+            <td>{{ rec.currency }}</td>
+            <td>{{ rec.amount }}</td>
+            <td>
+              {% if rec.reference %}
+                <code id="ref-{{ forloop.counter }}">{{ rec.reference }}</code>
+                <button class="btn small" data-copy="#ref-{{ forloop.counter }}" type="button">копировать</button>
+              {% else %}—{% endif %}
+            </td>
+            <td>
+              {% if rec.external_tx_hash %}
+                <code id="tx-{{ forloop.counter }}">{{ rec.external_tx_hash }}</code>
+                <button class="btn small" data-copy="#tx-{{ forloop.counter }}" type="button">копировать</button>
+              {% else %}—{% endif %}
+            </td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="7" class="subnote">Записей нет.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {% if page_obj.has_other_pages %}
+  <nav class="pager" aria-label="Навигация по страницам">
+    <a class="page-link" href="?page={{ page_obj.previous_page_number }}" {% if not page_obj.has_previous %}aria-disabled="true"{% endif %}>Назад</a>
+    <span class="subnote">Стр. {{ page_obj.number }} из {{ page_obj.paginator.num_pages }}</span>
+    <a class="page-link" href="?page={{ page_obj.next_page_number }}" {% if not page_obj.has_next %}aria-disabled="true"{% endif %}>Вперёд</a>
+  </nav>
+  {% endif %}
+</div>
+
+<script>
+// подключаем такой же тост, как в кошельках (если там уже есть — этот блок можно опустить)
+if (!document.querySelector('.toast')) {
+  const el = document.createElement('div'); el.className = 'toast'; document.body.appendChild(el);
+  window._toast = (msg='Скопировано') => {
+    clearTimeout(window._t); el.textContent = msg; el.classList.add('show');
+    window._t = setTimeout(()=> el.classList.remove('show'), 1400);
+  };
+} else {
+  window._toast = (msg='Скопировано') => {
+    const el = document.querySelector('.toast');
+    clearTimeout(window._t); el.textContent = msg; el.classList.add('show');
+    window._t = setTimeout(()=> el.classList.remove('show'), 1400);
+  };
+}
+
+// копирование по кнопкам
+for (const btn of document.querySelectorAll('[data-copy]')) {
+  btn.addEventListener('click', () => {
+    const target = document.querySelector(btn.dataset.copy);
+    if (target){ navigator.clipboard.writeText(target.textContent.trim()); window._toast('Скопировано'); }
+  });
+}
+</script>
+
+{% endblock %}

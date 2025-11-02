@@ -19,7 +19,43 @@
     <h3>Причина отклонения:</h3>
     <p>{{ product.rejection_reason }}</p>
   {% endif %}
+  <form action="{% url 'users_admin:approve_text_product' product.id %}" method="post" class="card p-3 mt-3">
+    {% csrf_token %}
+    <div class="row g-2">
+      <div class="col-sm-4">
+        <label class="form-label">Качество (0–100)</label>
+        <input type="number" class="form-control" name="quality" min="0" max="100" value="{{ product.quality|default_if_none:'80' }}" required>
+      </div>
+      <div class="col-sm-4">
+        <label class="form-label">Уникальность (0–100)</label>
+        <input type="number" class="form-control" name="uniqueness" min="0" max="100" value="{{ product.uniqueness|default_if_none:'80' }}" required>
+      </div>
+      <div class="col-sm-4">
+        <label class="form-label">Правописание (0–100)</label>
+        <input type="number" class="form-control" name="spelling" min="0" max="100" value="{{ product.spelling|default_if_none:'80' }}" required>
+      </div>
+    </div>
+    <div class="mt-3">
+      <button type="submit" class="btn btn-success">Одобрить</button>
+      <a href="{% url 'users_admin:review_text_products' %}?status=pending" class="btn btn-outline-secondary">Назад к заявкам</a>
+    </div>
+  </form>
   <p>
     <a href="{% url 'users_admin:review_text_products' %}">← Вернуться к списку</a>
   </p>
+  <h3>Escrow</h3>
+  {% if open_escrows %}
+    <ul class="list-group mb-3">
+      {% for e in open_escrows %}
+        <li class="list-group-item d-flex justify-content-between align-items-center">
+          ID {{ e.id }} • {{ e.status }} {% if e.seconds_to_autorelease %} • авто-релиз через {{ e.seconds_to_autorelease }} сек.{% endif %}
+          {% if e.release_tx %}
+            <span class="badge bg-success">tx: {{ e.release_tx|slice:":10" }}…</span>
+          {% endif %}
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <div class="text-muted">Активных escrow нет.</div>
+  {% endif %}
 {% endblock %}

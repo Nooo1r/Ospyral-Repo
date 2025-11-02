@@ -1,16 +1,115 @@
 <!DOCTYPE html>
 <html lang="ru">
-<head><meta charset="UTF-8"><title>Заблокирован</title></head>
+<head>
+  <meta charset="UTF-8" />
+  <title>Доступ ограничен</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root {
+      --bg: #0b0f18; --card:#111827; --text:#e5e7eb; --muted:#9ca3af; --accent:#f59e0b; --danger:#ef4444;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0; min-height:100vh; display:flex; align-items:center; justify-content:center;
+      background: radial-gradient(1200px 800px at 70% 0%, #0a0f1f, #06080f), var(--bg);
+      color:var(--text); font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji","Segoe UI Emoji";
+    }
+    .card{
+      width:min(680px, 92vw); background:linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02));
+      border:1px solid rgba(255,255,255,.07); border-radius:20px; padding:28px 28px 22px;
+      box-shadow: 0 30px 80px rgba(0,0,0,.45), inset 0 0 0 1px rgba(255,255,255,.02);
+      backdrop-filter: blur(6px);
+    }
+    .head{display:flex; gap:16px; align-items:center}
+    .icon{
+      width:64px; height:64px; border-radius:16px; background:rgba(239,68,68,.1);
+      display:grid; place-items:center; flex:0 0 64px; border:1px solid rgba(239,68,68,.25)
+    }
+    .icon svg{width:36px; height:36px; stroke:var(--danger)}
+    h1{margin:0 0 6px; font-size:24px; letter-spacing:.2px}
+    .reason{color:var(--muted); margin:6px 0 12px; line-height:1.5}
+    .timer{
+      display:inline-flex; align-items:center; gap:10px; margin:12px 0 8px; padding:10px 14px;
+      border:1px dashed rgba(245,158,11,.35); border-radius:999px; background:rgba(245,158,11,.07);
+      font-variant-numeric: tabular-nums;
+    }
+    .btns{display:flex; gap:12px; margin-top:16px; flex-wrap:wrap}
+    .btn{
+      appearance:none; border:none; cursor:pointer; padding:10px 16px; border-radius:12px; font-weight:600;
+      background:#1f2937; color:#e5e7eb; border:1px solid rgba(255,255,255,.08)
+    }
+    .btn:hover{background:#374151}
+    .btn.outline{background:transparent}
+    .hint{margin-top:10px; color:var(--muted); font-size:14px}
+    .hr{height:1px; background:linear-gradient(90deg, transparent, rgba(255,255,255,.15), transparent); margin:16px 0}
+    .kbd{font:600 12px/1 ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace; padding:2px 6px; border-radius:6px; background:#0b1220; border:1px solid rgba(255,255,255,.08)}
+  </style>
+</head>
 <body>
-  <div class="ban-banner">
-    <h1>Ваш аккаунт заблокирован</h1>
-    <p>Причина: {{ request.user.ban_reason }}</p>
-    {% if request.user.ban_until %}
-      <p>До: {{ request.user.ban_until|date:"d.m.Y H:i" }}</p>
+  <main class="card" role="alertdialog" aria-labelledby="ban-title" aria-describedby="ban-desc">
+    <div class="head">
+      <div class="icon" aria-hidden="true">
+        <!-- shield icon -->
+        <svg viewBox="0 0 24 24" fill="none"><path d="M12 3l7 3v5c0 5-3.5 9-7 10-3.5-1-7-5-7-10V6l7-3z" stroke-width="1.5"/></svg>
+      </div>
+      <div>
+        <h1 id="ban-title">Ваш доступ временно ограничен</h1>
+        <div id="ban-desc" class="reason">
+          Причина: {{ reason|default:"Нарушение правил платформы" }}
+        </div>
+      </div>
+    </div>
+
+    <div class="hr"></div>
+
+    {% if ban_until %}
+      <div class="timer" aria-live="polite">
+        <span>До разблокировки:</span>
+        <strong id="countdown">—:—:—</strong>
+      </div>
     {% else %}
-      <p>Срок блокировки: навсегда</p>
+      <div class="reason">Срок блокировки: <strong>навсегда</strong></div>
     {% endif %}
-    <a href="{% url 'logout' %}">Выйти</a>
-  </div>
+
+    <div class="btns">
+      <form method="post" action="{% url 'logout_view' %}">
+        {% csrf_token %}
+        <button class="btn" type="submit">Выйти</button>
+      </form>
+      <a class="btn outline" href="/rules/">Правила</a>
+      <a class="btn outline" href="/refunds/">Поддержка</a>
+    </div>
+
+    <p class="hint">Если вы считаете, что бан выдан по ошибке — обратитесь в поддержку, указав ваш email и время блокировки.</p>
+  </main>
+
+  {% if seconds_left %}
+  <script>
+    (function(){
+      var left = {{ seconds_left|default:"0" }};
+      var el = document.getElementById('countdown');
+      function fmt(s){
+        var h = Math.floor(s/3600);
+        var m = Math.floor((s%3600)/60);
+        var sec = s%60;
+        function p(n){return (n<10?'0':'')+n}
+        return p(h)+':'+p(m)+':'+p(sec);
+      }
+      function tick(){
+        if(!el) return;
+        el.textContent = fmt(left);
+        if(left>0){ left--; setTimeout(tick,1000); }
+      }
+      tick();
+      // Проставим «device id» для анти-обхода
+      try{
+        if(!document.cookie.includes('osp_device_id=')){
+          var v = (crypto&&crypto.randomUUID)?crypto.randomUUID():Math.random().toString(36).slice(2);
+          document.cookie = "osp_device_id="+v+"; path=/; max-age=31536000; SameSite=Lax";
+        }
+      }catch(e){}
+    })();
+  </script>
+  {% endif %}
 </body>
 </html>

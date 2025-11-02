@@ -11,8 +11,6 @@
 </head>
 <body class="{% block body_class %}{% endblock %}">
 
-  {# Уведомления — отдельный инклюд #}
-  {% include "partials/notifications.html" %}
 
   <div class="app-container">
     {# Сайдбар — общий для всех страниц #}
@@ -23,9 +21,11 @@
     </main>
   </div>
 
-  {# Модалка выхода — одна на всё приложение #}
-  {% include "partials/logout_modal.html" %}
-
+  <form id="logout-form" action="{% url 'logout_view' %}" method="post" style="display:none">
+    {% csrf_token %}
+    <input type="hidden" name="next" value="{{ request.get_full_path }}">
+  </form>
+  
   {% block extra_js %}{% endblock %}
 
 <script>
@@ -36,8 +36,8 @@ document.addEventListener('DOMContentLoaded', () => {
   if (!toggle || !sidebar) return;
 
   // Порог «близости» к кнопке (от правого края и по вертикали — вокруг центра)
-  const PROX_X = 120;
-  const PROX_Y = 140;
+  const PROX_X = 110;
+  const PROX_Y = 70;
 
   let needEval = false, lastX = 0, lastY = 0;
 
@@ -118,15 +118,22 @@ document.addEventListener('DOMContentLoaded', () => {
       }, 2500);
     }
   }, {passive:true});
-
-  const flashes = document.querySelectorAll('.flash-container .flash');
-  flashes.forEach(el => {
-    // скрыть по клику
-    el.addEventListener('click', () => el.remove());
-    // авто-сокрытие через 4.5с
-    setTimeout(() => { el.remove(); }, 4500);
-  });
 });
+</script>
+
+<script>
+  // Блокируем копирование, выделение и перетаскивание глобально
+  document.addEventListener('copy', e => e.preventDefault());
+  document.addEventListener('cut', e => e.preventDefault());
+  document.addEventListener('dragstart', e => e.preventDefault());
+  document.addEventListener('selectstart', e => {
+    const t = e.target;
+    // Разрешаем выделение в инпутах/textarea/контент-эдитабл
+    if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
+    e.preventDefault();
+  });
+  // (опция) Заблокировать контекстное меню по правому клику:
+  document.addEventListener('contextmenu', e => e.preventDefault());
 </script>
 
 </body>

@@ -77,19 +77,33 @@
   z-index: 1000;
   box-shadow: -4px 0 12px rgba(0,0,0,0.5);
   border-left: 2px solid #d4af37;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
+
+.sidebar .menu-items {
+  flex: 1 1 auto;
+  min-height: 0;                
+  overflow-y: auto;           
+  overscroll-behavior: contain;  
+}
+
+.sidebar .menu-items { overflow-y: hidden; }
+.sidebar:hover .menu-items { overflow-y: auto; }
+
 
 .sidebar.active {
   right: 0; /* Выдвигается при активации */
 }
 
-.sidebar h2 {
+.sidebar h3 {
   font-size: 1.6rem;
-  margin-bottom: 30px;
+  margin-bottom: 10px;
   text-align: center;
   color: #ffd45e;
   border-bottom: 1px solid #444;
-  padding-bottom: 10px;
+  padding-bottom: 6px;
 }
 
 .sidebar-link {
@@ -133,6 +147,16 @@
 .sidebar.active .sidebar-link:nth-of-type(4) { transition-delay: 0.2s; }
 .sidebar.active .sidebar-link:nth-of-type(5) { transition-delay: 0.25s; }
 .sidebar.active .sidebar-link:nth-of-type(6) { transition-delay: 0.3s; }
+.sidebar.active .sidebar-link:nth-of-type(7) { transition-delay: 0.35s; }
+
+.sidebar-link.create {
+  background: linear-gradient(135deg, #329c28, #1a7a02);
+
+}
+
+.sidebar .menu-items::-webkit-scrollbar{ width:0; height:0; } 
+.sidebar .menu-items{ scrollbar-width: none; }               
+.sidebar .menu-items{ -ms-overflow-style: none; }
 
 /* Кнопка для открытия меню */
 .menu-toggle {
@@ -187,4 +211,44 @@
   100% {
     transform: rotate(360deg);
   }
+}
+
+.btn-gold-plus {
+  display:inline-flex; align-items:center; justify-content:center;
+  width:36px; height:36px; border-radius:50%;
+  background: linear-gradient(180deg,#f9e08a,#d5b04f);
+  color:#161616; font-weight:700; text-decoration:none;
+  border: none; box-shadow: 0 0 0 1px rgba(255,215,0,.25), 0 6px 18px rgba(213,176,79,.25);
+}
+.btn-gold-plus:hover { filter: brightness(1.05); transform: translateY(-1px); }
+
+.modal { border:0; padding:20px; border-radius:16px; width:min(420px, 92vw); }
+.modal::backdrop { background: rgba(0,0,0,.5); backdrop-filter: blur(2px); }
+.modal h3 { margin:0 0 8px; }
+.modal .muted { margin:0 0 16px; opacity:.8; }
+.modal .modal-actions { display:flex; justify-content:flex-end; gap:8px; }
+.btn.ghost { background:transparent; border:1px solid rgba(255,255,255,.2); }
+.btn.btn-danger { background:#d9534f; border:0; color:#fff; }
+.sidebar,
+.sidebar *:not(input):not(textarea):not([contenteditable="true"]) {
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none; /* iOS контекстное меню */
+}
+
+.menu-toggle,
+.menu-toggle * {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Чтобы ссылки всё же были кликабельны без «перетаскиваний» */
+.sidebar a,
+.sidebar button {
+  -webkit-user-drag: none;
+  user-drag: none;
 }

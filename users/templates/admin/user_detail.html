@@ -1,4 +1,4 @@
-{# users/templates/admin/user_detail.html #}
+
 {% extends "admin/admin_base.html" %}
 
 {% block title %}Профиль пользователя: {{ user_obj.username }}{% endblock %}
@@ -6,20 +6,110 @@
 {% block content %}
   <h1>Пользователь «{{ user_obj.username }}»</h1>
   <p><strong>Email:</strong> {{ user_obj.email }}</p>
-  <p><strong>Статус:</strong>
-    {% if user_obj.is_active %}Активен{% else %}Заблокирован{% endif %}
-  </p>
-  <p><strong>Зарегистрирован:</strong> {{ user_obj.date_joined|date:"Y-m-d H:i" }}</p>
 
-  {% if user_obj.is_active %}
-    <a href="{% url 'users_admin:block_user' user_obj.id %}" class="btn btn-warning">
-      Заблокировать
-    </a>
-  {% else %}
-    <a href="{% url 'users_admin:unblock_user' user_obj.id %}" class="btn btn-success">
-      Разблокировать
-    </a>
+  {% if user_created_at %}
+    <p><strong>Зарегистрирован:</strong> {{ user_created_at|date:"Y-m-d H:i" }}</p>
   {% endif %}
+
+  <p><strong>Статус бана:</strong>
+    {% if user_obj.is_banned %}
+      <span class="badge bg-danger">ЗАБАНЕН</span>
+      {% if user_obj.ban_until %}
+        (до {{ user_obj.ban_until|date:"Y-m-d H:i" }})
+      {% else %}
+        (навсегда)
+      {% endif %}
+      <br>
+      {% if user_obj.ban_reason %}
+        <small>Причина: {{ user_obj.ban_reason }}</small>
+      {% endif %}
+    {% else %}
+      <span class="badge bg-success">НЕ ЗАБАНЕН</span>
+    {% endif %}
+  </p>
+
+  <div class="card p-3" style="max-width:640px;">
+    <h3>Управление баном</h3>
+    <form method="post" action="{% url 'users_admin:ban_user' user_obj.id %}" class="row g-2">
+      {% csrf_token %}
+      <div class="col-md-4">
+        <label class="form-label">Срок (часы)</label>
+        <input type="number" min="0" step="1" name="hours" class="form-control" placeholder="Напр. 1, 5, 24">
+        <small class="text-muted">0 = навсегда</small>
+      </div>
+      <div class="col-md-8">
+        <label class="form-label">Причина</label>
+        <input type="text" name="reason" class="form-control" placeholder="Причина блокировки">
+      </div>
+      <div class="col-12 d-flex gap-2 mt-2">
+        <button type="submit" class="btn btn-warning">Забанить</button>
+        {% if user_obj.is_banned %}
+          <a href="{% url 'users_admin:unban_user' user_obj.id %}" class="btn btn-success">Снять бан</a>
+        {% endif %}
+        <div class="ms-auto d-flex gap-2">
+          <button formaction="{% url 'users_admin:ban_user' user_obj.id %}" name="hours" value="1" class="btn btn-outline-secondary" type="submit">1 ч</button>
+          <button formaction="{% url 'users_admin:ban_user' user_obj.id %}" name="hours" value="6" class="btn btn-outline-secondary" type="submit">6 ч</button>
+          <button formaction="{% url 'users_admin:ban_user' user_obj.id %}" name="hours" value="24" class="btn btn-outline-secondary" type="submit">24 ч</button>
+          <button formaction="{% url 'users_admin:ban_user' user_obj.id %}" name="hours" value="168" class="btn btn-outline-secondary" type="submit">7 д</button>
+        </div>
+      </div>
+    </form>
+  </div>
+
+  <div class="card p-3 mt-3" style="max-width:680px;">
+    <h3>VIP</h3>
+    <p>
+      Текущий статус:
+      {% if current_vip_plan %}
+        <span class="badge bg-warning text-dark">{{ current_vip_plan.title }}</span>
+        {% if current_vip_until %}
+          (до {{ current_vip_until|date:"Y-m-d H:i" }})
+        {% endif %}
+      {% else %}
+        <span class="badge bg-secondary">нет</span>
+      {% endif %}
+    </p>
+
+    <form method="post" action="{% url 'users_admin:grant_vip' user_obj.id %}" class="row g-2">
+      {% csrf_token %}
+      <div class="col-md-5">
+        <label class="form-label">План</label>
+        <select name="plan_id" class="form-select" required>
+          {% for p in vip_plans %}
+            <option value="{{ p.id }}">{{ p.title }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">Срок (часы)</label>
+        <input type="number" name="hours" min="0" step="1" class="form-control" placeholder="напр. 24">
+        <small class="text-muted">0 = бессрочно</small>
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">Причина</label>
+        <input type="text" name="reason" class="form-control" placeholder="промо/поддержка">
+      </div>
+      <div class="col-12 d-flex gap-2 mt-2">
+        <button type="submit" class="btn btn-warning">Выдать VIP</button>
+        {% if current_vip_plan %}
+          <a href="{% url 'users_admin:revoke_vip' user_obj.id %}" class="btn btn-outline-danger">Снять VIP</a>
+        {% endif %}
+
+        <div class="ms-auto d-flex gap-2">
+          {# Быстрые кнопки #}
+          {% for hours, label in vip_quick %}
+            <button formaction="{% url 'users_admin:grant_vip' user_obj.id %}"
+                    name="hours" value="{{ hours }}"
+                    class="btn btn-outline-secondary" type="submit">
+              {{ label }}
+            </button>
+          {% endfor %}
+        </div>
+        
+      </div>
+    </form>
+  </div>
+
 
   <hr>
 

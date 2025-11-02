@@ -10,6 +10,15 @@ html {
   box-sizing: inherit;
 }
 
+:root{
+  --hdr-bg: rgba(14,14,18,0.46);
+  --hdr-border: rgba(255,212,94,0.35);
+  --hdr-shadow: 0 10px 24px -16px rgba(0,0,0,0.8);
+  --gold: #ffd45e;
+  --gold-2: #d4af37;
+  --text: #e8e8ee;
+  --muted: #9aa0a6;
+}
 
 
 body {
@@ -29,7 +38,10 @@ header.header {
   width: 100%;
   padding: 30px 40px;
   box-sizing: border-box;
-  background: linear-gradient(to right, #ffd45e, #3a3a3a);
+  background: var(--hdr-bg);
+  border-image: linear-gradient(90deg, transparent 0%, var(--hdr-border) 35%, var(--hdr-border) 65%, transparent 100%) 1;
+  border-bottom: 1px solid transparent;
+  backdrop-filter: blur(8px);
   color: #fff;
   display: flex;
   justify-content: space-between;
@@ -40,11 +52,16 @@ header.header {
 
 .header-logo {
   position: absolute;
+  display: flex;
+  gap: 15px;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  z-index: 1000; /* Чтобы логотип был поверх остальных элементов шапки */
+  z-index: 1000;
+  font-family: 'Lucida Grande';
+  font-size: 26px;
 }
+.ospyral-logo { filter: drop-shadow(0 0 10px rgba(255,255,255,0.8)); }
 
 
 .header-links {
@@ -57,7 +74,7 @@ header.header {
 }
 
 .header-link {
-  color: #000;
+  color: #ffffff;
   text-decoration: none;
   font-size: 16px;
   font-weight: bold;
@@ -65,7 +82,7 @@ header.header {
 }
 
 .header-link:hover {
-  color: #ffffff;
+  color: var(--gold);
   text-decoration: underline;
 }
 
@@ -76,13 +93,13 @@ header.header {
 }
 .user-profile-link {
   display: inline-flex; align-items: center; gap: 12px;
-  padding: 6px 10px; border-radius: 999px;
+  padding: 6px 10px; border-radius: 8px;
   transition: background-color .2s ease, box-shadow .2s ease;
 }
 .user-profile-link:hover { background-color: rgba(255,255,255,.1); box-shadow: var(--shadow-sm); }
 .user-name { color: #fff; font-weight: 700; font-size: 14px; white-space: nowrap; }
 .user-avatar {
-  width: 36px; height: 36px; border-radius: 50%; object-fit: cover;
+  width: 36px; height: 36px; border-radius: 8px; object-fit: cover;
   border: 2px solid var(--gold); transition: transform .25s ease, box-shadow .25s ease, border-color .25s ease;
 }
 .user-profile-link:hover .user-avatar {
@@ -122,6 +139,7 @@ section h2 {
 }
 .text_intro h1 {
   text-align: center;
+  color: #ffffff;
 }
 
 
@@ -523,6 +541,7 @@ body > *:not(.cursor-bg-dot) { position: relative; z-index: 1; }
   color: #999;
   min-width: 90px;
   font-weight: bold;
+  margin-left: auto;
 }
 
 .news-feed p {
@@ -548,6 +567,7 @@ body > *:not(.cursor-bg-dot) { position: relative; z-index: 1; }
   position: relative;
   overflow: visible; 
   width: 100%;
+  height: 320px;
   aspect-ratio: 1 / 1;
   background-color: #ffffff;
   border-radius: 8px;
@@ -575,7 +595,6 @@ body > *:not(.cursor-bg-dot) { position: relative; z-index: 1; }
   left: 0;
   width: 100%;
   transform: translateY(-50%);
-  background-color: #d4af37;
   color: #ffffff;
   padding: 20px 0;
   font-size: 1.2rem;
@@ -583,6 +602,16 @@ body > *:not(.cursor-bg-dot) { position: relative; z-index: 1; }
   text-align: center;
   z-index: 2;
   transition: transform 0.4s ease;
+}
+
+.card1 {
+  background-color: #750000;
+}
+.card2 {
+  background-color: #400075;
+}
+.card3 {
+  background-color: #007548;
 }
 
 .card-description {
@@ -619,6 +648,7 @@ body > *:not(.cursor-bg-dot) { position: relative; z-index: 1; }
 
 .dashboard-card:hover .card-ribbon {
   transform: translateY(225%);
+  background-color: #d4af37;
 }
 
 .dashboard-card:hover .card-icon {
@@ -638,3 +668,67 @@ body > *:not(.cursor-bg-dot) { position: relative; z-index: 1; }
 .card-lesson:hover {
   background-color: #007548;
 }
+
+:root{
+  --space-0:#0b0b10;
+  --space-1:#121217;
+  --gold-1:#ffd45e;
+  --gold-2:#d4af37;
+}
+
+/* Перекрываем серый фон body на космический градиент + виньетку */
+body{
+  background:
+    radial-gradient(1200px 700px at 85% 20%, rgba(212,175,55,0.06), transparent 55%),
+    radial-gradient(900px 560px at 28% 78%, rgba(255,212,94,0.08), transparent 60%),
+    linear-gradient(180deg, var(--space-0) 0%, var(--space-1) 60%, var(--space-0) 100%) !important;
+  background-attachment: fixed;
+}
+
+/* Мягкие «туманности»: ещё один слой, глубже всего */
+body::before{
+  content:"";
+  position:fixed;
+  inset:0;
+  z-index:-3;
+  pointer-events:none;
+  /* едва заметные «небулы», не мешают контенту */
+  background:
+    radial-gradient(680px 420px at 15% 12%, rgba(255,212,94,0.12), transparent 42%),
+    radial-gradient(540px 340px at 70% 88%, rgba(212,175,55,0.07), transparent 55%);
+  filter:saturate(1.12) contrast(1.05);
+}
+
+/* Canvas со «звёздной пылью» — глубже «светлячка» */
+#cosmic-bg{
+  position:fixed !important;
+  inset:0 !important;
+  z-index:-2 !important;
+  display:block;
+  pointer-events:none;
+}
+
+/* «Золотые ленты» (полупрозрачные, с лёгким перемещением) */
+.gold-aurora{
+  position:fixed !important;
+  inset:0 !important;
+  z-index:-1 !important;
+  pointer-events:none;
+  mix-blend-mode:screen;
+}
+
+.gold-aurora .b3{ top:78vh; transform:rotate(-4deg); animation-delay:-12s; }
+
+@keyframes aurora-slide{
+  0%,100%{ transform:translateX(-10%) rotate(var(--rot, 0deg)); opacity:.55; }
+  50%    { transform:translateX(10%)  rotate(var(--rot, 0deg)); opacity:.35; }
+}
+
+/* Чуть бережнее к слабым устройствам/предпочтениям */
+@media (max-width: 768px){
+  #cosmic-bg{ display:none; } /* оставим только градиенты и туманности */
+}
+@media (prefers-reduced-motion: reduce){
+  .gold-aurora .beam{ animation: none !important; }
+}
+

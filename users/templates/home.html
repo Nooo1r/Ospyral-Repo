@@ -2,107 +2,206 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Ospyral — пространство потрясающих идей</title>
   <link rel="icon" type="image/png" href="{% static 'images/favinspyral.png' %}">
-  <title>Главная страница</title>
-  <!-- Подключаем шрифты -->
 
-  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;700&display=swap" rel="stylesheet">
+  <!-- Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet" />
 
+  <style>
+    :root{
+      --bg: #070709;
+      --panel: rgba(255,255,255,0.04);
+      --glass: rgba(255,255,255,0.06);
+      --gold: #f5d36c;
+      --gold-2: #d9a92f;
+      --muted: #a7a7ab;
+      --text: #ececf0;
+      --accent: #7a6cff;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0; background:var(--bg); color:var(--text); font-family:Inter, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, 'Helvetica Neue', Arial, 'Noto Sans';
+      overflow:hidden; /* фишка: полноэкранный режим без скролла */
+    }
+    a{color:inherit; text-decoration:none}
 
-  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet">
+    /* ===== Header (минимальный) ===== */
+    .site-header{position:fixed; inset-inline:0; top:0; height:72px; z-index:50; pointer-events:none}
+    .site-header .inner{height:72px; display:flex; align-items:center; justify-content:space-between; width:min(1220px,92%); margin:0 auto}
+    .brand{display:flex; align-items:center; gap:12px; pointer-events:auto}
+    .brand img{width:32px;height:32px}
+    .brand .name{font-weight:800; letter-spacing:.4px}
+    .cta{display:flex; gap:10px; pointer-events:auto}
+    .btn{display:inline-flex; align-items:center; justify-content:center; gap:10px; padding:10px 16px; border-radius:14px; border:1px solid rgba(255,255,255,0.08); background:var(--panel); font-weight:700; transition:transform .2s ease, border-color .2s ease}
+    .btn:hover{border-color:rgba(255,255,255,0.22)}
+    .btn.primary{background:linear-gradient(180deg, var(--gold), var(--gold-2)); color:#1c1500; border:none; box-shadow:0 10px 30px rgba(245,211,108,.22)}
 
-  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
-  <!-- Подключаем внешний файл стилей -->
-  <link rel="stylesheet" href="{% static 'css/home.css' %}">
-  <!-- Подключаем jQuery -->
-  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    /* ===== Stage (полноэкранная сцена) ===== */
+    .stage{position:relative; width:100vw; height:100vh; overflow:hidden}
+    .bg-wrap{position:absolute; inset:0}
+    canvas#field, canvas#links{position:absolute; inset:0; width:100%; height:100%; display:block}
+
+    /* Aurora слои */
+    .aurora{
+      position:absolute; inset:-20% -10% -10% -10%; filter:blur(28px); opacity:.9; mix-blend-mode:screen;
+      background:
+        radial-gradient(40% 40% at 15% 30%, rgba(245,211,108,.18), transparent 60%),
+        radial-gradient(45% 45% at 80% 25%, rgba(122,108,255,.22), transparent 65%),
+        radial-gradient(55% 55% at 60% 80%, rgba(39,184,255,.18), transparent 60%);
+      animation: aurora 18s ease-in-out infinite alternate;
+    }
+    @keyframes aurora{0%{transform:translate3d(0,0,0) scale(1)} 100%{transform:translate3d(-4%,2%,0) scale(1.06)}}
+
+    /* Главный блок контента */
+    .hero{position:relative; z-index:2; height:100%; display:grid; place-items:center; padding:96px 0 64px}
+    .center{width:min(1100px, 90%); text-align:center}
+    .eyebrow{display:inline-flex; align-items:center; gap:8px; font-size:12px; letter-spacing:.18em; text-transform:uppercase; color:#c9c9cf; background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.10); padding:8px 12px; border-radius:999px; backdrop-filter:blur(10px)}
+    .title{font-family:'Playfair Display', serif; font-weight:700; font-size:clamp(38px, 6.6vw, 88px); line-height:1.02; margin:16px 0 14px; text-wrap:balance}
+    .title .gold{color:var(--gold)}
+    .subtitle{max-width:64ch; margin:0 auto; color:#d0d0d6; font-size:clamp(16px, 1.8vw, 20px); line-height:1.7}
+
+    .actions{display:flex; gap:12px; justify-content:center; flex-wrap:wrap; margin-top:26px}
+    .magnet{transition:transform .12s ease}
+
+    /* Орбитальные подсказки (углы) */
+    .hint{position:fixed; bottom:20px; left:50%; transform:translateX(-50%); color:#b9b9bf; font-size:12px; letter-spacing:.14em; text-transform:uppercase; opacity:.8; z-index:3}
+
+    /* Фокус‑кольцо под курсором */
+    .cursor-ring{position:fixed; width:44px; height:44px; border-radius:50%; border:1px solid rgba(245,211,108,.55); left:-100px; top:-100px; z-index:3; pointer-events:none; transition:transform .08s linear}
+
+    /* Адаптив */
+    @media (max-width: 520px){
+      .subtitle{max-width: 90%}
+      .btn{padding:10px 14px}
+    }
+  </style>
 </head>
+
 <body>
 
-  <!-- Шапка сайта -->
-  <header class="header">
-    <div class="header-logo"> 
-      <img src="{% static 'images/logo.svg' %}">
-    </div>
-    <!-- Кнопки регистрации и входа -->
-    <div class="header-buttons">
-      <a href="{% url 'login' %}" class="btn btn-login">Вход</a>
-      <a href="{% url 'register' %}" class="btn btn-register">Регистрация</a>
-    </div>
-    <!-- Дополнительные ссылки в шапке -->
-    <div class="header-links">
-      <a href="#security" class="header-link">Безопасность</a>
-      <a href="#description" class="header-link">Описание</a>
-      <a href="#about-us" class="header-link">О нас</a>
-    </div>
-  </header>
 
+  <!-- ===== Stage (единственный экран) ===== -->
+  <main class="stage" role="main">
+    <div class="bg-wrap" aria-hidden="true">
+      <canvas id="field"></canvas>
+      <canvas id="links"></canvas>
+      <div class="aurora"></div>
+    </div>
 
-  <section class="intro-section">
-    <div class="intro-content container">
-      <!-- Левый блок с описанием -->
-      <div class="intro-text">
-        <h2>Добро пожаловать в Ospyral</h2>
-        <p>
-          Это не просто сайт — это пространство, построенное на осознанности, намерении и дисциплине. Здесь нет хаоса социальных сетей, нет алгоритмов, гоняющихся за вниманием. Здесь всё подчинено смыслу.
-          Как галактика, мы выстраиваем орбиту вокруг центра — вокруг идеи. Каждая работа, каждый фрагмент знания, каждая концепция, представленная здесь, подаётся не случайно, а как элемент целостной интеллектуальной структуры.        
-        </p>
+    <section class="hero">
+      <div class="center">
+        <div class="eyebrow">Пространство реализации идей и навыков</div>
+        <h1 class="title">Монетизируйте творческие и научные идеи в <span class="gold">Ospyral</span></h1>
+        <p class="subtitle">Одна идея — один продукт. Качество — основа роста. <br>Загружайте текстовые и визуальные работы и продавайте их.</p>
+        <div class="actions">
+          <a class="btn primary magnet" href="{% url 'register' %}">Создать аккаунт</a>
+          <a class="btn magnet" href="{% url 'login' %}">Войти</a>
+        </div>
       </div>
-      <!-- Правый блок с изображением -->
-      <div class="intro-image">
-        <img src="static/images/galaxy.png" alt="Золотая галактика">
-      </div>
-    </div>
-  </section>
+    </section>
 
+  </main>
 
-  <section class="second">
-    <div class="second-image">
-      <img src="static/images/gallery.png" alt="Галерея">
-    </div>
-    <div class="second-text">
-      <h2>На Ospyral вы создаёте, публикуете и монетизируете.</h2>
-      <p>Графика, тексты, исследования, гипотезы, концепции, обучающие материалы — всё, что несёт ценность, может быть представлено и продано.
-      Вы управляете не просто контентом — вы управляете вниманием, репутацией и восприятием.
-      </p>
-    </div>
-  </section>
+  <script>
+    // ===== Hi‑Fidelity интерактив: звёздное поле + связующие линии + магнитные кнопки + кольцо курсора =====
+    const DPR = Math.max(1, window.devicePixelRatio || 1);
 
-  <section class="third">
-    <div class="third-text">
-      <h2>Ospyral даёт вам архитектуру:</h2>
-      <p>• Где вы можете формализовать свои знания;<br>
-        • Где ваши мысли находят форму, а ваши формы — ценность;<br>
-        • Где публичность не обесценивает, а усиливает.<br>
-        
-        Это система, где ваши идеи не тонут в потоке, а становятся навигационными точками для других.<br>
-        Вы не просто создаёте — вы занимаетесь построением культурного и профессионального ландшафта нового поколения.</p>
-    </div> 
-    <div class="third-image">
-      <img src="static/images/pic001.png" alt="Платон">
-    </div>
-  </section>  
+    // --- Starfield ---
+    const field = document.getElementById('field');
+    const ctx = field.getContext('2d');
+    const links = document.getElementById('links');
+    const ltx = links.getContext('2d');
 
-  <section class="fourth">
-    <div class="fourth-image">
-      <img src="static/images/gallery.png" alt="Галерея">
-    </div>
-    <div class="fourth-text">
-      <h1>Мир не заметит молчаливого таланта. Ospyral — это инструмент, чтобы вас услышали.</h1>
-      <p>Не откладывайте. Не оправдывайтесь. Если внутри вас есть знание, замысел или талант — здесь место, где он приобретает силу действия.
-      </p>
-    </div>
-  </section>
+    let stars = []; let mouse = {x: -9999, y: -9999};
 
+    function sizeCanvas(c){
+      const rect = c.getBoundingClientRect();
+      c.width = Math.floor(rect.width * DPR);
+      c.height = Math.floor(rect.height * DPR);
+    }
+    function resize(){ sizeCanvas(field); sizeCanvas(links); spawn(); }
 
-  <!-- Подвал сайта -->
-  <footer>
-    <p>© 2025 Название компании. Все права защищены.</p>
-  </footer>
+    function spawn(){
+      const w = field.width / DPR, h = field.height / DPR;
+      const count = Math.floor((w*h)/9000); // плотнее чем раньше
+      stars = Array.from({length: count}, ()=>({
+        x: Math.random()*w,
+        y: Math.random()*h,
+        z: Math.random()*0.9 + 0.1,
+        r: Math.random()*1.6 + .5,
+        vx: (Math.random()*0.8 + 0.08) * (Math.random()<.5?-1:1),
+        vy: (Math.random()*0.8 + 0.08) * (Math.random()<.5?-1:1),
+      }));
+    }
 
-  <!-- Подключение внешнего скрипта для дополнительного функционала -->
-  <script src="{% static 'js/script.js' %}"></script>
+    function drawStars(){
+      const w = field.width / DPR, h = field.height / DPR;
+      ctx.clearRect(0,0,w,h);
+      for(const s of stars){
+        s.x += s.vx * s.z * .35; s.y += s.vy * s.z * .35;
+        if(s.x<-8||s.x>w+8||s.y<-8||s.y>h+8){ s.x = Math.random()*w; s.y = Math.random()*h; }
+        ctx.globalAlpha = 0.65 * s.z; ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, Math.PI*2); ctx.fillStyle = '#fff'; ctx.fill();
+      }
+    }
+
+    function drawLinks(){
+      const w = links.width / DPR, h = links.height / DPR;
+      ltx.clearRect(0,0,w,h);
+      ltx.lineWidth = 1; ltx.strokeStyle = 'rgba(245,211,108,.20)';
+      const thresh = 120; // дистанция связи
+      for(let i=0;i<stars.length;i++){
+        const a = stars[i];
+        const dx = a.x - mouse.x, dy = a.y - mouse.y; const d = Math.hypot(dx,dy);
+        if(d < 180){ // легкое притяжение к курсору
+          a.x += (mouse.x - a.x) * 0.008; a.y += (mouse.y - a.y) * 0.008;
+        }
+        for(let j=i+1;j<i+12 && j<stars.length;j++){
+          const b = stars[j];
+          const dd = (a.x-b.x)**2 + (a.y-b.y)**2;
+          if(dd < thresh*thresh){
+            const alpha = 0.28 * (1 - Math.sqrt(dd)/thresh);
+            ltx.globalAlpha = alpha; ltx.beginPath(); ltx.moveTo(a.x,a.y); ltx.lineTo(b.x,b.y); ltx.stroke();
+          }
+        }
+      }
+    }
+
+    function loop(){ drawStars(); drawLinks(); requestAnimationFrame(loop); }
+
+    window.addEventListener('resize', resize, {passive:true});
+    resize(); loop();
+
+    // --- Cursor ring ---
+    const ring = document.getElementById('ring');
+    window.addEventListener('mousemove', (e)=>{
+      const x = e.clientX, y = e.clientY;
+      mouse.x = x; mouse.y = y;
+      ring.style.transform = `translate3d(${x-22}px, ${y-22}px, 0)`;
+    });
+
+    // --- Magnetic buttons ---
+    const magnets = document.querySelectorAll('.magnet');
+    for(const m of magnets){
+      m.addEventListener('mousemove', (e)=>{
+        const r = m.getBoundingClientRect();
+        const cx = r.left + r.width/2, cy = r.top + r.height/2;
+        const dx = (e.clientX - cx) / (r.width/2);
+        const dy = (e.clientY - cy) / (r.height/2);
+        m.style.transform = `translate(${dx*6}px, ${dy*6}px)`;
+      });
+      m.addEventListener('mouseleave', ()=>{ m.style.transform = 'translate(0,0)'; });
+    }
+
+    // --- Spacebar pulse (легкая пасхалка) ---
+    window.addEventListener('keydown', (e)=>{
+      if(e.code === 'Space'){
+        ring.animate([{transform: ring.style.transform, opacity:1},{transform: ring.style.transform + ' scale(1.35)', opacity:.2}], {duration:360, easing:'ease-out'});
+      }
+    });
+  </script>
 </body>
 </html>

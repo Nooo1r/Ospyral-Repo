@@ -10,6 +10,13 @@
 </head>
 <body>
   <header>
+    {% if messages %}
+      <div class="container mt-3">
+        {% for m in messages %}
+          <div class="alert alert-{{ m.tags|default:'info' }}">{{ m }}</div>
+        {% endfor %}
+      </div>
+    {% endif %}
     <h1>Панель администрации</h1>
     <nav>
       <a href="{% url 'users_admin:admin_index' %}"
@@ -26,9 +33,20 @@
          class="{% if request.resolver_match.url_name == 'review_artworks' %}active{% endif %}">
         Артворки
       </a>
-      <a href="{% url 'users_admin:review_refunds' %}"
-        class="{% if request.resolver_match.url_name == 'review_refunds' %}active{% endif %}">
-        Жалобы на возврат
+      |
+      <a href="{% url 'users_admin:disputes_list' %}"
+        class="{% if request.resolver_match.url_name in 'disputes_list' %}active{% endif %}">
+        Лист возвратов
+      </a>
+      |
+      <a href="{% url 'users_admin:news_list' %}"
+        class="{% if request.resolver_match.url_name in 'news_list news_create news_edit news_delete' %}active{% endif %}">
+        Новости
+      </a>
+      |
+      <a href="{% url 'users_admin:grant_osp' %}"
+        class="{% if request.resolver_match.url_name in 'grant_osp grant_osp_success' %}active{% endif %}">
+        Начислить OSP
       </a>
     </nav>
   </header>

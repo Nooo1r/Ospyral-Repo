@@ -7,47 +7,165 @@
   <link rel="stylesheet" href="{% static 'css/artwork_detail.css' %}">
 </head>
 <body>
-  <div class="container">
-    <header class="header">
-      <a href="/" class="logo-link">
-        <img src="{% static 'images/logo.svg' %}" alt="Ospyral" class="logo">
-      </a>
-    </header>
+  <div class="artwork-detail-wrapper">
+      <div class="vp-breadcrumbs">
+        <a href="/dashboard/" class="crumb">Ospyral</a>
+        <span class="sep">•</span>
+        <a href="/artwork/store/" class="crumb">Artwork Store</a>
+        <span class="sep">•</span>
+        <span class="crumb current" aria-current="page">{{ artwork.title }}</span>
+      </div>
 
-    <main class="artwork-detail">
-      <h1 class="artwork-title">{{ artwork.title }} <span class="badge">МОЙ ПРОДУКТ</span></h1>
+    <h1 class="title">
+      {{ artwork.title }}
+      <span class="status-pill {{ artwork.status }}"> {{ artwork.get_status_display }} </span>
+      <span class="owner-pill">Мой продукт</span>
+      <span class="nsfw-pill" {% if not artwork.nsfw %}style="display:none"{% endif %}>NSFW</span>
+    </h1>
 
-      <div class="meta">
-        <p><strong>Категория:</strong> {{ artwork.category }}</p>
+    <div class="meta">
+      <p><span>Категория:</span> {{ artwork.get_category_display }}</p>
         <p>
-          <strong>Цена:</strong>
-          {% if artwork.currency == 'USD' %}
-            ${{ artwork.price }}
-          {% elif artwork.currency == 'COIN' %}
-            {{ artwork.price }} 🧿
+          <span>Цена:</span>
+          {% if artwork.currency == 'USDT' %}
+            ${{ artwork.price|floatformat:2 }}
+          {% elif artwork.currency == 'OSP' %}
+            {{ artwork.price|floatformat:2 }} OSP
           {% else %}
-            {{ artwork.price }} <span class="text-muted">(неизвестная валюта)</span>
+            {{ artwork.price|floatformat:2 }} <span class="text-muted">(Неизвестная валюта)</span>
           {% endif %}
         </p>
-      </div>
+        <p class="art-author">
+          <span>Автор:</span>
+          <a class="author-link" href="{% url 'user_profile' artwork.owner.username %}">
+            {{ artwork.owner.username }}
+          </a>
+        </p>
+      <p><span>Доступных копий:</span> {{ artwork.available_copies }}</p>
+      <p><span>Описание:</span> {{ artwork.description }}</p>
+    </div>
+    <section class="tech-meta">
+      <h2 class="section-title">Техническая информация:</h2>
+      <ul class="kv">
+        <li><span>Статус</span><b>{{ artwork.get_status_display }}</b></li>
+        <li><span>В продаже</span><b>{{ artwork.is_listed|yesno:"Да,Нет" }}</b></li>
 
-      <div class="block description">
-        <h2>Описание</h2>
-        <p class="box">{{ artwork.description }}</p>
-      </div>
+        {% if artwork.blocked_until %}
+          <li><span>Блок до</span><b>{{ artwork.blocked_until|date:"d.m.Y H:i" }}</b></li>
+        {% endif %}
+        {% if artwork.block_reason %}
+          <li><span>Причина блокировки</span><b>{{ artwork.block_reason }}</b></li>
+        {% endif %}
+        {% if artwork.rejection_reason %}
+          <li class="danger"><span>Причина отклонения</span><b>{{ artwork.rejection_reason }}</b></li>
+        {% endif %}
+      </ul>
+    </section>
+    <div class="actions">
+      {% if artwork.status == 'draft' %}
+        <form method="post" action="{% url 'submit_for_review' pk=artwork.id %}">
+          {% csrf_token %}
+          <button class="btn btn-primary">Отправить на модерацию</button>
+        </form>
+      {% endif %}
 
-      <div class="block gallery">
-        <h2>ВСЕ страницы (включая зацензуренные)</h2>
-        <div class="gallery-view">
-          {% for page in pages %}
-            <div class="artwork-page">
-              <p class="small">{% if page.is_censored %}🔒 ЦЕНЗУРА{% else %}🖼 ПОЛНАЯ{% endif %}</p>
-              <img src="{{ page.image.url }}" alt="Page {{ forloop.counter }}">
-            </div>
-          {% endfor %}
+      {% if artwork.status == 'approved' %}
+        <form
+          hx-post="{% url 'toggle_sale_artwork' artwork.id %}"
+          hx-target="this"
+          hx-swap="outerHTML"
+          method="post"
+          class="inline"
+        >
+          {% csrf_token %}
+          {% if artwork.is_active %}
+            <button class="btn btn-danger" type="submit">Остановить продажу</button>
+          {% else %}
+            <button class="btn btn-primary" type="submit">Возобновить продажу</button>
+          {% endif %}
+        </form>
+      {% endif %}
+
+      <form method="post" action="{% url 'delete_artwork' pk=artwork.id %}" onsubmit="return confirm('Снять из продажи?')">
+        {% csrf_token %}
+        <button class="btn btn-danger">Удалить из продажи</button>
+      </form>
+
+      <a class="btn btn-secondary" href="{% url 'artwork_viewer' artwork.id %}">Полноэкранный просмотр</a>
+
+      {% if has_access or request.user.is_staff or request.user.id == artwork.owner_id %}
+        <a class="btn btn-secondary" href="{% url 'download_artwork_zip' artwork.id %}">Скачать ZIP</a>
+      {% endif %}
+
+    </div>
+
+    <h2 id="pages-title" class="section-title">Страницы</h2>
+
+    <!-- Массовый переключатель -->
+    <div class="owner-toolbar">
+      <div class="segmented" role="tablist" aria-label="Показ изображений">
+        <button type="button" class="seg active" data-view="auto" aria-pressed="true">Авто</button>
+        <button type="button" class="seg" data-view="censored">Цензура</button>
+        <button type="button" class="seg" data-view="original">Оригинал</button>
+      </div>
+    </div>
+
+    
+    <section aria-labelledby="pages-title">
+    <div class="page-gallery" data-mode="auto">
+      {% for p in pages %}
+
+        <div class="page-card" data-has-cens="{% if p.censored_image %}1{% else %}0{% endif %}">
+          <a href="{% url 'artwork_viewer' artwork.id %}?page={{ forloop.counter }}">
+            {% if p.censored_image %}
+              <img class="img censored"
+                  src="{{ p.censored_image.url }}"
+                  alt="Страница {{ forloop.counter }} (ценз.)"
+                  draggable="false">
+            {% endif %}
+            <img class="img original"
+                src="{{ p.image.url }}"
+                alt="Страница {{ forloop.counter }}"
+                draggable="false">
+          </a>
+          <figcaption class="page-number">Страница {{ forloop.counter }}</figcaption>
         </div>
-      </div>
-    </main>
+
+      {% empty %}
+        <p class="no-pages">Страниц пока нет</p>
+      {% endfor %}
+    </div>
+    </section>
   </div>
+
+  <script>
+    // Массовый переключатель оригинал/цензура/авто
+    (function () {
+      const gallery = document.querySelector('.page-gallery');
+      const buttons = document.querySelectorAll('.segmented .seg');
+
+      function setMode(mode) {
+        gallery.setAttribute('data-mode', mode);
+        buttons.forEach(b => b.classList.toggle('active', b.dataset.view === mode));
+        buttons.forEach(b => b.setAttribute('aria-pressed', String(b.dataset.view === mode)));
+      }
+
+      buttons.forEach(btn => {
+        btn.addEventListener('click', () => setMode(btn.dataset.view));
+      });
+
+      setMode('auto');
+    })();
+
+    // Лёгкая защита: отключим перетаскивание и контекстное меню на изображениях
+    document.addEventListener('contextmenu', (e) => {
+      if (e.target.matches('.page-card img')) e.preventDefault();
+    }, { capture: true });
+
+    document.addEventListener('dragstart', (e) => {
+      if (e.target.matches('.page-card img')) e.preventDefault();
+    }, { capture: true });
+  </script>
+  <script src="https://unpkg.com/htmx.org@1.9.12"></script>
 </body>
 </html>

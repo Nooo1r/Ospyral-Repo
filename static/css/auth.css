@@ -1,99 +1,193 @@
-body.auth-body {
+:root{
+  --bg: #070709;
+  --panel: rgba(255,255,255,0.05);
+  --glass: rgba(255,255,255,0.08);
+  --gold: #f5d36c;
+  --gold-2: #d9a92f;
+  --text: #ececf0;
+  --muted: #b9b9bf;
+}
+
+*{box-sizing: border-box}
+html, body{height: 100%}
+
+body.auth-body{
   margin: 0;
   padding: 0;
-  background: linear-gradient(to right, #1a1a1a, #000000);
-  font-family: 'Roboto', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, "Helvetica Neue", Arial, "Noto Sans";
   display: flex;
   justify-content: center;
   align-items: center;
-  height: 100vh;
+  height: 100vh;           /* центрируем карточку */
+  overflow: hidden;        /* без скролла, единый экран */
 }
 
-.auth-container {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  padding: 40px;
+/* Фоновая сцена */
+.bg-wrap{
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  z-index: 0;
 }
-
-.auth-card {
-  background: rgba(255, 255, 255, 0.05);
-  backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 16px;
-  padding: 40px;
+.bg-wrap canvas{
+  position: absolute;
+  inset: 0;
   width: 100%;
-  max-width: 400px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+  height: 100%;
+  display: block;
+}
+.aurora{
+  position: absolute;
+  inset: -20% -10% -10% -10%;
+  filter: blur(28px);
+  opacity: .9;
+  mix-blend-mode: screen;
+  background:
+    radial-gradient(40% 40% at 15% 30%, rgba(245,211,108,.18), transparent 60%),
+    radial-gradient(45% 45% at 80% 25%, rgba(122,108,255,.22), transparent 65%),
+    radial-gradient(55% 55% at 60% 80%, rgba(39,184,255,.18), transparent 60%);
+  animation: aurora 18s ease-in-out infinite alternate;
+}
+@keyframes aurora{
+  0%{ transform: translate3d(0,0,0) scale(1) }
+  100%{ transform: translate3d(-4%,2%,0) scale(1.06) }
 }
 
-.auth-title {
-  color: #d4af37;
-  font-size: 1.8rem;
+/* Контейнер и карточка */
+.auth-container{
+  position: relative;
+  z-index: 2;               /* над фоном */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 40px;
+}
+.auth-card{
+  background: rgba(255,255,255,0.04);
+  backdrop-filter: blur(12px) saturate(140%);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 18px;
+  padding: 36px;
+  width: 100%;
+  max-width: 420px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.55);
+}
+
+.auth-title{
+  color: var(--gold);
+  font-size: 1.9rem;
   text-align: center;
-  margin-bottom: 30px;
+  margin: 6px 0 22px;
+  letter-spacing: .3px;
 }
 
-.auth-form {
+.auth-form{
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: 16px;
 }
 
-.auth-input {
-  padding: 12px 16px;
-  border-radius: 8px;
-  border: none;
-  background: #1f1f1f;
+.auth-input{
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,0.10);
+  background: #111115;
   color: #fff;
   font-size: 1rem;
-  transition: box-shadow 0.3s ease;
+  transition: box-shadow .25s ease, border-color .25s ease, transform .08s ease;
 }
-
-.auth-input:focus {
+.auth-input:focus{
   outline: none;
-  box-shadow: 0 0 0 2px #d4af37;
+  border-color: rgba(245,211,108,.55);
+  box-shadow: 0 0 0 3px rgba(245,211,108,.20);
 }
 
-.auth-button {
-  padding: 12px;
-  border-radius: 8px;
-  background: #d4af37;
-  color: #000;
-  font-weight: bold;
-  font-size: 1rem;
+.auth-button{
+  padding: 12px 16px;
+  border-radius: 14px;
+  background: linear-gradient(180deg, var(--gold), var(--gold-2));
+  color: #1c1500;
+  font-weight: 800;
+  font-size: 1.02rem;
   cursor: pointer;
-  transition: background 0.3s ease;
   border: none;
+  transition: transform .12s ease, filter .25s ease, box-shadow .25s ease;
+  box-shadow: 0 10px 30px rgba(245,211,108,.22);
 }
+.auth-button:hover{ filter: saturate(110%) }
+.auth-button:active{ transform: translateY(1px) }
 
-.auth-button:hover {
-  background: #ffd45e;
-}
-
-.auth-footer {
-  margin-top: 20px;
+.auth-footer{
+  margin-top: 16px;
   text-align: center;
-  font-size: 0.95rem;
-  color: #aaa;
+  font-size: .95rem;
+  color: var(--muted);
 }
-
-.auth-footer a {
-  color: #d4af37;
+.auth-footer a{
+  color: var(--gold);
   text-decoration: none;
-  font-weight: bold;
+  font-weight: 800;
 }
+.auth-footer a:hover{ text-decoration: underline }
 
-.auth-footer a:hover {
-  text-decoration: underline;
-}
-
-.auth-error, .auth-message {
+.auth-error, .auth-message, .field-error{
   margin-top: 10px;
   padding: 10px;
   background: #b91c1c;
   color: #fff;
-  border-radius: 8px;
+  border-radius: 10px;
   font-size: 0.9rem;
   text-align: center;
+}
+
+/* Адаптив */
+@media (max-width: 520px){
+  .auth-card{ padding: 28px; }
+  .auth-button{ font-size: 1rem; }
+}
+
+/* Кликаемость фона отключаем, чтобы стрелка/форма были поверх */
+.bg-wrap { pointer-events: none; }          /* фон не перехватывает клики */
+.bg-wrap canvas, .bg-wrap .aurora { pointer-events: none; }
+
+/* Стрелка "назад" */
+.auth-back{
+  position: fixed; top: 20px; left: 20px; z-index: 3;   /* поверх bg */
+  display: inline-flex; align-items: center; gap: 10px;
+  padding: 10px 12px; border-radius: 12px;
+  color: var(--text); text-decoration: none; font-weight: 700;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.12);
+  backdrop-filter: blur(10px) saturate(140%);
+  transition: transform .15s ease, box-shadow .25s ease, background .25s ease;
+}
+.auth-back:hover{
+  background: rgba(255,255,255,0.10);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.35);
+}
+.auth-back:active{ transform: translateY(1px); }
+
+.auth-back__icon{ width: 22px; height: 22px; }
+.auth-back__label{ letter-spacing: .2px; }
+
+.auth-form .auth-input,
+.auth-form .auth-button{
+  width: 100%;
+  display: block;
+}
+.auth-button:disabled,
+.auth-button[disabled] {
+  background: #8f8f8f !important;     /* спокойный серый */
+  border-color: rgba(0,0,0,0.15) !important;
+  color: rgba(255,255,255,0.85) !important;
+  cursor: not-allowed;
+  box-shadow: none !important;
+  transform: none !important;          /* без “магнита” */
+  filter: grayscale(12%);
+  opacity: 0.92;
+}
+.rules{
+  color: #f5d36c;
 }

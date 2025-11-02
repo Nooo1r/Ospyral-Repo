@@ -8,4 +8,6 @@
   <button type="submit" class="btn-reject">Подтвердить отклонение</button>
   <a href="{% url 'users_admin:review_text_products' %}" class="btn-cancel">Отмена</a>
 </form>
+<a href="{% url 'users_admin:review_artworks' %}?status=pending" class="btn btn-outline-secondary">Назад к заявкам</a>
+
 {% endblock %}
